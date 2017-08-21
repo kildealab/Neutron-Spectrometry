@@ -1,0 +1,5 @@
+c++ compiler
+root
+    - can install using homebrew on OSX
+    - can instead disable ROOT section and indicated include statements from main.cpp (note this
+    will disable generation of an output plot).
