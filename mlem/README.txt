@@ -1,6 +1,7 @@
 ****************************************************************************************************
 README.txt
-Creation Date: 2017-08-21
+Creation Date:  2017-08-21
+Last Modified:  2017-08-23
 Authors: Georges Al Makdessi, John Kildea, Robert Maglieri, Logan Montgomery
 
 This file explains:
@@ -33,23 +34,29 @@ Please refer to dependencies.txt for dependencies
                                     experimentally.
 
 - Files read by the program are included in input/
-    - The contents of these files should remain constant for most situations
-        energy_bins.csv             Energy bins corresponding to other input files [MeV].
+    - 4 files from this directory are read by the program, but multiple options may exist
+        Energy bins                 Energy bins corresponding to the values in other input files 
+                                    Units: MeV
+                                    Default: energy_bins.csv 
 
-        icrp_conversions.csv        Factors to convert neutron flux [n cm^-2 s^-1] to neutron
-                                    ambient dose equivalent rate [pSv s^-1]. Factors in units of
-                                    [pSv cm^2] for each bin in energy_bins.csv. Values were linearly
-                                    interpolated from tabulated values in ICRP 74 Table A.42 (1st
-                                    column).
+        Input spectrum              The "guess" input neutron flux spectrum inserted into the MLEM 
+                                    unfolding algorithm. Currently use a step function (high value 
+                                    at low energies and low value at high energies, step at thermal)
+                                    Units:[n cm^-2 s^-1]
+                                    Default: spectrum_step.csv
 
-        input_spectrum.csv          The "guess" spectrum input into the MLEM unfolding algorithm.
-                                    Flux values in units of [n cm^-2 s^-1] for each bin in
-                                    energy_bins.csv. Currently use a step function (high value at
-                                    low energies and low value at high energies, step at thermal).
-
-        nns_response.csv            Vendor-provided NNS relative response as a function of energy
+        NNS Response function       Vendor-provided NNS relative response as a function of energy
                                     for each level of moderation. Line 1: response for bare probe,
-                                    Line 2: response for 1 moderator, etc. Units [cm^2].
+                                    Line 2: response for 1 moderator, etc. 
+                                    Units [cm^2]
+                                    Default: [n cm^-2 s^-1]
+
+        ICRP conversion factors     Factors to convert neutron flux [n cm^-2 s^-1] to neutron
+                                    ambient dose equivalent rate [pSv s^-1]. Values were linearly
+                                    interpolated from tabulated values in ICRP 74 Table A.42 (1st
+                                    data column).
+                                    Units: pSv cm^2
+                                    Default: icrp_conversions.crp
 
 - Files written to by the program are located in output/
         output_spectrum.csv         The unfolded spectrum generated from executing this program is
@@ -73,17 +80,24 @@ Please refer to dependencies.txt for dependencies
 2) Execution instructions
 ----------------------------------------------------------------------------------------------------
 - Input measured data:
-    - Create file input/measurements.csv
+    - Create input file (e.g. input/measurements.csv)
     - Refer to input/template_measurements.csv for structure of the file
         - Line 1: A string representing the irradiation conditions
         - Line 2: The measurement duration in seconds
         - Lines 3 through 10: Measured charge values in nC (decreasing number of moderators)
 
 - Adjust settings (if desired/necessary):
-    - edit mlem.cfg or input/*.csv
+    - edit mlem.cfg or create new input/*.csv files
 
 - Compile the program:
     $ make
 
-- Execute the program:
+- Execute the program and specify 1 or more files using the options below (if any option is not
+  included then a default file is used, as specified in <>):
     $ ./main.exe
+    - Allowed Options:
+        --measurements <measurements.txt>
+        --energy-bins <energy_bins.csv>
+        --input-spectrum <spectrum_step.csv>
+        --icrp-factors <icrp_conversions.csv>
+        --nns-response <nns_response.csv>

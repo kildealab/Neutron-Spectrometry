@@ -1,5 +1,5 @@
 *.o
 *.DS_Store
 mlem/output/*
-mlem/input/measurements.csv
+mlem/input/measurements.txt
 mlem/main.exe

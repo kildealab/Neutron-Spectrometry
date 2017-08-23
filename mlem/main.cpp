@@ -17,6 +17,7 @@
 #include <ctime>
 #include <cmath>
 #include <stdlib.h>
+#include <algorithm>
 
 // Root
 #include "TAxis.h"
@@ -42,11 +43,13 @@
 double poisson(double lambda);
 bool is_empty(std::ifstream& pFile);
 
+int setfile(std::vector<std::string> &arg_vector, std::string directory, std::string arg_string, std::string default_filename, std::string &filename);
+void checkUnknownParameters(std::vector<std::string> &arg_vector, std::vector<std::string> input_file_flags);
 int setSettings(std::string config_file, int &cutoff, double &norm, double &error, double &f_factor);
 std::vector<double> getMeasurements(std::string input_file, std::string &irradiation_conditions, int &t);
 int saveDose(std::string dose_file, std::string irradiation_conditions, double dose, double s_dose);
 int saveSpectrum(std::string spectrum_file, std::string irradiation_conditions, double (&ini)[52][1], double (&s)[52][1], double (&bins)[52][1]);
-int prepareReport(std::string report_file, std::string irradiation_conditions, int cutoff, double error, double norm, double f_factor, std::vector<double>& data_v, int duration, std::vector<double>& bins_v, std::vector<double>& initial_v, std::vector<std::vector<double>>& response_v, int num_iterations, std::vector<double>& ratio_v, double dose, double s_dose, std::vector<double>& spectrum_v, std::vector<double>& uncertainty_v, std::vector<double>& icrp_v, std::vector<double>& subdose_v);
+int prepareReport(std::string report_file, std::string irradiation_conditions, std::vector<std::string> &input_files, std::vector<std::string> &input_file_flags, int cutoff, double error, double norm, double f_factor, std::vector<double>& data_v, int duration, std::vector<double>& bins_v, std::vector<double>& initial_v, std::vector<std::vector<double>>& response_v, int num_iterations, std::vector<double>& ratio_v, double dose, double s_dose, std::vector<double>& spectrum_v, std::vector<double>& uncertainty_v, std::vector<double>& icrp_v, std::vector<double>& subdose_v);
 
 // Constants
 std::string DOSE_HEADERS[] = {
@@ -61,29 +64,73 @@ std::string UNCERTAINTY_SUFFIX = "_ERROR";
 // Create an mt19937 object, called mrand, that is seeded with the current time in seconds
 std::mt19937 mrand(std::time(0));
 
-
 //==================================================================================================
 //==================================================================================================
-int main()
+int main(int argc, char* argv[])
 {
+    // Put arguments in vector for easier processing
+    std::vector<std::string> arg_vector;
+    for (int i = 1; i < argc; i++) {
+        arg_vector.push_back(argv[i]);
+    }
+
     // Names of input and output directories
     std::string input_dir = "input/";
     std::string output_dir = "output/";
 
-    // Names of files read from / written to by this program
+    // NOTE: Indices are linked between the following arrays and vectors (i.e. input_files[0]
+    // corresponds to input_file_flags[0] and input_file_defaults[0])
+    // Array that stores the allowed options that specify input files
+    const int num_ifiles = 5;
+    std::string input_file_flags_arr[num_ifiles] = {
+        "--measurements",
+        "--input-spectrum",
+        "--energy-bins",
+        "--nns-response",
+        "--icrp-factors"
+    };
+    // Array that stores default filename for each input file
+    std::string input_file_defaults_arr[num_ifiles] = {
+        "measurements.txt",
+        "spectrum_step.csv",
+        "energy_bins.csv",
+        "nns_response.csv",
+        "icrp_conversions.csv"
+    };
+
+    // Convert arrays to vectors b/c easier to work with
+    std::vector<std::string> input_files; // Store the actual input filenames to be used
+    std::vector<std::string> input_file_flags;
+    std::vector<std::string> input_file_defaults;
+    for (int i=0; i<num_ifiles; i++) {
+        input_files.push_back("");
+        input_file_flags.push_back(input_file_flags_arr[i]);
+        input_file_defaults.push_back(input_file_defaults_arr[i]);
+    }
+
+    // Use provided arguments (files) and/or defaults to determine the input files to be used
+    for (int i=0; i<num_ifiles; i++) {
+        setfile(arg_vector, input_dir, input_file_flags[i], input_file_defaults[i], input_files[i]);
+    }
+
+    // Notify user if unknown parameters were received
+    checkUnknownParameters(arg_vector, input_file_flags);
+
+    // Input filenames
     std::string config_file = "mlem.cfg";
-    std::string input_file = input_dir + "measurements.csv";
-    std::string i_spectrum_file = input_dir + "input_spectrum.csv";
-    std::string energy_bins_file = input_dir + "energy_bins.csv";
-    std::string response_file = input_dir + "nns_response.csv";
-    std::string icrp_conversions_file = input_dir + "icrp_conversions.csv";
+    // std::string input_file;
+    // std::string i_spectrum_file;
+    // std::string energy_bins_file;
+    // std::string response_file;
+    // std::string icrp_conversions_file;
+
+    // Output filenames
     std::string dose_file = output_dir + "output_dose.csv";
     std::string o_spectrum_file = output_dir + "output_spectra.csv"; // result (unfolded) spectrum
     std::string report_file_pre = output_dir + "REPORT_";
     std::string report_file_suf = ".txt";
     std::string figure_file_pre = output_dir + "FIGURE_";
     std::string figure_file_suf = ".png";
-    // std::string response_file = "";
 
     // Apply some settings read in from a config file
     int cutoff; // maximum # of MLEM itereations
@@ -142,7 +189,7 @@ int main()
     // Read measured data (in nC) from input file
     std::string irradiation_conditions;
     int t;
-    std::vector<double> data_v = getMeasurements(input_file, irradiation_conditions, t);
+    std::vector<double> data_v = getMeasurements(input_files[0], irradiation_conditions, t);
 
     // Convert data to existing variable structure
     // std::cout << '\n' << "------------------" << '\n';
@@ -207,7 +254,7 @@ int main()
     //  - height = # of measurements
     //  - width = # of energy bins
     // Detector response value for each # of moderators for each energy (currently 52 energies)
-    // Input the response from response_file
+    // Input the response from input_files[3]
     //  - values in units of [cm^2]
     //
     // The response function accounts for variable number of (n,p) reactions in He-3 for each
@@ -216,7 +263,7 @@ int main()
     int height = 8, width = 52;
     double respmat[height][width];
 
-    std::ifstream file(response_file);
+    std::ifstream file(input_files[3]);
 
     //std::cout << "The response matrix is equal to:" << '\n'; // newline
 
@@ -248,7 +295,7 @@ int main()
     // Generate the energy bins matrix:
     //  - height = # of energy bins
     //  - width = @@Not sure why this is a 2D matrix
-    // Input the energies from energy_bins_file
+    // Input the energies from energy bins file, input_files[2]
     //  - values in units of [MeV]
     //  - Thi is 2D csv file, but the second value on each line is just 0 (@@not sure why this is 
     //  - necessary)
@@ -256,7 +303,7 @@ int main()
     int height1 = 52, width1 = 1;
     double bins[52][1];
 
-    std::ifstream file1(energy_bins_file);
+    std::ifstream file1(input_files[2]);
 
     //std::cout << "The energy bins matrix is equal to:" << '\n'; // newline
 
@@ -288,7 +335,7 @@ int main()
     // Generate the inital spectrum matrix to input into MLEM algorithm:
     //  - height = # of energy bins
     //  - width = @@Not sure why this is a 2D matrix
-    // Input from i_spectrum_file
+    // Input from the input spectrum file (input_files[1])
     //  - values are neutron fluence rates [neutrons cm^-2 s^-1])
     //  - This is 2D csv file, but the second value on each line is just 0 (@@not sure why this is 
     //    necessary)
@@ -301,7 +348,7 @@ int main()
     int height2 = 52, width2 = 1;
     double ini[52][1];
 
-    std::ifstream file2(i_spectrum_file);
+    std::ifstream file2(input_files[1]);
 
     //std::cout << "The initial matrix is equal to:" << '\n'; // newline
 
@@ -337,7 +384,7 @@ int main()
     // Generate the ICRP conversion matrix (factors to convert fluence to ambient dose equivalent):
     //  - height = # of energy bins
     //  - width = @@Not sure why this is a 2D matrix
-    // Input from icrp_conversions_file
+    // Input from input_files[4]
     //  - values are in units of [pSv cm^2]
     //  - H values were obtained by linearly interopolating tabulated data to match energy bins used
     //  - This is 2D csv file, but the second value on each line is just 0 (@@not sure why this is 
@@ -347,7 +394,7 @@ int main()
     int height4 = 52, width4 = 1;
     double icruconv[height4][width4];
 
-    std::ifstream file4(icrp_conversions_file);
+    std::ifstream file4(input_files[4]);
 
     //std::cout << "The conversion matrix is equal to:" << '\n'; // newline
 
@@ -563,7 +610,7 @@ int main()
     for (int m = 0; m < 1000; m++)
     {
 
-        std::ifstream file3(i_spectrum_file);
+        std::ifstream file3(input_files[1]);
 
         //std::cout << "The initial poisson matrix is equal to:" << '\n'; // newline
 
@@ -953,7 +1000,7 @@ int main()
     }
     //************************************
     std::string report_file = report_file_pre + irradiation_conditions + report_file_suf;
-    prepareReport(report_file, irradiation_conditions, cutoff, error, norm, f_factor_report, data_v, t, bins_v, initial_v, response_v, num_interations, ratio_v, dose, s_dose, spectrum_v, uncertainty_v, icrp_v, subdose_v);
+    prepareReport(report_file, irradiation_conditions, input_files, input_file_flags, cutoff, error, norm, f_factor_report, data_v, t, bins_v, initial_v, response_v, num_interations, ratio_v, dose, s_dose, spectrum_v, uncertainty_v, icrp_v, subdose_v);
     std::cout << "Generated summary report: " << report_file << "\n\n";
 
     //----------------------------------------------------------------------------------------------
@@ -1128,6 +1175,60 @@ double poisson(double lambda)
 bool is_empty(std::ifstream& pFile)
 {
     return pFile.peek() == std::ifstream::traits_type::eof();
+}
+
+//==================================================================================================
+// Check arguments passed to the main function for a matching flag, and assign value for the input
+// filename
+// Args:
+//  - arg_vector: Vector containing all arguments passed to the main function (at command line)
+//  - directory: Directory (path) at which the input file is located (e.g. input/)
+//  - arg_string: The argument string that indicates what the file is (e.g. --measurements)
+//  - default_file: The default filename to be used for the arg_string provided
+//  - filename: The variable (passed by reference) that will be assigned a value, representing the
+//      the filename to be used
+//==================================================================================================
+int setfile(std::vector<std::string> &arg_vector, std::string directory, std::string arg_string, std::string default_filename, std::string &filename) {
+    // Place an iterator at an index of the vector, where the matching arg_string was found
+    std::vector<std::string>::iterator iter_args = std::find(arg_vector.begin(), arg_vector.end(), arg_string);
+
+    // If a matching argument was found, ensure that a subsequent argument (i.e. filename to use) 
+    // was provided. Apply it if so. If not, throw an error
+    if( iter_args != arg_vector.end()) {
+        iter_args += 1;
+        if (iter_args != arg_vector.end()) {
+            filename = directory + *iter_args;
+        }
+        else {
+            // throw error saying no file provided for *iter_measurements -= 1
+            iter_args -= 1;
+            std::cout << "Error: no file provided for argument: " << *iter_args << "\n";
+        }
+    }
+    // If no match was found for the target arg_string within arg_vector, use the default filename
+    // i.e. The user did not specify which file to use
+    else {
+        filename = directory + default_filename;
+    }
+
+    return 1;
+}
+
+//==================================================================================================
+// Identify any options that were provided to the main function that are not supported and notify
+// the user.
+//==================================================================================================
+void checkUnknownParameters(std::vector<std::string> &arg_vector, std::vector<std::string> input_file_flags) {
+    for (int i=0; i<arg_vector.size(); i++) {
+        std::vector<std::string>::iterator iter_args = std::find(input_file_flags.begin(), input_file_flags.end(), arg_vector[i]);
+        if(iter_args == input_file_flags.end()) {
+            std::cout << "Warning: Ignored unknown argument " << arg_vector[i] << "\n";
+        }
+        else {
+            i += 1;
+        }
+    }
+   
 }
 
 //==================================================================================================
@@ -1311,7 +1412,7 @@ int saveSpectrum(std::string spectrum_file, std::string irradiation_conditions, 
 // of this function are separated by headers indicating the type of information printed to the
 // report in the the corresponding section.
 //==================================================================================================
-int prepareReport(std::string report_file, std::string irradiation_conditions, int cutoff, double error, double norm, double f_factor, std::vector<double>& data_v, int duration, std::vector<double>& bins_v, std::vector<double>& initial_v, std::vector<std::vector<double>>& response_v, int num_iterations, std::vector<double>& ratio_v, double dose, double s_dose, std::vector<double>& spectrum_v, std::vector<double>& uncertainty_v, std::vector<double>& icrp_v, std::vector<double>& subdose_v) {
+int prepareReport(std::string report_file, std::string irradiation_conditions, std::vector<std::string> &input_files, std::vector<std::string> &input_file_flags, int cutoff, double error, double norm, double f_factor, std::vector<double>& data_v, int duration, std::vector<double>& bins_v, std::vector<double>& initial_v, std::vector<std::vector<double>>& response_v, int num_iterations, std::vector<double>& ratio_v, double dose, double s_dose, std::vector<double>& spectrum_v, std::vector<double>& uncertainty_v, std::vector<double>& icrp_v, std::vector<double>& subdose_v) {
     std::string HEADER_DIVIDE = "************************************************************************************************************************\n";
     std::string SECTION_DIVIDE = "\n========================================================================================================================\n\n";
     std::string COLSTRING = "--------------------";
@@ -1330,6 +1431,11 @@ int prepareReport(std::string report_file, std::string irradiation_conditions, i
     auto t = std::time(nullptr);
     auto tm = *std::localtime(&t);
     rfile << std::left << std::setw(sw) << "Date report was generated: " << std::put_time(&tm, "%Y-%m-%d %H:%M:%S") << "\n";
+    rfile << "Input arguments (files) used:\n";
+    for (int i=0; i<input_files.size(); i++) {
+        std::string tempstring = "    " + input_file_flags[i];
+        rfile << std::left <<std::setw(sw) << tempstring << input_files[i] << "\n";
+    }
     rfile << HEADER_DIVIDE << "\n";
 
     //----------------------------------------------------------------------------------------------
@@ -1409,9 +1515,9 @@ int prepareReport(std::string report_file, std::string irradiation_conditions, i
     // Results
     //----------------------------------------------------------------------------------------------
     rfile << "Results\n\n";
-    rfile << std::left << std::setw(sw) << "Ambient dose equivalent:" << dose << " mSv\n";
+    rfile << std::left << std::setw(sw) << "Ambient dose equivalent:" << dose << " mSv/hr\n";
     rfile << std::left << std::setw(sw) << "Uncertainty:" << s_dose << " mSv\n\n";
-    rfile << std::left << std::setw(cw) << "Energy bins" << std::setw(cw) << "Unfolded spectrum" << std::setw(cw) << "Uncertainty" << std::setw(cw) << "| ICRP H factor" << "Dose\n";
+    rfile << std::left << std::setw(cw) << "Energy bins" << std::setw(cw) << "Unfolded spectrum" << std::setw(cw) << "Uncertainty" << std::setw(cw) << "| ICRP H factor" << "Ambient Dose Equiv.\n";
     rfile << std::left << std::setw(cw) << "(MeV)" << std::setw(cw) << "(n cm^-2 s^-1)" << std::setw(cw) << "(n cm^-2 s^-1)" << std::setw(cw) << "| (pSv/cm^2)" << "(mSv/hr)\n";;
     rfile << std::left << std::setw(cw) << COLSTRING << std::setw(cw) << COLSTRING << std::setw(cw) << COLSTRING << std::setw(cw) << COLSTRING << COLSTRING << "\n";
     for (int i=0; i<bins_v.size(); i++) {
