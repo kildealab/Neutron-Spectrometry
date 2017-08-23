@@ -45,11 +45,11 @@ bool is_empty(std::ifstream& pFile);
 
 int setfile(std::vector<std::string> &arg_vector, std::string directory, std::string arg_string, std::string default_filename, std::string &filename);
 void checkUnknownParameters(std::vector<std::string> &arg_vector, std::vector<std::string> input_file_flags);
-int setSettings(std::string config_file, int &cutoff, double &norm, double &error, double &f_factor);
+int setSettings(std::string config_file, int &cutoff, double &norm, double &error, double &f_factor, int &num_poisson_samples);
 std::vector<double> getMeasurements(std::string input_file, std::string &irradiation_conditions, int &t);
 int saveDose(std::string dose_file, std::string irradiation_conditions, double dose, double s_dose);
 int saveSpectrum(std::string spectrum_file, std::string irradiation_conditions, double (&ini)[52][1], double (&s)[52][1], double (&bins)[52][1]);
-int prepareReport(std::string report_file, std::string irradiation_conditions, std::vector<std::string> &input_files, std::vector<std::string> &input_file_flags, int cutoff, double error, double norm, double f_factor, std::vector<double>& data_v, int duration, std::vector<double>& bins_v, std::vector<double>& initial_v, std::vector<std::vector<double>>& response_v, int num_iterations, std::vector<double>& ratio_v, double dose, double s_dose, std::vector<double>& spectrum_v, std::vector<double>& uncertainty_v, std::vector<double>& icrp_v, std::vector<double>& subdose_v);
+int prepareReport(std::string report_file, std::string irradiation_conditions, std::vector<std::string> &input_files, std::vector<std::string> &input_file_flags, int cutoff, double error, double norm, double f_factor, int num_poisson_samples, std::vector<double>& data_v, int duration, std::vector<double>& bins_v, std::vector<double>& initial_v, std::vector<std::vector<double>>& response_v, int num_iterations, std::vector<double>& ratio_v, double dose, double s_dose, std::vector<double>& spectrum_v, std::vector<double>& uncertainty_v, std::vector<double>& icrp_v, std::vector<double>& subdose_v);
 
 // Constants
 std::string DOSE_HEADERS[] = {
@@ -137,8 +137,9 @@ int main(int argc, char* argv[])
     double norm; // vendor specfied normalization factor for the NNS used
     double error; // The target error on ratio between the experimental data points and the estimated data points from MLEM (e.g. 0.1 means the values must be within 10% of each other before the algorithm will terminate)
     double f_factor; // factor that converts measured charge (in fC) to counts per second [fA/cps]
+    int num_poisson_samples;
 
-    bool settings_success = setSettings(config_file, cutoff, norm, error, f_factor);
+    bool settings_success = setSettings(config_file, cutoff, norm, error, f_factor, num_poisson_samples);
     if (!settings_success) {
         throw std::logic_error("Unable to open configuration file: " + config_file);
     }
@@ -600,14 +601,14 @@ int main(int argc, char* argv[])
     int height3 = 52, width3 = 1;
     double ini_poisson[height3][width3];  // analogous to 'ini'. Store sampled-spectrum as is updated by MLEM
 
-    double dosemat[1][1000]; // Matrix to store sampled-ambient dose equivalent values used for statistical purposes
-    double poissmat[52][1000]; // Matrix to store sampled-spectra used for statistical purposes
+    double dosemat[1][num_poisson_samples]; // Matrix to store sampled-ambient dose equivalent values used for statistical purposes
+    double poissmat[52][num_poisson_samples]; // Matrix to store sampled-spectra used for statistical purposes
     double dose_std = 0;
 
     //----------------------------------------------------------------------------------------------
     // Perform poisson analysis 1000 times
     //----------------------------------------------------------------------------------------------
-    for (int m = 0; m < 1000; m++)
+    for (int m = 0; m < num_poisson_samples; m++)
     {
 
         std::ifstream file3(input_files[1]);
@@ -858,7 +859,7 @@ int main(int argc, char* argv[])
     {
         for (int j = 0; j < 1; j++)
         {
-            for (int k = 0; k < 1000; k++)
+            for (int k = 0; k < num_poisson_samples; k++)
             {
                 sq[i][j] += (poissmat[i][k]-ini[i][j])*(poissmat[i][k]-ini[i][j]);
             }
@@ -874,7 +875,7 @@ int main(int argc, char* argv[])
     {
         for (int j = 0; j < 1; j++)
         {
-            sq_average[i][j] = (sq[i][j])/(1000);
+            sq_average[i][j] = (sq[i][j])/(num_poisson_samples);
         }
     }
 
@@ -953,13 +954,13 @@ int main(int argc, char* argv[])
 
     for (int i = 0; i < 1; i++)
         {
-        for (int j = 0; j < 1000; j++)
+        for (int j = 0; j < num_poisson_samples; j++)
             {
                 sq_dose += (dosemat[i][j]-dose)*(dosemat[i][j]-dose);
             }
         }
 
-    double sq_average_dose = sq_dose/1000;
+    double sq_average_dose = sq_dose/num_poisson_samples;
 
     double s_dose = sqrt(sq_average_dose);
 
@@ -1000,7 +1001,7 @@ int main(int argc, char* argv[])
     }
     //************************************
     std::string report_file = report_file_pre + irradiation_conditions + report_file_suf;
-    prepareReport(report_file, irradiation_conditions, input_files, input_file_flags, cutoff, error, norm, f_factor_report, data_v, t, bins_v, initial_v, response_v, num_interations, ratio_v, dose, s_dose, spectrum_v, uncertainty_v, icrp_v, subdose_v);
+    prepareReport(report_file, irradiation_conditions, input_files, input_file_flags, cutoff, error, norm, f_factor_report, num_poisson_samples, data_v, t, bins_v, initial_v, response_v, num_interations, ratio_v, dose, s_dose, spectrum_v, uncertainty_v, icrp_v, subdose_v);
     std::cout << "Generated summary report: " << report_file << "\n\n";
 
     //----------------------------------------------------------------------------------------------
@@ -1234,7 +1235,7 @@ void checkUnknownParameters(std::vector<std::string> &arg_vector, std::vector<st
 //==================================================================================================
 // Retrieve settings from a configuration file 'config_file' and save values in relevant variables
 //==================================================================================================
-int setSettings(std::string config_file, int &cutoff, double &norm, double &error, double &f_factor) {
+int setSettings(std::string config_file, int &cutoff, double &norm, double &error, double &f_factor, int &num_poisson_samples) {
     std::ifstream cfile(config_file);
     std::string line;
     std::vector<double> settings;
@@ -1263,6 +1264,7 @@ int setSettings(std::string config_file, int &cutoff, double &norm, double &erro
     norm = settings[1];
     error = settings[2];
     f_factor = settings[3];
+    num_poisson_samples = settings[4];
     return true;
 }
 
@@ -1412,7 +1414,7 @@ int saveSpectrum(std::string spectrum_file, std::string irradiation_conditions, 
 // of this function are separated by headers indicating the type of information printed to the
 // report in the the corresponding section.
 //==================================================================================================
-int prepareReport(std::string report_file, std::string irradiation_conditions, std::vector<std::string> &input_files, std::vector<std::string> &input_file_flags, int cutoff, double error, double norm, double f_factor, std::vector<double>& data_v, int duration, std::vector<double>& bins_v, std::vector<double>& initial_v, std::vector<std::vector<double>>& response_v, int num_iterations, std::vector<double>& ratio_v, double dose, double s_dose, std::vector<double>& spectrum_v, std::vector<double>& uncertainty_v, std::vector<double>& icrp_v, std::vector<double>& subdose_v) {
+int prepareReport(std::string report_file, std::string irradiation_conditions, std::vector<std::string> &input_files, std::vector<std::string> &input_file_flags, int cutoff, double error, double norm, double f_factor, int num_poisson_samples, std::vector<double>& data_v, int duration, std::vector<double>& bins_v, std::vector<double>& initial_v, std::vector<std::vector<double>>& response_v, int num_iterations, std::vector<double>& ratio_v, double dose, double s_dose, std::vector<double>& spectrum_v, std::vector<double>& uncertainty_v, std::vector<double>& icrp_v, std::vector<double>& subdose_v) {
     std::string HEADER_DIVIDE = "************************************************************************************************************************\n";
     std::string SECTION_DIVIDE = "\n========================================================================================================================\n\n";
     std::string COLSTRING = "--------------------";
@@ -1446,6 +1448,7 @@ int prepareReport(std::string report_file, std::string irradiation_conditions, s
     rfile << std::left << std::setw(sw) << "MLEM target ratio:" << error << "\n";
     rfile << std::left << std::setw(sw) << "NNS normalization factor:" << norm << "\n";
     rfile << std::left << std::setw(sw) << "NNS calibration factor:" << f_factor << " fA/cps\n";
+    rfile << std::left << std::setw(sw) << "Number of poisson samples:" << num_poisson_samples << "\n";
     rfile << SECTION_DIVIDE;
 
     //----------------------------------------------------------------------------------------------
