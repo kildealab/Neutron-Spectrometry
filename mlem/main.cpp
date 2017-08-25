@@ -578,12 +578,19 @@ int main(int argc, char* argv[])
     //----------------------------------------------------------------------------------------------
     std::cout << '\n';
     std::cout << "The error matrix is equal to:" << '\n'; // newline
+    // double avg_ratio = 0; // Calculate average error in ratio across 8 measuremnts
+    // double max_ratio = 0; // maximum error in ratio across 8 measurements
 
     for (int i = 0; i < 8; ++i)
     {
         for (int j = 0; j < 1; ++j)
         {
             std::cout << r[i][j] << ' ';
+            // double myval = std::abs(r[i][j]-1.0);
+            // avg_ratio += myval;
+            // if (myval > max_ratio) {
+            //     max_ratio = myval;
+            // }
         }
         std::cout << std::endl;
     }
@@ -1003,6 +1010,8 @@ int main(int argc, char* argv[])
     std::string report_file = report_file_pre + irradiation_conditions + report_file_suf;
     prepareReport(report_file, irradiation_conditions, input_files, input_file_flags, cutoff, error, norm, f_factor_report, num_poisson_samples, data_v, t, bins_v, initial_v, response_v, num_interations, ratio_v, dose, s_dose, spectrum_v, uncertainty_v, icrp_v, subdose_v);
     std::cout << "Generated summary report: " << report_file << "\n\n";
+    // std::cout << "Avg ratio: " << avg_ratio/8.0 << "\n";
+    // std::cout << "Max ratio: " << max_ratio << "\n\n";
 
     //----------------------------------------------------------------------------------------------
     // ROOT plotting stuff
@@ -1146,8 +1155,9 @@ int main(int argc, char* argv[])
 
     c1->Modified();
 
-    std::string figure_file = figure_file_pre + irradiation_conditions + figure_file_suf;
-    const char *cstr_figure_file = figure_file.c_str();
+    std::ostringstream figure_file;
+    figure_file << figure_file_pre << irradiation_conditions << figure_file_suf;
+    const char *cstr_figure_file = figure_file.str().c_str();
     c1->Print(cstr_figure_file);
 
   return 0;
