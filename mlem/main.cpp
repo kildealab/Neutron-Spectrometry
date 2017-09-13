@@ -46,10 +46,10 @@ bool is_empty(std::ifstream& pFile);
 int setfile(std::vector<std::string> &arg_vector, std::string directory, std::string arg_string, std::string default_filename, std::string &filename);
 void checkUnknownParameters(std::vector<std::string> &arg_vector, std::vector<std::string> input_file_flags);
 int setSettings(std::string config_file, int &cutoff, double &norm, double &error, double &f_factor, int &num_poisson_samples);
-std::vector<double> getMeasurements(std::string input_file, std::string &irradiation_conditions, int &t);
+std::vector<double> getMeasurements(std::string input_file, std::string &irradiation_conditions, double &dose_mu, double &doserate_mu, int &t);
 int saveDose(std::string dose_file, std::string irradiation_conditions, double dose, double s_dose);
 int saveSpectrum(std::string spectrum_file, std::string irradiation_conditions, double (&ini)[52][1], double (&s)[52][1], double (&bins)[52][1]);
-int prepareReport(std::string report_file, std::string irradiation_conditions, std::vector<std::string> &input_files, std::vector<std::string> &input_file_flags, int cutoff, double error, double norm, double f_factor, int num_poisson_samples, std::vector<double>& data_v, int duration, std::vector<double>& bins_v, std::vector<double>& initial_v, std::vector<std::vector<double>>& response_v, int num_iterations, std::vector<double>& ratio_v, double dose, double s_dose, std::vector<double>& spectrum_v, std::vector<double>& uncertainty_v, std::vector<double>& icrp_v, std::vector<double>& subdose_v);
+int prepareReport(std::string report_file, std::string irradiation_conditions, std::vector<std::string> &input_files, std::vector<std::string> &input_file_flags, int cutoff, double error, double norm, double f_factor, int num_poisson_samples, std::vector<double>& data_v, double dose_mu, double doserate_mu, int duration, std::vector<double>& bins_v, std::vector<double>& initial_v, std::vector<std::vector<double>>& response_v, int num_iterations, std::vector<double>& ratio_v, double dose, double s_dose, std::vector<double>& spectrum_v, std::vector<double>& uncertainty_v, std::vector<double>& icrp_v, std::vector<double>& subdose_v);
 
 // Constants
 std::string DOSE_HEADERS[] = {
@@ -127,9 +127,9 @@ int main(int argc, char* argv[])
     // Output filenames
     std::string dose_file = output_dir + "output_dose.csv";
     std::string o_spectrum_file = output_dir + "output_spectra.csv"; // result (unfolded) spectrum
-    std::string report_file_pre = output_dir + "REPORT_";
+    std::string report_file_pre = output_dir + "report_";
     std::string report_file_suf = ".txt";
-    std::string figure_file_pre = output_dir + "FIGURE_";
+    std::string figure_file_pre = output_dir + "figure_";
     std::string figure_file_suf = ".png";
 
     // Apply some settings read in from a config file
@@ -189,8 +189,10 @@ int main(int argc, char* argv[])
 
     // Read measured data (in nC) from input file
     std::string irradiation_conditions;
+    double dose_mu;
+    double doserate_mu;
     int t;
-    std::vector<double> data_v = getMeasurements(input_files[0], irradiation_conditions, t);
+    std::vector<double> data_v = getMeasurements(input_files[0], irradiation_conditions, dose_mu, doserate_mu, t);
 
     // Convert data to existing variable structure
     // std::cout << '\n' << "------------------" << '\n';
@@ -198,7 +200,7 @@ int main(int argc, char* argv[])
 
     double data[8][1];
     for (int index=0; index < 8; index++) {
-        data[index][0] = data_v[7-index]*norm/f_factor/t;
+        data[index][0] = data_v[7-index]*norm/f_factor/t*(dose_mu/doserate_mu);
         // std::cout <<data[index][0] << '\n';
     }
 
@@ -1008,7 +1010,7 @@ int main(int argc, char* argv[])
     }
     //************************************
     std::string report_file = report_file_pre + irradiation_conditions + report_file_suf;
-    prepareReport(report_file, irradiation_conditions, input_files, input_file_flags, cutoff, error, norm, f_factor_report, num_poisson_samples, data_v, t, bins_v, initial_v, response_v, num_interations, ratio_v, dose, s_dose, spectrum_v, uncertainty_v, icrp_v, subdose_v);
+    prepareReport(report_file, irradiation_conditions, input_files, input_file_flags, cutoff, error, norm, f_factor_report, num_poisson_samples, data_v, dose_mu, doserate_mu, t, bins_v, initial_v, response_v, num_interations, ratio_v, dose, s_dose, spectrum_v, uncertainty_v, icrp_v, subdose_v);
     std::cout << "Generated summary report: " << report_file << "\n\n";
     // std::cout << "Avg ratio: " << avg_ratio/8.0 << "\n";
     // std::cout << "Max ratio: " << max_ratio << "\n\n";
@@ -1283,7 +1285,7 @@ int setSettings(std::string config_file, int &cutoff, double &norm, double &erro
 // data_vector is ordered from index:0 storing the value for 7 moderators to index:7 storing the value
 // for 0 moderators
 //==================================================================================================
-std::vector<double> getMeasurements(std::string input_file, std::string &irradiation_conditions, int &t) {
+std::vector<double> getMeasurements(std::string input_file, std::string &irradiation_conditions, double &dose_mu, double &doserate_mu, int &t) {
     std::ifstream ifile(input_file);
     if (!ifile.is_open()) {
         //throw error
@@ -1295,7 +1297,15 @@ std::vector<double> getMeasurements(std::string input_file, std::string &irradia
     // removes: carriage return '\r' from the string (which causes weird string overwriting)
     irradiation_conditions.erase( std::remove(irradiation_conditions.begin(), irradiation_conditions.end(), '\r'), irradiation_conditions.end() );
 
-    // Extract measurement duration
+    // Extract dose & measurement duration
+    std::string dose_string;
+    getline(ifile,dose_string);
+    dose_mu = atoi(dose_string.c_str());
+
+    std::string doserate_string;
+    getline(ifile,doserate_string);
+    doserate_mu = atoi(doserate_string.c_str());
+
     std::string t_string;
     getline(ifile,t_string);
     t = atoi(t_string.c_str());
@@ -1424,7 +1434,7 @@ int saveSpectrum(std::string spectrum_file, std::string irradiation_conditions, 
 // of this function are separated by headers indicating the type of information printed to the
 // report in the the corresponding section.
 //==================================================================================================
-int prepareReport(std::string report_file, std::string irradiation_conditions, std::vector<std::string> &input_files, std::vector<std::string> &input_file_flags, int cutoff, double error, double norm, double f_factor, int num_poisson_samples, std::vector<double>& data_v, int duration, std::vector<double>& bins_v, std::vector<double>& initial_v, std::vector<std::vector<double>>& response_v, int num_iterations, std::vector<double>& ratio_v, double dose, double s_dose, std::vector<double>& spectrum_v, std::vector<double>& uncertainty_v, std::vector<double>& icrp_v, std::vector<double>& subdose_v) {
+int prepareReport(std::string report_file, std::string irradiation_conditions, std::vector<std::string> &input_files, std::vector<std::string> &input_file_flags, int cutoff, double error, double norm, double f_factor, int num_poisson_samples, std::vector<double>& data_v, double dose_mu, double doserate_mu, int duration, std::vector<double>& bins_v, std::vector<double>& initial_v, std::vector<std::vector<double>>& response_v, int num_iterations, std::vector<double>& ratio_v, double dose, double s_dose, std::vector<double>& spectrum_v, std::vector<double>& uncertainty_v, std::vector<double>& icrp_v, std::vector<double>& subdose_v) {
     std::string HEADER_DIVIDE = "************************************************************************************************************************\n";
     std::string SECTION_DIVIDE = "\n========================================================================================================================\n\n";
     std::string COLSTRING = "--------------------";
@@ -1464,7 +1474,11 @@ int prepareReport(std::string report_file, std::string irradiation_conditions, s
     //----------------------------------------------------------------------------------------------
     // Measurement
     //----------------------------------------------------------------------------------------------
-    rfile << "Measured Data (measurement duration: " << duration << "s)\n\n";
+    rfile << "Measurement\n\n";
+    rfile << std::left << std::setw(sw) << "Delivered dose:" << dose_mu << " MU\n";
+    rfile << std::left << std::setw(sw) << "Delivered doserate:" << doserate_mu << " MU/min\n";
+    rfile << std::left << std::setw(sw) << "Measurement duration:" << duration << " s\n\n";
+    // rfile << "Measured Data (measurement duration: " << duration << "s)\n\n";
     rfile << std::left << std::setw(cw) << "# of moderators" << "Charge (nC)\n";
     rfile << std::left << std::setw(cw) << COLSTRING << COLSTRING << "\n";
     for (int i=0; i<data_v.size(); i++) {
