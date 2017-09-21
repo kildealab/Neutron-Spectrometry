@@ -48,8 +48,11 @@ void checkUnknownParameters(std::vector<std::string> &arg_vector, std::vector<st
 int setSettings(std::string config_file, int &cutoff, double &norm, double &error, double &f_factor, int &num_poisson_samples);
 std::vector<double> getMeasurements(std::string input_file, std::string &irradiation_conditions, double &dose_mu, double &doserate_mu, int &t);
 int saveDose(std::string dose_file, std::string irradiation_conditions, double dose, double s_dose);
-int saveSpectrum(std::string spectrum_file, std::string irradiation_conditions, double (&ini)[52][1], double (&s)[52][1], double (&bins)[52][1]);
-int prepareReport(std::string report_file, std::string irradiation_conditions, std::vector<std::string> &input_files, std::vector<std::string> &input_file_flags, int cutoff, double error, double norm, double f_factor, int num_poisson_samples, std::vector<double>& data_v, double dose_mu, double doserate_mu, int duration, std::vector<double>& bins_v, std::vector<double>& initial_v, std::vector<std::vector<double>>& response_v, int num_iterations, std::vector<double>& ratio_v, double dose, double s_dose, std::vector<double>& spectrum_v, std::vector<double>& uncertainty_v, std::vector<double>& icrp_v, std::vector<double>& subdose_v);
+int saveSpectrum(std::string spectrum_file, std::string irradiation_conditions, std::vector<double>& spectrum, double (&s)[52][1], std::vector<double>& energy_bins);
+int prepareReport(std::string report_file, std::string irradiation_conditions, std::vector<std::string> &input_files, std::vector<std::string> &input_file_flags, int cutoff, double error, double norm, double f_factor, int num_poisson_samples, std::vector<double>& data_v, double dose_mu, double doserate_mu, int duration, std::vector<double>& energy_bins, std::vector<double>& initial_spectrum, std::vector<std::vector<double>>& nns_response, int num_iterations, std::vector<double>& ratio_v, double dose, double s_dose, std::vector<double>& spectrum, std::vector<double>& uncertainty_v, std::vector<double>& icrp_factors, std::vector<double>& subdose_v);
+int readInputFile1D(std::string file_name, std::vector<double>& input_vector);
+int readInputFile2D(std::string file_name, std::vector<std::vector<double>>& input_vector);
+int checkDimensions(int reference_size, std::string reference_string, int test_size, std::string test_string);
 
 // Constants
 std::string DOSE_HEADERS[] = {
@@ -118,11 +121,6 @@ int main(int argc, char* argv[])
 
     // Input filenames
     std::string config_file = "mlem.cfg";
-    // std::string input_file;
-    // std::string i_spectrum_file;
-    // std::string energy_bins_file;
-    // std::string response_file;
-    // std::string icrp_conversions_file;
 
     // Output filenames
     std::string dose_file = output_dir + "output_dose.csv";
@@ -146,95 +144,21 @@ int main(int argc, char* argv[])
     double f_factor_report = f_factor; // original value read in
     f_factor = f_factor / 1e6; // Convert f_factor from fA/cps to nA/cps
 
-    // std::cout << cutoff << '\n';
-    // std::cout << norm << '\n';
-    // std::cout << error << '\n';
-    
-    // // The maximum # of iterations of the MLEM algorithm
-    // // Use 4000
-    // // Georges has compared MLEM with MAP, and found that MAP converges (reaches a plateau) at 4000,
-    // // whereas MLEM will continue adding noise to the signal indefinitely. 
-    // std::cout << "Enter the cutoff value:";
-    // std::cin >> cutoff;
-    // std::cout << "The cutoff value is equal to:" << cutoff << std::endl;
-
-    // // Normalization value for NNS measurements (vendor specified)... Need to figure out what this
-    // // actually is
-    // // Use 1.21
-    // std::cout << '\n';
-    // std::cout << "Enter the normalization value:";
-    // std::cin >> norm;
-    // std::cout << "The normalization value is equal to:" << norm << std::endl;
-
-    // // The target error on the ratio between the experimental data points and the generated data
-    // // points from MLEM before MLEM cutoff (e.g. 0.1 means the values must be within 10% of each
-    // // other before the algorithm will terminate)
-    // // However, the total measured fluence apparently increases with # of iterations of MLEM; which
-    // // renders obsolete a relative comparison in fluence between two spectra that that were generated
-    // // with different #s of iterations.
-    // // Thus use a very low target value (so the algorithm will never reach it), and will run the full
-    // // 4000 iterations.
-    // // Use 0
-    // std::cout << '\n';
-    // std::cout << "Enter the value of the error on the ratio of the experimental and processed measurements:";
-    // std::cin >> error;
-    // std::cout << "The value of the error is equal to:" << error << std::endl;
-
-    // How long the measurement values (in nC) were acquired over (in seconds)
-    // e.g. 60
-    // std::cout << '\n';
-    // std::cout << "Enter the time of measurements in seconds:";
-    // std::cin >> t;
-    // std::cout << "The value of the time is equal to:" << t << std::endl;
 
     // Read measured data (in nC) from input file
     std::string irradiation_conditions;
-    double dose_mu;
-    double doserate_mu;
-    int t;
-    std::vector<double> data_v = getMeasurements(input_files[0], irradiation_conditions, dose_mu, doserate_mu, t);
+    double dose_mu; // dose delivered (MU) for individual measurement
+    double doserate_mu; // dose rate (MU/min) used for individual measurement
+    int duration; // Duration (s) of individual measurement acquisition
+    std::vector<double> data_v = getMeasurements(input_files[0], irradiation_conditions, dose_mu, doserate_mu, duration);
 
-    // Convert data to existing variable structure
-    // std::cout << '\n' << "------------------" << '\n';
-    // convert measured charge in nC to counts per second
-
+    // Convert measured charge in nC to counts per second
+    // Re-order measurments from (7 moderators to 0) to (0 moderators to 7)
     double data[8][1];
+    int num_measurements = 8;
     for (int index=0; index < 8; index++) {
-        data[index][0] = data_v[7-index]*norm/f_factor/t*(dose_mu/doserate_mu);
-        // std::cout <<data[index][0] << '\n';
+        data[index][0] = data_v[7-index]*norm/f_factor/duration*(dose_mu/doserate_mu);
     }
-
-    // double value1, value2, value3, value4, value5, value6, value7, value8;
-
-    // Measured charge values (in nC) for each moderator & bare probe
-    // std::cout << '\n';
-    // std::cout << "Measured data (in nC):" << std::endl;
-    // std::cout << "Enter value1 (Bare):";
-    // std::cin >> value1;
-    // std::cout << "Enter value2 (Moderator 1):";
-    // std::cin >> value2;
-    // std::cout << "Enter value3 (Moderator 2):";
-    // std::cin >> value3;
-    // std::cout << "Enter value4 (Moderator 3):";
-    // std::cin >> value4;
-    // std::cout << "Enter value5 (Moderator 4):";
-    // std::cin >> value5;
-    // std::cout << "Enter value6 (Moderator 5):";
-    // std::cin >> value6;
-    // std::cout << "Enter value7 (Moderator 6):";
-    // std::cin >> value7;
-    // std::cout << "Enter value8 (Moderator 7):";
-    // std::cin >> value8;
-
-    // measured data matrix
-    // For each measured value:
-    //  - multiply by normalization factor
-    //  - multiply by million
-    //  - divide by the measurement duration (mulitplied by 7)
-    // This converts measured values in [nC] to counts per second
-    // @@Reason for using 2D matrix?
-    // double data[8][1] = { {value1*norm*1000000/(7*t)} , {value2*norm*1000000/(7*t)} , {value3*norm*1000000/(7*t)} , {value4*norm*1000000/(7*t)} , {value5*norm*1000000/(7*t)} , {value6*norm*1000000/(7*t)} , {value7*norm*1000000/(7*t)} , {value8*norm*1000000/(7*t)} };
-
 
     //----------------------------------------------------------------------------------------------
     // Print out the processed measured data matrix
@@ -253,9 +177,20 @@ int main(int argc, char* argv[])
     }
 
     //----------------------------------------------------------------------------------------------
+    // Generate the energy bins matrix:
+    //  - size = # of energy bins
+    // Input the energies from energy bins file: input_files[2]
+    //  - values in units of [MeV]
+    //----------------------------------------------------------------------------------------------
+    std::vector<double> energy_bins;
+    readInputFile1D(input_files[2],energy_bins);
+
+    int num_bins = energy_bins.size();
+
+    //----------------------------------------------------------------------------------------------
     // Generate the detector response matrix (representing the dector response function):
-    //  - height = # of measurements
-    //  - width = # of energy bins
+    //  - outer size = # of measurements
+    //  - inner size = # of energy bins
     // Detector response value for each # of moderators for each energy (currently 52 energies)
     // Input the response from input_files[3]
     //  - values in units of [cm^2]
@@ -263,167 +198,36 @@ int main(int argc, char* argv[])
     // The response function accounts for variable number of (n,p) reactions in He-3 for each
     // moderators, as a function of energy. Calculated by vendor using MC
     //----------------------------------------------------------------------------------------------
-    int height = 8, width = 52;
-    double respmat[height][width];
-
-    std::ifstream file(input_files[3]);
-
-    //std::cout << "The response matrix is equal to:" << '\n'; // newline
-
-    for(int row = 0; row < height; ++row)
-    {
-        std::string line;
-        std::getline(file, line);
-        if ( !file.good() )
-            break;
-
-        std::stringstream iss(line);
-
-        for (int col = 0; col < width; ++col)
-        {
-            std::string val;
-            std::getline(iss, val, ',');
-            if ( !iss.good() )
-                break;
-
-            std::stringstream convertor(val);
-            convertor >> respmat[row][col];
-            //std::cout << respmat[row][col] << ' ';
-        }
-        //std::cout << '\n';
-    }
-    //std::cout << respmat[height][width] << std::endl;
-
-    //----------------------------------------------------------------------------------------------
-    // Generate the energy bins matrix:
-    //  - height = # of energy bins
-    //  - width = @@Not sure why this is a 2D matrix
-    // Input the energies from energy bins file, input_files[2]
-    //  - values in units of [MeV]
-    //  - Thi is 2D csv file, but the second value on each line is just 0 (@@not sure why this is 
-    //  - necessary)
-    //----------------------------------------------------------------------------------------------
-    int height1 = 52, width1 = 1;
-    double bins[52][1];
-
-    std::ifstream file1(input_files[2]);
-
-    //std::cout << "The energy bins matrix is equal to:" << '\n'; // newline
-
-    for(int row = 0; row < height1; ++row)
-    {
-        std::string line;
-        std::getline(file1, line);
-        if ( !file1.good() )
-            break;
-
-        std::stringstream iss(line);
-
-        for (int col = 0; col < width1; ++col)
-        {
-            std::string val;
-            std::getline(iss, val, ',');
-            if ( !iss.good() )
-                break;
-
-            std::stringstream convertor(val);
-            convertor >> bins[row][col];
-            //std::cout << bins[row][col] << ' ';
-        }
-        //std::cout << '\n';
-    }
-    //std::cout << bins[height1][width1] << std::endl;
+    std::vector<std::vector<double>> nns_response;
+    readInputFile2D(input_files[3],nns_response);
+    checkDimensions(num_measurements, "number of measurements", nns_response.size(), "NNS response");
+    checkDimensions(num_bins, "number of energy bins", nns_response[0].size(), "NNS response");
 
     //----------------------------------------------------------------------------------------------
     // Generate the inital spectrum matrix to input into MLEM algorithm:
-    //  - height = # of energy bins
-    //  - width = @@Not sure why this is a 2D matrix
+    //  - size = # of energy bins
     // Input from the input spectrum file (input_files[1])
     //  - values are neutron fluence rates [neutrons cm^-2 s^-1])
-    //  - This is 2D csv file, but the second value on each line is just 0 (@@not sure why this is 
-    //    necessary)
-    //  - Currently (2017-08-16) input a step function (high at thermals & lower) because:
-    //    "This input spectrum was determined by selecting the spectrum that minimized the 
-    //    difference between initial and reconstructed Monte Carlo neutron spectra of a Linac"
-    //    (Maglieri et al. 2015)
-    //    @@Why is this the case?
+    //  - Currently (2017-08-16) input a step function (high at thermals & lower), because a flat 
+    //  spectrum underestimates (does not yield any) thermal neutrons
     //----------------------------------------------------------------------------------------------
-    int height2 = 52, width2 = 1;
-    double ini[52][1];
+    std::vector<double> initial_spectrum;
+    readInputFile1D(input_files[1],initial_spectrum);
+    checkDimensions(num_bins, "number of energy bins", initial_spectrum.size(), "Input spectrum");
 
-    std::ifstream file2(input_files[1]);
-
-    //std::cout << "The initial matrix is equal to:" << '\n'; // newline
-
-    for(int row = 0; row < height2; ++row)
-    {
-        std::string line;
-        std::getline(file2, line);
-        if ( !file2.good() )
-            break;
-
-        std::stringstream iss(line);
-
-        for (int col = 0; col < width2; ++col)
-        {
-            std::string val;
-            std::getline(iss, val, ',');
-            if ( !iss.good() )
-                break;
-
-            std::stringstream convertor(val);
-            convertor >> ini[row][col];
-            //std::cout << ini[row][col] << ' ';
-        }
-        //std::cout << '\n';
-    }
-    std::vector<double> initial_v;
-    for (int i=0; i<52; i++) {
-        initial_v.push_back(ini[i][0]);
-    }
-    //std::cout << ini[height2][width2] << std::endl;
+    std::vector<double> spectrum = initial_spectrum; // save the initial spectrum for report output
 
     //----------------------------------------------------------------------------------------------
     // Generate the ICRP conversion matrix (factors to convert fluence to ambient dose equivalent):
-    //  - height = # of energy bins
-    //  - width = @@Not sure why this is a 2D matrix
+    //  - size = # of energy bins
     // Input from input_files[4]
     //  - values are in units of [pSv cm^2]
     //  - H values were obtained by linearly interopolating tabulated data to match energy bins used
-    //  - This is 2D csv file, but the second value on each line is just 0 (@@not sure why this is 
-    //    necessary)
     // Page 200 of document (ICRP 74 - ATables.pdf)
     //----------------------------------------------------------------------------------------------
-    int height4 = 52, width4 = 1;
-    double icruconv[height4][width4];
-
-    std::ifstream file4(input_files[4]);
-
-    //std::cout << "The conversion matrix is equal to:" << '\n'; // newline
-
-    for(int row = 0; row < height4; ++row)
-    {
-        std::string line;
-        std::getline(file4, line);
-        if ( !file4.good() )
-            break;
-
-        std::stringstream iss(line);
-
-        for (int col = 0; col < width4; ++col)
-        {
-            std::string val;
-            std::getline(iss, val, ',');
-            if ( !iss.good() )
-                break;
-
-            std::stringstream convertor(val);
-            convertor >> icruconv[row][col];
-            //std::cout << icruconv[row][col] << ' ';
-        }
-        //std::cout << '\n';
-    }
-    //std::cout << icruconv[height4][width4] << std::endl;
+    std::vector<double> icrp_factors;
+    readInputFile1D(input_files[4],icrp_factors);
+    checkDimensions(num_bins, "number of energy bins", icrp_factors.size(), "Number of ICRP factors");
 
     //----------------------------------------------------------------------------------------------
     // Run the MLEM algorithm, iterating <cutoff> times.
@@ -451,7 +255,7 @@ int main(int argc, char* argv[])
             d[i0][j]=0;
                 for(k = 0; k < 52; k++)
                 {
-                d[i0][j]=d[i0][j]+(respmat[i0][k]*ini[k][j]);
+                d[i0][j]=d[i0][j]+(nns_response[i0][k]*spectrum[k]);
                 }
             }
         }
@@ -462,7 +266,7 @@ int main(int argc, char* argv[])
         for(int i1 = 0; i1 < 8; ++i1)
         for(j = 0; j < 52; ++j)
         {
-           trans_respmat[j][i1]=respmat[i1][j];
+           trans_respmat[j][i1]=nns_response[i1][j];
         }
 
         // std::cout << "The transpose matrix of respmat is equal to:" << '\n'; // newline
@@ -534,7 +338,7 @@ int main(int argc, char* argv[])
             for(j = 0; j < 1; j++)
             {
             ini1[i6][j]=0;
-            ini1[i6][j]=ini1[i6][j]+(ini[i6][j]*c[i6][j]);
+            ini1[i6][j]=ini1[i6][j]+(spectrum[i6]*c[i6][j]);
             }
         }
 
@@ -543,8 +347,8 @@ int main(int argc, char* argv[])
         {
             for(j = 0; j < 1; j++)
             {
-            ini[i7][j]=0;
-            ini[i7][j]=ini[i7][j]+(ini1[i7][j]/f[i7][j]);
+            spectrum[i7]=0;
+            spectrum[i7]=spectrum[i7]+(ini1[i7][j]/f[i7][j]);
             }
         }
 
@@ -566,10 +370,7 @@ int main(int argc, char* argv[])
 
     for (int i8 = 0; i8 < 52; ++i8)
     {
-        for (int j = 0; j < 1; ++j)
-        {
-            std::cout << ini[i8][j] << ' ';
-        }
+        std::cout << spectrum[i8] << ' ';
         std::cout << std::endl;
     }
 
@@ -694,7 +495,7 @@ int main(int argc, char* argv[])
                 d_poisson[i0][j]=0;
                     for(k = 0; k < 52; k++)
                     {
-                        d_poisson[i0][j]=d_poisson[i0][j]+(respmat[i0][k]*ini_poisson[k][j]);
+                        d_poisson[i0][j]=d_poisson[i0][j]+(nns_response[i0][k]*ini_poisson[k][j]);
                     }
                 }
             }
@@ -704,7 +505,7 @@ int main(int argc, char* argv[])
             for(int i1 = 0; i1 < 8; ++i1)
             for(j = 0; j < 52; ++j)
             {
-               trans_respmat[j][i1]=respmat[i1][j];
+               trans_respmat[j][i1]=nns_response[i1][j];
             }
 
             //std::cout << "The transpose matrix of respmat is equal to:" << '\n'; // newline
@@ -784,14 +585,14 @@ int main(int argc, char* argv[])
                 }
             }
 
-            // multiply fluence values of the estimated spectrum by ICRU conversion factors
+            // multiply fluence values of the estimated spectrum by ICRP conversion factors
             // Converts from [n cm^-2 s^-1] to [pSv s^-1]
             double multiplication_std[52][1];
             for (int i = 0; i < 52; i++)
             {
                 for (int j = 0; j < 1; j++)
                 {
-                    multiplication_std[i][j] = ini_poisson[i][j]*icruconv[i][j];
+                    multiplication_std[i][j] = ini_poisson[i][j]*icrp_factors[i];
                 }
             }
 
@@ -870,7 +671,7 @@ int main(int argc, char* argv[])
         {
             for (int k = 0; k < num_poisson_samples; k++)
             {
-                sq[i][j] += (poissmat[i][k]-ini[i][j])*(poissmat[i][k]-ini[i][j]);
+                sq[i][j] += (poissmat[i][k]-spectrum[i])*(poissmat[i][k]-spectrum[i]);
             }
         }
     }
@@ -926,7 +727,7 @@ int main(int argc, char* argv[])
     {
         for (int j = 0; j < 1; j++)
         {
-            multiplication[i][j] = ini[i][j]*icruconv[i][j];
+            multiplication[i][j] = spectrum[i]*icrp_factors[i];
         }
     }
 
@@ -982,27 +783,15 @@ int main(int argc, char* argv[])
     //----------------------------------------------------------------------------------------------
     saveDose(dose_file, irradiation_conditions, dose, s_dose);
     std::cout << "Saved calculated dose to " << dose_file << "\n";
-    saveSpectrum(o_spectrum_file, irradiation_conditions, ini, s, bins);
+    saveSpectrum(o_spectrum_file, irradiation_conditions, spectrum, s, energy_bins);
     std::cout << "Saved unfolded spectrum to " << o_spectrum_file << "\n";
     //************************************
     // Convert arrays to vectors
-    std::vector<double> bins_v;
-    std::vector<std::vector<double>> response_v;
     std::vector<double> ratio_v;
-    std::vector<double> spectrum_v;
     std::vector<double> uncertainty_v;
-    std::vector<double> icrp_v;
     std::vector<double> subdose_v;
     for (int i=0; i < 52; i++) {
-        bins_v.push_back(bins[i][0]);
-        std::vector<double> new_column;
-        for (int j=0; j<8; j++) {
-            new_column.push_back(respmat[j][i]);
-        }
-        response_v.push_back(new_column);
-        spectrum_v.push_back(ini[i][0]);
         uncertainty_v.push_back(s[i][0]);
-        icrp_v.push_back(icruconv[i][0]);
         subdose_v.push_back(multiplication[i][0]*(3600)*(1e-9));
     }
     for (int i=0; i<8; i++) {
@@ -1010,7 +799,7 @@ int main(int argc, char* argv[])
     }
     //************************************
     std::string report_file = report_file_pre + irradiation_conditions + report_file_suf;
-    prepareReport(report_file, irradiation_conditions, input_files, input_file_flags, cutoff, error, norm, f_factor_report, num_poisson_samples, data_v, dose_mu, doserate_mu, t, bins_v, initial_v, response_v, num_interations, ratio_v, dose, s_dose, spectrum_v, uncertainty_v, icrp_v, subdose_v);
+    prepareReport(report_file, irradiation_conditions, input_files, input_file_flags, cutoff, error, norm, f_factor_report, num_poisson_samples, data_v, dose_mu, doserate_mu, duration, energy_bins, initial_spectrum, nns_response, num_interations, ratio_v, dose, s_dose, spectrum, uncertainty_v, icrp_factors, subdose_v);
     std::cout << "Generated summary report: " << report_file << "\n\n";
     // std::cout << "Avg ratio: " << avg_ratio/8.0 << "\n";
     // std::cout << "Max ratio: " << max_ratio << "\n\n";
@@ -1029,7 +818,7 @@ int main(int argc, char* argv[])
     {
         for (int j = 0; j < 1; j++)
         {
-        ini_line[i] = ini[i][j];
+        ini_line[i] = spectrum[i];
         }
     }
 
@@ -1047,7 +836,7 @@ int main(int argc, char* argv[])
     {
         for (int j = 0; j < 1; j++)
         {
-        bins_line[i] = bins[i][j];
+        bins_line[i] = energy_bins[i];
         }
     }
 
@@ -1134,7 +923,7 @@ int main(int argc, char* argv[])
     {
         for (int j = 0; j < 1; j++)
         {
-        ini_line_e[i] = ini[i][j];
+        ini_line_e[i] = spectrum[i];
         }
     }
 
@@ -1367,7 +1156,7 @@ int saveDose(std::string dose_file, std::string irradiation_conditions, double d
 //==================================================================================================
 // Save calculated spectrum (and error spectrum) to file
 //==================================================================================================
-int saveSpectrum(std::string spectrum_file, std::string irradiation_conditions, double (&ini)[52][1], double (&s)[52][1], double (&bins)[52][1]) {
+int saveSpectrum(std::string spectrum_file, std::string irradiation_conditions, std::vector<double>& spectrum, double (&s)[52][1], std::vector<double>& energy_bins) {
     // determine if file exists
     std::ifstream sfile(spectrum_file);
     bool file_empty = is_empty(sfile);
@@ -1392,7 +1181,7 @@ int saveSpectrum(std::string spectrum_file, std::string irradiation_conditions, 
         while (getline(sfile,line)) {
             //Note: using stream b/c have to convert doubles to strings
             std::ostringstream line_stream;
-            line_stream << line << "," << ini[index][0] << "," << s[index][0] << "\n";
+            line_stream << line << "," << spectrum[index] << "," << s[index][0] << "\n";
             line = line_stream.str();
             sfile_lines.push_back(line);
             index++;
@@ -1408,11 +1197,10 @@ int saveSpectrum(std::string spectrum_file, std::string irradiation_conditions, 
 
         // Prepare contents
         std::string line;
-        int spectrum_length = sizeof ini / sizeof ini[0];
-        for (int index=0; index<spectrum_length; index++) {
+        for (int index=0; index<spectrum.size(); index++) {
             //Note: using stream b/c have to convert doubles to strings
             std::ostringstream line_stream;
-            line_stream << bins[index][0] << "," << ini[index][0] << "," << s[index][0] << "\n";
+            line_stream << energy_bins[index] << "," << spectrum[index] << "," << s[index][0] << "\n";
             line = line_stream.str();
             sfile_lines.push_back(line);
         }
@@ -1434,7 +1222,7 @@ int saveSpectrum(std::string spectrum_file, std::string irradiation_conditions, 
 // of this function are separated by headers indicating the type of information printed to the
 // report in the the corresponding section.
 //==================================================================================================
-int prepareReport(std::string report_file, std::string irradiation_conditions, std::vector<std::string> &input_files, std::vector<std::string> &input_file_flags, int cutoff, double error, double norm, double f_factor, int num_poisson_samples, std::vector<double>& data_v, double dose_mu, double doserate_mu, int duration, std::vector<double>& bins_v, std::vector<double>& initial_v, std::vector<std::vector<double>>& response_v, int num_iterations, std::vector<double>& ratio_v, double dose, double s_dose, std::vector<double>& spectrum_v, std::vector<double>& uncertainty_v, std::vector<double>& icrp_v, std::vector<double>& subdose_v) {
+int prepareReport(std::string report_file, std::string irradiation_conditions, std::vector<std::string> &input_files, std::vector<std::string> &input_file_flags, int cutoff, double error, double norm, double f_factor, int num_poisson_samples, std::vector<double>& data_v, double dose_mu, double doserate_mu, int duration, std::vector<double>& energy_bins, std::vector<double>& initial_spectrum, std::vector<std::vector<double>>& nns_response, int num_iterations, std::vector<double>& ratio_v, double dose, double s_dose, std::vector<double>& spectrum, std::vector<double>& uncertainty_v, std::vector<double>& icrp_factors, std::vector<double>& subdose_v) {
     std::string HEADER_DIVIDE = "************************************************************************************************************************\n";
     std::string SECTION_DIVIDE = "\n========================================================================================================================\n\n";
     std::string COLSTRING = "--------------------";
@@ -1489,23 +1277,23 @@ int prepareReport(std::string report_file, std::string irradiation_conditions, s
     //----------------------------------------------------------------------------------------------
     // Inputs
     //----------------------------------------------------------------------------------------------
-    rfile << "Inputs (Number of energy bins: " << bins_v.size() << ")\n\n";
+    rfile << "Inputs (Number of energy bins: " << energy_bins.size() << ")\n\n";
     rfile << std::left << std::setw(cw) << "Energy bins" << std::setw(cw) << "Input spectrum" << "| NNS Response by # of moderators (cm^2)\n";
     rfile << std::left << std::setw(cw) << "(MeV)" << std::setw(cw) << "(n cm^-2 s^-1)" << "| ";
-    for (int j=0; j<response_v[0].size(); j++) {
+    for (int j=0; j<nns_response.size(); j++) {
         rfile << std::left << std::setw(rw) << j;
     }
     rfile << "\n";
     rfile << std::left << std::setw(cw) << COLSTRING << std::setw(cw) << COLSTRING << "--";
-    for (int j=0; j<response_v[0].size(); j++) {
+    for (int j=0; j<nns_response.size(); j++) {
         rfile << "---------";
     }
     rfile << "\n";
 
-    for (int i=0; i<bins_v.size(); i++) {
-        rfile << std::left << std::setw(cw) << bins_v[i] << std::setw(cw) << initial_v[i] << "| ";
-        for (int j=0; j<response_v[0].size(); j++) {
-            rfile << std::left << std::setw(rw) << response_v[i][j];
+    for (int i=0; i<energy_bins.size(); i++) {
+        rfile << std::left << std::setw(cw) << energy_bins[i] << std::setw(cw) << initial_spectrum[i] << "| ";
+        for (int j=0; j<nns_response.size(); j++) {
+            rfile << std::left << std::setw(rw) << nns_response[j][i];
         }
         rfile << "\n";
     }
@@ -1526,7 +1314,7 @@ int prepareReport(std::string report_file, std::string irradiation_conditions, s
     rfile << "\n";
     // row 2
     rfile << std::left << std::setw(thw) << "-------------|-";
-    for (int j=0; j<response_v[0].size(); j++) {
+    for (int j=0; j<nns_response.size(); j++) {
         rfile << "---------";
     }
     rfile << "\n";
@@ -1547,12 +1335,66 @@ int prepareReport(std::string report_file, std::string irradiation_conditions, s
     rfile << std::left << std::setw(cw) << "Energy bins" << std::setw(cw) << "Unfolded spectrum" << std::setw(cw) << "Uncertainty" << std::setw(cw) << "| ICRP H factor" << "Ambient Dose Equiv.\n";
     rfile << std::left << std::setw(cw) << "(MeV)" << std::setw(cw) << "(n cm^-2 s^-1)" << std::setw(cw) << "(n cm^-2 s^-1)" << std::setw(cw) << "| (pSv/cm^2)" << "(mSv/hr)\n";;
     rfile << std::left << std::setw(cw) << COLSTRING << std::setw(cw) << COLSTRING << std::setw(cw) << COLSTRING << std::setw(cw) << COLSTRING << COLSTRING << "\n";
-    for (int i=0; i<bins_v.size(); i++) {
+    for (int i=0; i<energy_bins.size(); i++) {
         std::ostringstream icrp_string;
-        icrp_string << "| " <<icrp_v[i];
-        rfile << std::left << std::setw(cw) << bins_v[i] << std::setw(cw) << spectrum_v[i] << std::setw(cw) << uncertainty_v[i] << std::setw(26) << icrp_string.str() << subdose_v[i] << "\n";
+        icrp_string << "| " <<icrp_factors[i];
+        rfile << std::left << std::setw(cw) << energy_bins[i] << std::setw(cw) << spectrum[i] << std::setw(cw) << uncertainty_v[i] << std::setw(26) << icrp_string.str() << subdose_v[i] << "\n";
     }
 
     rfile.close();
+    return 1;
+}
+
+int readInputFile1D(std::string file_name, std::vector<double>& input_vector) {
+    std::ifstream ifile(file_name);
+    std::string iline;
+
+    if (!ifile.is_open()) {
+        //throw error
+        throw std::logic_error("Unable to open input file: " + file_name);
+    }
+    while (getline(ifile,iline)) {
+        std::istringstream line_stream(iline);
+        std::string stoken; // store individual values between delimiters on a line
+
+        // Delimit line at trailing comma
+        getline(line_stream, stoken, ',');
+        input_vector.push_back(atof(stoken.c_str()));
+    }
+    return 1;
+}
+
+int readInputFile2D(std::string file_name, std::vector<std::vector<double>>& input_vector) {
+    std::ifstream ifile(file_name);
+    std::string iline;
+
+    if (!ifile.is_open()) {
+        //throw error
+        throw std::logic_error("Unable to open input file: " + file_name);
+    }
+
+    // Loop through each line in the file
+    while (getline(ifile,iline)) {
+        std::vector<double> new_column;
+
+        std::istringstream line_stream(iline);
+        std::string stoken; // store individual values between delimiters on a line
+
+        // Loop through the line, delimiting at commas
+        while (getline(line_stream, stoken, ',')) {
+            std::cout << stoken << "\n";
+            new_column.push_back(atof(stoken.c_str())); // add data to the vector
+        }
+        input_vector.push_back(new_column);
+    }
+    return 1;
+}
+
+int checkDimensions(int reference_size, std::string reference_string, int test_size, std::string test_string) {
+    std::ostringstream error_message;
+    if (reference_size != test_size) {
+        error_message << "File dimensions mismatch: " << test_string << " (" << test_size << ") does not match " << reference_string << " (" << reference_size << ")";
+        throw std::logic_error(error_message.str());   
+    }
     return 1;
 }
