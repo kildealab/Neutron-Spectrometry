@@ -48,12 +48,16 @@ void checkUnknownParameters(std::vector<std::string> &arg_vector, std::vector<st
 int setSettings(std::string config_file, int &cutoff, double &norm, double &error, double &f_factor, int &num_poisson_samples);
 std::vector<double> getMeasurements(std::string input_file, std::string &irradiation_conditions, double &dose_mu, double &doserate_mu, int &t);
 int saveDose(std::string dose_file, std::string irradiation_conditions, double dose, double s_dose);
-int saveSpectrum(std::string spectrum_file, std::string irradiation_conditions, std::vector<double>& spectrum, double (&s)[52][1], std::vector<double>& energy_bins);
-int prepareReport(std::string report_file, std::string irradiation_conditions, std::vector<std::string> &input_files, std::vector<std::string> &input_file_flags, int cutoff, double error, double norm, double f_factor, int num_poisson_samples, std::vector<double>& measurements_nc, double dose_mu, double doserate_mu, int duration, std::vector<double>& energy_bins, std::vector<double>& initial_spectrum, std::vector<std::vector<double>>& nns_response, int num_iterations, std::vector<double>& mlem_ratio, double dose, double s_dose, std::vector<double>& spectrum, std::vector<double>& uncertainty_v, std::vector<double>& icrp_factors, std::vector<double>& subdose_v);
+int saveSpectrum(std::string spectrum_file, std::string irradiation_conditions, std::vector<double>& spectrum, std::vector<double>& spectrum_uncertainty, std::vector<double>& energy_bins);
+int prepareReport(std::string report_file, std::string irradiation_conditions, std::vector<std::string> &input_files, std::vector<std::string> &input_file_flags, int cutoff, double error, double norm, double f_factor, int num_poisson_samples, std::vector<double>& measurements_nc, double dose_mu, double doserate_mu, int duration, std::vector<double>& energy_bins, std::vector<double>& initial_spectrum, std::vector<std::vector<double>>& nns_response, int num_iterations, std::vector<double>& mlem_ratio, double dose, double s_dose, std::vector<double>& spectrum, std::vector<double>& spectrum_uncertainty, std::vector<double>& icrp_factors);
 int readInputFile1D(std::string file_name, std::vector<double>& input_vector);
 int readInputFile2D(std::string file_name, std::vector<std::vector<double>>& input_vector);
 int checkDimensions(int reference_size, std::string reference_string, int test_size, std::string test_string);
 int runMLEM(int cutoff, double error, int num_measurements, int num_bins, std::vector<double> &measurements, std::vector<double> &spectrum, std::vector<std::vector<double>>& nns_response, std::vector<double> &mlem_ratio);
+double calculateDose(int num_bins, std::vector<double> &spectrum, std::vector<double> &icrp_factors);
+int calculateRMSD_vector(int num_samples, std::vector<double> &true_vector, std::vector<std::vector<double>> &sampled_vectors, std::vector<double> &rms_differences);
+double calculateRMSD(int num_samples, double true_value, std::vector<double> &sample_vector);
+
 
 // Constants
 std::string DOSE_HEADERS[] = {
@@ -265,404 +269,79 @@ int main(int argc, char* argv[])
     std::cout << '\n';
     std::cout << "The final number of MLEM iterations: " << num_iterations << std::endl;
 
-
-    double data_poisson[8][1]; // analogous to 'data'. Store sampled-measured data
-
-    int height3 = 52, width3 = 1;
-    double ini_poisson[height3][width3];  // analogous to 'ini'. Store sampled-spectrum as is updated by MLEM
-
-    double dosemat[1][num_poisson_samples]; // Matrix to store sampled-ambient dose equivalent values used for statistical purposes
-    double poissmat[52][num_poisson_samples]; // Matrix to store sampled-spectra used for statistical purposes
-    double dose_std = 0;
-
-    int j;
-    int k;
-
     //----------------------------------------------------------------------------------------------
-    // Perform poisson analysis 1000 times
+    // Repeat MLEM algorithm on Poisson-sampled dataset for num_poisson_samples iterations. Save the
+    // sampled doses and spectra in arrays for subsequent RMSD uncertainty calcualtions.
     //----------------------------------------------------------------------------------------------
-    for (int m = 0; m < num_poisson_samples; m++)
-    {
+    std::vector<std::vector<double>> sampled_spectra; // dimensions: num_poisson_samples x num_bins
+    std::vector<double> sampled_dose; // dimension: num_poisson_samples
 
-        std::ifstream file3(input_files[1]);
+    for (int i_poiss = 0; i_poiss < num_poisson_samples; i_poiss++) {
+        std::vector<double> sampled_measurements; // dimension: num_measurements
+        std::vector<double> sampled_mlem_ratio; // dimension: num_measurements
+        std::vector<double> sampled_spectrum = initial_spectrum; // dimension: num_bins
 
-        //std::cout << "The initial poisson matrix is equal to:" << '\n'; // newline
-
-        //------------------------------------------------------------------------------------------
-        // Generate the inital spectrum matrix to input into poisson MLEM algorithm:
-        //  - height = # of energy bins
-        //  - width = @@Not sure why this is a 2D matrix
-        // @@Seems like this is the same matrix as imported above into 'ini' (should be able to just
-        // make a copy before running MLEM above, rather than re-import from csv here)
-        //------------------------------------------------------------------------------------------
-        for(int row = 0; row < height3; ++row)
-        {
-            std::string line;
-            std::getline(file3, line);
-            if ( !file3.good() )
-                break;
-
-            std::stringstream iss(line);
-
-            for (int col = 0; col < width3; ++col)
-            {
-                std::string val;
-                std::getline(iss, val, ',');
-                if ( !iss.good() )
-                    break;
-
-                std::stringstream convertor(val);
-                convertor >> ini_poisson[row][col];
-                //std::cout << ini[row][col] << ' ';
-            }
-            //std::cout << '\n';
-        }
-        //std::cout << ini_poisson[height3][width3] << std::endl;
-
-        //------------------------------------------------------------------------------------------
-        // sample from poission distribution created for each measured data point, to create a new
-        // set of sampled-data points. Store in 'data_poisson'
-        //------------------------------------------------------------------------------------------
-        for (int j = 0; j < 1; j++)
-        {
-            for (int i = 0; i <8; i++)
-            {
-                data_poisson[i][j] = poisson(measurements[i]);
-            }
+        // Create Poisson sampled measurement values (CPS)
+        for (int i_meas = 0; i_meas < num_measurements; i_meas++) {
+            double sampled_value = poisson(measurements[i_meas]);
+            sampled_measurements.push_back(sampled_value);
         }
 
-        //std::cout << '\n';
-        //std::cout << "The " << (m+1) << "th poisson data matrix is equal to:" << '\n'; // newline
+        // Do MLEM on the initial spectrum & sampled measurement values
+        runMLEM(cutoff, error, num_measurements, num_bins, sampled_measurements, sampled_spectrum, nns_response, sampled_mlem_ratio);
+        sampled_spectra.push_back(sampled_spectrum); // add to growing array of sampled spectra
 
-        //for (int i1 = 0; i1 < 8; ++i1)
-        //{
-            //for (int j1 = 0; j1 < 1; ++j1)
-            //{
-                //std::cout << data_poisson[i1][j1] << ' ';
-            //}
-            //std::cout << std::endl;
-        //}
+        // Calculate the ambient dose equivalent associated with the sampled spectrum
+        double sdose = calculateDose(num_bins, sampled_spectrum, icrp_factors);
 
-        //------------------------------------------------------------------------------------------
-        // Do MLEM as before
-        //------------------------------------------------------------------------------------------
-        for (int i = 1; i < cutoff; i++) {
-
-            double d_poisson[8][1]; // MLEM-estimated data
-
-            // Apply system matrix to estimated spectrum
-            for(int i0 = 0; i0 < 8; i0++)
-            {
-                for(j = 0; j < 1; j++)
-                {
-                d_poisson[i0][j]=0;
-                    for(k = 0; k < 52; k++)
-                    {
-                        d_poisson[i0][j]=d_poisson[i0][j]+(nns_response[i0][k]*ini_poisson[k][j]);
-                    }
-                }
-            }
-
-            // Create transpose system matrix
-            double trans_respmat[52][8];
-            for(int i1 = 0; i1 < 8; ++i1)
-            for(j = 0; j < 52; ++j)
-            {
-               trans_respmat[j][i1]=nns_response[i1][j];
-            }
-
-            //std::cout << "The transpose matrix of respmat is equal to:" << '\n'; // newline
-
-            //for (int i2 = 0; i2 < 52; ++i2)
-            //{
-                //for (int j = 0; j < 8; ++j)
-                //{
-                    //std::cout << trans_respmat[i2][j] << ' ';
-                //}
-                //std::cout << std::endl;
-            //}
-
-            double r_poisson[8][1]; // ratio between measured and MLEM-estimated data
-
-            // calculate ratios
-            for(int i3 = 0; i3 < 8; i3++)
-            {
-                for(j = 0; j < 1; j++)
-                {
-                    r_poisson[i3][j]=0;
-                    r_poisson[i3][j]=r_poisson[i3][j]+(data_poisson[i3][j]/d_poisson[i3][j]);
-                }
-            }
-
-            double c_poisson[52][1]; // correction factors
-
-            // calculate correction factors
-            for(int i4 = 0; i4 < 52; i4++)
-            {
-                for(j = 0; j < 1; j++)
-                {
-                    c_poisson[i4][j]=0;
-                    for(k = 0; k < 8; k++)
-                    {
-                        c_poisson[i4][j]=c_poisson[i4][j]+(trans_respmat[i4][k]*r_poisson[k][j]);
-                    }
-                }
-            }
-
-            double one[8][1] = { {1} , {1} , {1} , {1} , {1} , {1} , {1} , {1} };
-
-            double f_poisson[52][1]; // normalization factors
-
-            // calculate normalization factors
-            for(int i5 = 0; i5 < 52; i5++)
-            {
-                for(j = 0; j < 1; j++)
-                {
-                f_poisson[i5][j]=0;
-                    for(k = 0; k < 8; k++)
-                    {
-                        f_poisson[i5][j]=f_poisson[i5][j]+(trans_respmat[i5][k]*one[k][j]);
-                    }
-                }
-            }
-
-            double ini1_poisson[52][1]; // temporary spectral matrix
-
-            // apply correction factors to previous spectral estimate
-            for(int i6 = 0; i6 < 52; i6++)
-            {
-                for(j = 0; j < 1; j++)
-                {
-                    ini1_poisson[i6][j]=0;
-                    ini1_poisson[i6][j]=ini1_poisson[i6][j]+(ini_poisson[i6][j]*c_poisson[i6][j]);
-                }
-            }
-
-            // apply normalization factors to corrected spectral estimate
-            for(int i7 = 0; i7 < 52; i7++)
-            {
-                for(j = 0; j < 1; j++)
-                {
-                    ini_poisson[i7][j]=0;
-                    ini_poisson[i7][j]=ini_poisson[i7][j]+(ini1_poisson[i7][j]/f_poisson[i7][j]);
-                }
-            }
-
-            // multiply fluence values of the estimated spectrum by ICRP conversion factors
-            // Converts from [n cm^-2 s^-1] to [pSv s^-1]
-            double multiplication_std[52][1];
-            for (int i = 0; i < 52; i++)
-            {
-                for (int j = 0; j < 1; j++)
-                {
-                    multiplication_std[i][j] = ini_poisson[i][j]*icrp_factors[i];
-                }
-            }
-
-            // Get the total dose, as contributed to by fluence value in each energy bin
-            double d_std = 0;
-            for (int i = 0; i < 52; i++)
-            {
-
-                for (int j = 0; j < 1; j++)
-                {
-                    d_std += multiplication_std[i][j];
-                }
-            }
-            // Convert from [pSv/s] to [mSv/hr]
-            dose_std = (d_std)*(3600)*(1e-9);
-
-            // Prematurely end MLEM iterations if ratio between measured and MLEM-estimated data points
-            // is within tolerace specified by 'error'
-            if ( r_poisson[0][0] < (1+error) && r_poisson[0][0] > (1-error) && r_poisson[1][0] < (1+error) && r_poisson[1][0] > (1-error) && r_poisson[2][0] < (1+error) && r_poisson[2][0] > (1-error) && r_poisson[3][0] < (1+error) && r_poisson[3][0] > (1-error) && r_poisson[4][0] < (1+error) && r_poisson[4][0] > (1-error) && r_poisson[5][0] < (1+error) && r_poisson[5][0] > (1-error) && r_poisson[6][0] < (1+error) && r_poisson[6][0] > (1-error) && r_poisson[7][0] < (1+error) && r_poisson[7][0] > (1-error) )
-            {
-                break;
-            }
-        } // Finish MLEM
-
-        //std::cout << '\n';
-        //std::cout << "The " << (m+1) << "th output poisson matrix is equal to:" << '\n'; // newline
-
-        //for (int i8 = 0; i8 < 52; ++i8)
-        //{
-            //for (int j = 0; j < 1; ++j)
-            //{
-                //std::cout << ini_poisson[i8][j] << ' ';
-            //}
-            //std::cout << std::endl;
-        //}
-
-        // Transfer the MLEM-estimated spectrum into the growing 'poissmat' (which stores the
-        // spectrum generated for each statistical iteration [not each iteration of MLEM])
-        for (int j = 0; j < 1; j++)
-        {
-            for (int i = 0; i <52; i++)
-            {
-                poissmat[i][m] = ini_poisson[i][j];
-            }
-        }
-
-        // Transfer the calculated dose value into the growing 'dosemat' (whic stores the dose value
-        // calculated for each statistical iteration)
-        for (int i = 0; i < 1; i++)
-        {
-            dosemat[i][m] = dose_std;
-        }
-
-    } // Finish Poisson looping
-
-    //std::cout << '\n';
-    //std::cout << "The dose matrix is equal to:" << '\n'; // newline
-
-    //for (int i = 0; i < 1; ++i)
-    //{
-        //for (int j = 0; j < 1000; ++j)
-        //{
-            //std::cout << dosemat[i][j] << ' ';
-        //}
-        //std::cout << std::endl;
-    //}
-
-    //----------------------------------------------------------------------------------------------
-    // Calculate the summed squared difference of all the sampled spectra from the "original" MLEM-
-    // generated spectrum
-    //----------------------------------------------------------------------------------------------
-    double sq[52][1]; 
-    for (int i = 0; i < 52; i++)
-    {
-        for (int j = 0; j < 1; j++)
-        {
-            for (int k = 0; k < num_poisson_samples; k++)
-            {
-                sq[i][j] += (poissmat[i][k]-spectrum[i])*(poissmat[i][k]-spectrum[i]);
-            }
-        }
+        sampled_dose.push_back(sdose);
     }
 
     //----------------------------------------------------------------------------------------------
-    // Calculate the average squared difference of a sampled spectra from the "original" MLEM-
-    // generated spectrum
+    // Calculate RMSD between sampled spectra and the unfolded spectrum
     //----------------------------------------------------------------------------------------------
-    double sq_average[52][1];
-    for (int i =0; i < 52; i++)
-    {
-        for (int j = 0; j < 1; j++)
-        {
-            sq_average[i][j] = (sq[i][j])/(num_poisson_samples);
-        }
-    }
+    std::vector<double> spectrum_uncertainty;
+    calculateRMSD_vector(num_poisson_samples, spectrum, sampled_spectra, spectrum_uncertainty);
 
     //----------------------------------------------------------------------------------------------
-    // Calculate the RMS difference of a sampled spectra from the "original" MLEM-generated spectrum
+    // Print the uncertainty spectrum
     //----------------------------------------------------------------------------------------------
-    double s[52][1];
-    for (int i =0; i < 52; i++)
-    {
-        for (int j = 0; j < 1; j++)
-        {
-            s[i][j] = sqrt(sq_average[i][j]);
-        }
-    }
+    // std::cout << '\n'; // newline
+    // std::cout << "The uncertainy in the measured spectrum:" << '\n'; // newline
+
+    // for (int i = 0; i < 52; i++)
+    // {
+    //     std::cout << spectrum_uncertainty[i] << '\n';
+    // }
 
     //----------------------------------------------------------------------------------------------
-    // Print the RMS difference matrix
-    //
-    // @@misleading output here; is not the standard deviation matrix. Is the RMS difference matrix
+    // Calculate the ambient dose equivalent rate and its uncertainty
     //----------------------------------------------------------------------------------------------
-    std::cout << '\n'; // newline
-    std::cout << "The standard deviation matrix is equal to:" << '\n'; // newline
-
-    for (int i = 0; i < 52; i++)
-    {
-        for (int j = 0; j < 1; j++)
-        {
-            std::cout << s[i][j] << ' ';
-        }
-        std::cout << std::endl;
-    }
+    double ambient_dose_eq = calculateDose(num_bins, spectrum, icrp_factors);
+    double ambient_dose_eq_uncertainty = calculateRMSD(num_poisson_samples, ambient_dose_eq, sampled_dose);
 
     //----------------------------------------------------------------------------------------------
-    // multiply fluence values of the "original" MLEM-generated spectrum by ICRP conversion factors
+    // Display the dose and its uncertainty
     //----------------------------------------------------------------------------------------------
-    double multiplication[52][1];
-
-    for (int i = 0; i < 52; i++)
-    {
-        for (int j = 0; j < 1; j++)
-        {
-            multiplication[i][j] = spectrum[i]*icrp_factors[i];
-        }
-    }
-
-    //----------------------------------------------------------------------------------------------
-    // Get the total dose, as contributed to by fluence value in each energy bin
-    //----------------------------------------------------------------------------------------------
-    double d = 0;
-
-    for (int i = 0; i < 52; i++)
-    {
-
-        for (int j = 0; j < 1; j++)
-        {
-            d += multiplication[i][j];
-        }
-    }
-
-    //----------------------------------------------------------------------------------------------
-    // Converto mSv/hr
-    // Display result
-    // Convert from [pSv/s] to [mSv/hr]
-    //----------------------------------------------------------------------------------------------
-    double dose = (d)*(3600)*(1e-9);
-
     std::cout << '\n';
-    std::cout << "The equivalent dose is: " << dose << " mSv/h" << std::endl;
+    std::cout << "The equivalent dose is: " << ambient_dose_eq << " mSv/h" << std::endl;
     std::cout << '\n';
 
-    //----------------------------------------------------------------------------------------------
-    // Get RMS difference of sampled dose from MLEM-estimated dose
-    // Display result
-    //----------------------------------------------------------------------------------------------
-    double sq_dose = 0;
-
-    for (int i = 0; i < 1; i++)
-        {
-        for (int j = 0; j < num_poisson_samples; j++)
-            {
-                sq_dose += (dosemat[i][j]-dose)*(dosemat[i][j]-dose);
-            }
-        }
-
-    double sq_average_dose = sq_dose/num_poisson_samples;
-
-    double s_dose = sqrt(sq_average_dose);
-
     std::cout << '\n';
-    std::cout << "The error on the equivalent dose is: " << s_dose << " mSv/h" << std::endl;
+    std::cout << "The error on the equivalent dose is: " << ambient_dose_eq_uncertainty << " mSv/h" << std::endl;
     std::cout << '\n';
 
     //----------------------------------------------------------------------------------------------
     // Save results to file
     //----------------------------------------------------------------------------------------------
-    saveDose(dose_file, irradiation_conditions, dose, s_dose);
+    saveDose(dose_file, irradiation_conditions, ambient_dose_eq, ambient_dose_eq_uncertainty);
     std::cout << "Saved calculated dose to " << dose_file << "\n";
-    saveSpectrum(o_spectrum_file, irradiation_conditions, spectrum, s, energy_bins);
+    saveSpectrum(o_spectrum_file, irradiation_conditions, spectrum, spectrum_uncertainty, energy_bins);
     std::cout << "Saved unfolded spectrum to " << o_spectrum_file << "\n";
-    //************************************
-    // Convert arrays to vectors
-    std::vector<double> uncertainty_v;
-    std::vector<double> subdose_v;
-    for (int i=0; i < 52; i++) {
-        uncertainty_v.push_back(s[i][0]);
-        subdose_v.push_back(multiplication[i][0]*(3600)*(1e-9));
-    }
 
-    //************************************
     std::string report_file = report_file_pre + irradiation_conditions + report_file_suf;
-    prepareReport(report_file, irradiation_conditions, input_files, input_file_flags, cutoff, error, norm, f_factor_report, num_poisson_samples, measurements_nc, dose_mu, doserate_mu, duration, energy_bins, initial_spectrum, nns_response, num_iterations, mlem_ratio, dose, s_dose, spectrum, uncertainty_v, icrp_factors, subdose_v);
+    prepareReport(report_file, irradiation_conditions, input_files, input_file_flags, cutoff, error, norm, f_factor_report, num_poisson_samples, measurements_nc, dose_mu, doserate_mu, duration, energy_bins, initial_spectrum, nns_response, num_iterations, mlem_ratio, ambient_dose_eq, ambient_dose_eq_uncertainty, spectrum, spectrum_uncertainty, icrp_factors);
     std::cout << "Generated summary report: " << report_file << "\n\n";
-    // std::cout << "Avg ratio: " << avg_ratio/8.0 << "\n";
-    // std::cout << "Max ratio: " << max_ratio << "\n\n";
 
     //----------------------------------------------------------------------------------------------
     // ROOT plotting stuff
@@ -748,10 +427,7 @@ int main(int argc, char* argv[])
 
     for (int i = 0; i < 51; i++)
     {
-        for (int j = 0; j < 1; j++)
-        {
-        s_line[i] = s[i][j];
-        }
+        s_line[i] = spectrum_uncertainty[i];
     }
 
     //std::cout << '\n';
@@ -1016,7 +692,7 @@ int saveDose(std::string dose_file, std::string irradiation_conditions, double d
 //==================================================================================================
 // Save calculated spectrum (and error spectrum) to file
 //==================================================================================================
-int saveSpectrum(std::string spectrum_file, std::string irradiation_conditions, std::vector<double>& spectrum, double (&s)[52][1], std::vector<double>& energy_bins) {
+int saveSpectrum(std::string spectrum_file, std::string irradiation_conditions, std::vector<double>& spectrum, std::vector<double> &spectrum_uncertainty, std::vector<double>& energy_bins) {
     // determine if file exists
     std::ifstream sfile(spectrum_file);
     bool file_empty = is_empty(sfile);
@@ -1041,7 +717,7 @@ int saveSpectrum(std::string spectrum_file, std::string irradiation_conditions, 
         while (getline(sfile,line)) {
             //Note: using stream b/c have to convert doubles to strings
             std::ostringstream line_stream;
-            line_stream << line << "," << spectrum[index] << "," << s[index][0] << "\n";
+            line_stream << line << "," << spectrum[index] << "," << spectrum_uncertainty[index] << "\n";
             line = line_stream.str();
             sfile_lines.push_back(line);
             index++;
@@ -1060,7 +736,7 @@ int saveSpectrum(std::string spectrum_file, std::string irradiation_conditions, 
         for (int index=0; index<spectrum.size(); index++) {
             //Note: using stream b/c have to convert doubles to strings
             std::ostringstream line_stream;
-            line_stream << energy_bins[index] << "," << spectrum[index] << "," << s[index][0] << "\n";
+            line_stream << energy_bins[index] << "," << spectrum[index] << "," << spectrum_uncertainty[index] << "\n";
             line = line_stream.str();
             sfile_lines.push_back(line);
         }
@@ -1082,7 +758,7 @@ int saveSpectrum(std::string spectrum_file, std::string irradiation_conditions, 
 // of this function are separated by headers indicating the type of information printed to the
 // report in the the corresponding section.
 //==================================================================================================
-int prepareReport(std::string report_file, std::string irradiation_conditions, std::vector<std::string> &input_files, std::vector<std::string> &input_file_flags, int cutoff, double error, double norm, double f_factor, int num_poisson_samples, std::vector<double>& measurements_nc, double dose_mu, double doserate_mu, int duration, std::vector<double>& energy_bins, std::vector<double>& initial_spectrum, std::vector<std::vector<double>>& nns_response, int num_iterations, std::vector<double>& mlem_ratio, double dose, double s_dose, std::vector<double>& spectrum, std::vector<double>& uncertainty_v, std::vector<double>& icrp_factors, std::vector<double>& subdose_v) {
+int prepareReport(std::string report_file, std::string irradiation_conditions, std::vector<std::string> &input_files, std::vector<std::string> &input_file_flags, int cutoff, double error, double norm, double f_factor, int num_poisson_samples, std::vector<double>& measurements_nc, double dose_mu, double doserate_mu, int duration, std::vector<double>& energy_bins, std::vector<double>& initial_spectrum, std::vector<std::vector<double>>& nns_response, int num_iterations, std::vector<double>& mlem_ratio, double dose, double s_dose, std::vector<double>& spectrum, std::vector<double>& spectrum_uncertainty, std::vector<double>& icrp_factors) {
     std::string HEADER_DIVIDE = "************************************************************************************************************************\n";
     std::string SECTION_DIVIDE = "\n========================================================================================================================\n\n";
     std::string COLSTRING = "--------------------";
@@ -1198,13 +874,17 @@ int prepareReport(std::string report_file, std::string irradiation_conditions, s
     for (int i=0; i<energy_bins.size(); i++) {
         std::ostringstream icrp_string;
         icrp_string << "| " <<icrp_factors[i];
-        rfile << std::left << std::setw(cw) << energy_bins[i] << std::setw(cw) << spectrum[i] << std::setw(cw) << uncertainty_v[i] << std::setw(26) << icrp_string.str() << subdose_v[i] << "\n";
+        double subdose = spectrum[i]*icrp_factors[i]*3600*(1e-9);
+        rfile << std::left << std::setw(cw) << energy_bins[i] << std::setw(cw) << spectrum[i] << std::setw(cw) << spectrum_uncertainty[i] << std::setw(26) << icrp_string.str() << subdose << "\n";
     }
 
     rfile.close();
     return 1;
 }
 
+//==================================================================================================
+// Read a 1D CSV file (i.e. one value per row) and store the data in a vector
+//==================================================================================================
 int readInputFile1D(std::string file_name, std::vector<double>& input_vector) {
     std::ifstream ifile(file_name);
     std::string iline;
@@ -1224,6 +904,9 @@ int readInputFile1D(std::string file_name, std::vector<double>& input_vector) {
     return 1;
 }
 
+//==================================================================================================
+// Read a CSV file and store the data in a 2D vector
+//==================================================================================================
 int readInputFile2D(std::string file_name, std::vector<std::vector<double>>& input_vector) {
     std::ifstream ifile(file_name);
     std::string iline;
@@ -1249,6 +932,11 @@ int readInputFile2D(std::string file_name, std::vector<std::vector<double>>& inp
     return 1;
 }
 
+//==================================================================================================
+// Compare the size of two vectors (indicated by reference_size and test_size). If the size of test
+// does not match the size of reference, throw an error with a message constructed using text passed
+// as function parameters (reference_string and test_string)
+//==================================================================================================
 int checkDimensions(int reference_size, std::string reference_string, int test_size, std::string test_string) {
     std::ostringstream error_message;
     if (reference_size != test_size) {
@@ -1258,6 +946,11 @@ int checkDimensions(int reference_size, std::string reference_string, int test_s
     return 1;
 }
 
+//==================================================================================================
+// Accept a series of measurements and an estimated input spectrum and perform the MLEM algorithm
+// until the true spectrum has been unfolded. Use the provided target error (error) and the maximum
+// number of MLEM iterations (cutoff) to determine when to cease execution of the algorithm.
+//==================================================================================================
 int runMLEM(int cutoff, double error, int num_measurements, int num_bins, std::vector<double> &measurements, std::vector<double> &spectrum, std::vector<std::vector<double>> &nns_response, std::vector<double> &mlem_ratio) {
     int mlem_index; // index of MLEM iteration
 
@@ -1280,19 +973,6 @@ int runMLEM(int cutoff, double error, int num_measurements, int num_bins, std::v
             mlem_estimate.push_back(temp_value);
         }
 
-        // Create the transpose matrix of the system matrix (for upcoming backprojection)
-        std::vector<std::vector<double>> transpose_response;
-
-        for(int i_bin=0; i_bin<num_bins; i_bin++) 
-        {
-            std::vector<double> new_column;
-            for (int i_meas=0; i_meas<num_measurements; i_meas++) 
-            {
-                new_column.push_back(nns_response[i_meas][i_bin]);
-            }
-            transpose_response.push_back(new_column);
-        }
-
         // Calculate ratio between each measured data point and corresponding MLEM-estimated data point
         for(int i_meas = 0; i_meas < num_measurements; i_meas++)
         {
@@ -1309,7 +989,7 @@ int runMLEM(int cutoff, double error, int num_measurements, int num_bins, std::v
             double temp_value = 0;
             for(int i_meas = 0; i_meas < num_measurements; i_meas++)
             {
-                temp_value += transpose_response[i_bin][i_meas]*mlem_ratio[i_meas];
+                temp_value += nns_response[i_meas][i_bin]*mlem_ratio[i_meas];
             }
             mlem_correction.push_back(temp_value);
         }
@@ -1327,7 +1007,7 @@ int runMLEM(int cutoff, double error, int num_measurements, int num_bins, std::v
             double temp_value = 0;
             for(int i_meas = 0; i_meas < num_measurements; i_meas++)
             {
-                temp_value += transpose_response[i_bin][i_meas];
+                temp_value += nns_response[i_meas][i_bin];
             }
             mlem_normalization.push_back(temp_value);
         }
@@ -1338,8 +1018,8 @@ int runMLEM(int cutoff, double error, int num_measurements, int num_bins, std::v
             spectrum[i_bin] = (spectrum[i_bin]*mlem_correction[i_bin]/mlem_normalization[i_bin]);
         }
 
-        // Prematurely end MLEM iterations if ratio between measured and MLEM-estimated data points
-        // is within tolerace specified by 'error'
+        // End MLEM iterations if ratio between measured and MLEM-estimated data points is within
+        // tolerace specified by 'error'
         bool continue_mlem = false;
         for (int i_meas=0; i_meas < num_measurements; i_meas++) {
             if (mlem_ratio[i_meas] >= (1+error) || mlem_ratio[i_meas] <= (1-error)) {
@@ -1353,4 +1033,60 @@ int runMLEM(int cutoff, double error, int num_measurements, int num_bins, std::v
     }
 
     return mlem_index;
+}
+
+//==================================================================================================
+// Calculate the total ambient dose equivalent rate associated with the provided spectrum using
+// weighting factors (binned by energy) provided in ICRP 74.
+//==================================================================================================
+double calculateDose(int num_bins, std::vector<double> &spectrum, std::vector<double> &icrp_factors) {
+    double ambient_dose_eq = 0;
+    int s_to_hr = 3600;
+    double msv_to_psv = 1e-9;
+
+    // Sum the dose contributions from each energy bin
+    for (int i_bins=0; i_bins < num_bins; i_bins++) {
+        ambient_dose_eq += spectrum[i_bins]*icrp_factors[i_bins];
+    }
+
+    // Convert from [pSv/s] to [mSv/hr]
+    ambient_dose_eq *= (s_to_hr)*(msv_to_psv);
+
+    return ambient_dose_eq;
+}
+
+//==================================================================================================
+// Calculate the root-mean-square deviation of sampled vectors from a "true" vector.
+//==================================================================================================
+int calculateRMSD_vector(int num_samples, std::vector<double> &true_vector, std::vector<std::vector<double>> &sampled_vectors, std::vector<double> &rms_differences) {
+    int true_vector_size = true_vector.size();
+
+    // Loop over each element in the true vector
+    for (int i = 0; i < true_vector_size; i++) {
+        double sum_sq_diff = 0;
+        // Sum the square difference of poisson sampled values from the true value
+        for (int i_samp = 0; i_samp < num_samples; i_samp++) {
+            sum_sq_diff += ((true_vector[i] - sampled_vectors[i_samp][i])*(true_vector[i] - sampled_vectors[i_samp][i]));
+        }
+        double avg_sq_diff = sum_sq_diff/num_samples;
+        double rms_diff = sqrt(avg_sq_diff);
+        rms_differences.push_back(rms_diff);
+    }
+    return 1;
+}
+
+//==================================================================================================
+// Calculate the root-mean-square deviation of a vector of values from a "true" value.
+//==================================================================================================
+double calculateRMSD(int num_samples, double true_value, std::vector<double> &sample_vector) {
+    double sum_sq_diff = 0;
+    
+    // Sum the square difference of poisson sampled values from the true value
+    for (int i_samp = 0; i_samp < num_samples; i_samp++) {
+        sum_sq_diff += ((true_value - sample_vector[i_samp])*(true_value - sample_vector[i_samp]));
+    }
+    double avg_sq_diff = sum_sq_diff/num_samples;
+    double rms_diff = sqrt(avg_sq_diff);
+
+    return rms_diff;
 }
