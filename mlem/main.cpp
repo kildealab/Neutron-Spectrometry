@@ -49,10 +49,11 @@ int setSettings(std::string config_file, int &cutoff, double &norm, double &erro
 std::vector<double> getMeasurements(std::string input_file, std::string &irradiation_conditions, double &dose_mu, double &doserate_mu, int &t);
 int saveDose(std::string dose_file, std::string irradiation_conditions, double dose, double s_dose);
 int saveSpectrum(std::string spectrum_file, std::string irradiation_conditions, std::vector<double>& spectrum, double (&s)[52][1], std::vector<double>& energy_bins);
-int prepareReport(std::string report_file, std::string irradiation_conditions, std::vector<std::string> &input_files, std::vector<std::string> &input_file_flags, int cutoff, double error, double norm, double f_factor, int num_poisson_samples, std::vector<double>& data_v, double dose_mu, double doserate_mu, int duration, std::vector<double>& energy_bins, std::vector<double>& initial_spectrum, std::vector<std::vector<double>>& nns_response, int num_iterations, std::vector<double>& ratio_v, double dose, double s_dose, std::vector<double>& spectrum, std::vector<double>& uncertainty_v, std::vector<double>& icrp_factors, std::vector<double>& subdose_v);
+int prepareReport(std::string report_file, std::string irradiation_conditions, std::vector<std::string> &input_files, std::vector<std::string> &input_file_flags, int cutoff, double error, double norm, double f_factor, int num_poisson_samples, std::vector<double>& measurements_nc, double dose_mu, double doserate_mu, int duration, std::vector<double>& energy_bins, std::vector<double>& initial_spectrum, std::vector<std::vector<double>>& nns_response, int num_iterations, std::vector<double>& mlem_ratio, double dose, double s_dose, std::vector<double>& spectrum, std::vector<double>& uncertainty_v, std::vector<double>& icrp_factors, std::vector<double>& subdose_v);
 int readInputFile1D(std::string file_name, std::vector<double>& input_vector);
 int readInputFile2D(std::string file_name, std::vector<std::vector<double>>& input_vector);
 int checkDimensions(int reference_size, std::string reference_string, int test_size, std::string test_string);
+int runMLEM(int cutoff, double error, int num_measurements, int num_bins, std::vector<double> &measurements, std::vector<double> &spectrum, std::vector<std::vector<double>>& nns_response, std::vector<double> &mlem_ratio);
 
 // Constants
 std::string DOSE_HEADERS[] = {
@@ -150,31 +151,29 @@ int main(int argc, char* argv[])
     double dose_mu; // dose delivered (MU) for individual measurement
     double doserate_mu; // dose rate (MU/min) used for individual measurement
     int duration; // Duration (s) of individual measurement acquisition
-    std::vector<double> data_v = getMeasurements(input_files[0], irradiation_conditions, dose_mu, doserate_mu, duration);
+    std::vector<double> measurements_nc = getMeasurements(input_files[0], irradiation_conditions, dose_mu, doserate_mu, duration);
+    int num_measurements = measurements_nc.size();
 
     // Convert measured charge in nC to counts per second
     // Re-order measurments from (7 moderators to 0) to (0 moderators to 7)
-    double data[8][1];
-    int num_measurements = 8;
-    for (int index=0; index < 8; index++) {
-        data[index][0] = data_v[7-index]*norm/f_factor/duration*(dose_mu/doserate_mu);
+    std::vector<double> measurements;
+    for (int index=0; index < num_measurements; index++) {
+        double measurement_cps = measurements_nc[num_measurements-index-1]*norm/f_factor/duration*(dose_mu/doserate_mu);
+        measurements.push_back(measurement_cps);
     }
 
     //----------------------------------------------------------------------------------------------
     // Print out the processed measured data matrix
     //----------------------------------------------------------------------------------------------ls
     std::cout << '\n';
-    std::cout << "The data matrix is equal to:" << '\n'; // newline
+    std::cout << "The measurements in CPS are:" << '\n'; // newline
 
     //Loop over the data matrix, display each value
     for (int i = 0; i < 8; ++i)
     {
-        for (int j = 0; j < 1; ++j)
-        {
-            std::cout << data[i][j] << ' ';
-        }
-        std::cout << std::endl;
+        std::cout << measurements[i] << '\n';
     }
+    std::cout << '\n';
 
     //----------------------------------------------------------------------------------------------
     // Generate the energy bins matrix:
@@ -233,145 +232,18 @@ int main(int argc, char* argv[])
     // Run the MLEM algorithm, iterating <cutoff> times.
     // Final result, i.e. MLEM-estimated spectrum, outputted in 'ini' matrix
     //----------------------------------------------------------------------------------------------
-    int i; // index of MLEM iteration
-    int j; 
-    int k;
-
-    // matrix that stores the ratio between measured data points and corresponding MLEM data point
-    double r[8][1]; 
-
-    for (i = 1.0; i < cutoff; i++) {
-
-        // matrix that stores the MLEM-estimated data to be compared with measured data
-        double d[8][1];
-
-        // Apply system matrix 'respmat' to current spectral estimate 'ini' to get MLEM-estimated
-        // data. Save results in 'd'
-        // Units: d [cps] = respmat [cm^2] x ini [cps / cm^2]
-        for(int i0 = 0; i0 < 8; i0++)
-        {
-            for(j = 0; j < 1; j++)
-            {
-            d[i0][j]=0;
-                for(k = 0; k < 52; k++)
-                {
-                d[i0][j]=d[i0][j]+(nns_response[i0][k]*spectrum[k]);
-                }
-            }
-        }
-
-        // Create the transpose matrix of the system matrix (for upcoming backprojection)
-        double trans_respmat[52][8];
-
-        for(int i1 = 0; i1 < 8; ++i1)
-        for(j = 0; j < 52; ++j)
-        {
-           trans_respmat[j][i1]=nns_response[i1][j];
-        }
-
-        // std::cout << "The transpose matrix of respmat is equal to:" << '\n'; // newline
-
-        // for (int i2 = 0; i2 < 52; ++i2)
-        // {
-        //     for (int j = 0; j < 8; ++j)
-        //     {
-        //         std::cout << trans_respmat[i2][j] << ' ';
-        //     }
-        //     std::cout << std::endl;
-        // }
-
-        // Calculate ratio between each measured data point and corresponding MLEM-estimated data point
-        for(int i3 = 0; i3 < 8; i3++)
-        {
-            for(j = 0; j < 1; j++)
-            {
-            r[i3][j]=0;
-            r[i3][j]=r[i3][j]+(data[i3][j]/d[i3][j]);
-            }
-        }
-
-        // matrix that stores the correction factor to be applied to each MLEM-estimated spectral value
-        double c[52][1];
-
-        // Create the correction factors to be applied to MLEM-estimated spectral values:
-        //  - multiply transpose system matrix by ratio values
-        for(int i4 = 0; i4 < 52; i4++)
-        {
-            for(j = 0; j < 1; j++)
-            {
-            c[i4][j]=0;
-                for(k = 0; k < 8; k++)
-                {
-                c[i4][j]=c[i4][j]+(trans_respmat[i4][k]*r[k][j]);
-                }
-            }
-        }
-
-        double one[8][1] = { {1} , {1} , {1} , {1} , {1} , {1} , {1} , {1} };
-
-        // matrix that stores the normalization factors (sensitivity) to be applied to each MLEM-estimated
-        // spectral value
-        double f[52][1];
-
-        // Create the normalization factors to be applied to MLEM-estimated spectral values:
-        //  - each element of f stores the sum of 8 elements of the transpose system (response)
-        //    matrix. The 8 elements correspond to the relative contributions of each MLEM-estimated
-        //    data point to the MLEM-estimated spectral value.
-        for(int i5 = 0; i5 < 52; i5++)
-        {
-            for(j = 0; j < 1; j++)
-            {
-            f[i5][j]=0;
-                for(k = 0; k < 8; k++)
-                {
-                f[i5][j]=f[i5][j]+(trans_respmat[i5][k]*one[k][j]);
-                }
-            }
-        }
-
-
-        //Temporary matrix to store @@unnormalized corrected estimated spectral values
-        double ini1[52][1];
-        // Apply correction factors to previous estimate of spectral values
-        for(int i6 = 0; i6 < 52; i6++)
-        {
-            for(j = 0; j < 1; j++)
-            {
-            ini1[i6][j]=0;
-            ini1[i6][j]=ini1[i6][j]+(spectrum[i6]*c[i6][j]);
-            }
-        }
-
-        // Apply normalization factors to corrected estimate of spectral values
-        for(int i7 = 0; i7 < 52; i7++)
-        {
-            for(j = 0; j < 1; j++)
-            {
-            spectrum[i7]=0;
-            spectrum[i7]=spectrum[i7]+(ini1[i7][j]/f[i7][j]);
-            }
-        }
-
-        // Prematurely end MLEM iterations if ratio between measured and MLEM-estimated data points
-        // is within tolerace specified by 'error'
-        if ( r[0][0] < (1+error) && r[0][0] > (1-error) && r[1][0] < (1+error) && r[1][0] > (1-error) && r[2][0] < (1+error) && r[2][0] > (1-error) && r[3][0] < (1+error) && r[3][0] > (1-error) && r[4][0] < (1+error) && r[4][0] > (1-error) && r[5][0] < (1+error) && r[5][0] > (1-error) && r[6][0] < (1+error) && r[6][0] > (1-error) && r[7][0] < (1+error) && r[7][0] > (1-error) )
-        {
-            break;
-        }
-
-    }
+    std::vector<double> mlem_ratio; // vector that stores the ratio between measured data and MLEM estimated data
+    int num_iterations = runMLEM(cutoff, error, num_measurements, num_bins, measurements, spectrum, nns_response, mlem_ratio);
 
     //----------------------------------------------------------------------------------------------
     // Display the result (output) matrix of the MLEM algorithm, which represents reconstructed 
     // spectral data.
     //----------------------------------------------------------------------------------------------
-    std::cout << '\n';
-    std::cout << "The output matrix is equal to:" << '\n'; // newline
+    std::cout << "The unfolded spectrum:" << '\n';
 
-    for (int i8 = 0; i8 < 52; ++i8)
+    for (int i_bin = 0; i_bin < num_bins; i_bin++)
     {
-        std::cout << spectrum[i8] << ' ';
-        std::cout << std::endl;
+        std::cout << spectrum[i_bin] << '\n';
     }
 
     //----------------------------------------------------------------------------------------------
@@ -380,30 +252,18 @@ int main(int argc, char* argv[])
     // spectrum) from the actual measured charge values. 
     //----------------------------------------------------------------------------------------------
     std::cout << '\n';
-    std::cout << "The error matrix is equal to:" << '\n'; // newline
-    // double avg_ratio = 0; // Calculate average error in ratio across 8 measuremnts
-    // double max_ratio = 0; // maximum error in ratio across 8 measurements
+    std::cout << "The ratios between measurements and MLEM-estimate measurements:" << '\n';
 
-    for (int i = 0; i < 8; ++i)
+    for (int i_meas = 0; i_meas < num_measurements; i_meas++)
     {
-        for (int j = 0; j < 1; ++j)
-        {
-            std::cout << r[i][j] << ' ';
-            // double myval = std::abs(r[i][j]-1.0);
-            // avg_ratio += myval;
-            // if (myval > max_ratio) {
-            //     max_ratio = myval;
-            // }
-        }
-        std::cout << std::endl;
+        std::cout << mlem_ratio[i_meas] << '\n';
     }
 
     //----------------------------------------------------------------------------------------------
     // Display the number of iterations of MLEM that were actually executed (<= cutoff)
     //----------------------------------------------------------------------------------------------
     std::cout << '\n';
-    std::cout << "The number of iterations is equal to: " << i << std::endl;
-    int num_interations = i;
+    std::cout << "The final number of MLEM iterations: " << num_iterations << std::endl;
 
 
     double data_poisson[8][1]; // analogous to 'data'. Store sampled-measured data
@@ -414,6 +274,9 @@ int main(int argc, char* argv[])
     double dosemat[1][num_poisson_samples]; // Matrix to store sampled-ambient dose equivalent values used for statistical purposes
     double poissmat[52][num_poisson_samples]; // Matrix to store sampled-spectra used for statistical purposes
     double dose_std = 0;
+
+    int j;
+    int k;
 
     //----------------------------------------------------------------------------------------------
     // Perform poisson analysis 1000 times
@@ -464,7 +327,7 @@ int main(int argc, char* argv[])
         {
             for (int i = 0; i <8; i++)
             {
-                data_poisson[i][j] = poisson(data[i][j]);
+                data_poisson[i][j] = poisson(measurements[i]);
             }
         }
 
@@ -787,19 +650,16 @@ int main(int argc, char* argv[])
     std::cout << "Saved unfolded spectrum to " << o_spectrum_file << "\n";
     //************************************
     // Convert arrays to vectors
-    std::vector<double> ratio_v;
     std::vector<double> uncertainty_v;
     std::vector<double> subdose_v;
     for (int i=0; i < 52; i++) {
         uncertainty_v.push_back(s[i][0]);
         subdose_v.push_back(multiplication[i][0]*(3600)*(1e-9));
     }
-    for (int i=0; i<8; i++) {
-        ratio_v.push_back(r[i][0]);
-    }
+
     //************************************
     std::string report_file = report_file_pre + irradiation_conditions + report_file_suf;
-    prepareReport(report_file, irradiation_conditions, input_files, input_file_flags, cutoff, error, norm, f_factor_report, num_poisson_samples, data_v, dose_mu, doserate_mu, duration, energy_bins, initial_spectrum, nns_response, num_interations, ratio_v, dose, s_dose, spectrum, uncertainty_v, icrp_factors, subdose_v);
+    prepareReport(report_file, irradiation_conditions, input_files, input_file_flags, cutoff, error, norm, f_factor_report, num_poisson_samples, measurements_nc, dose_mu, doserate_mu, duration, energy_bins, initial_spectrum, nns_response, num_iterations, mlem_ratio, dose, s_dose, spectrum, uncertainty_v, icrp_factors, subdose_v);
     std::cout << "Generated summary report: " << report_file << "\n\n";
     // std::cout << "Avg ratio: " << avg_ratio/8.0 << "\n";
     // std::cout << "Max ratio: " << max_ratio << "\n\n";
@@ -1222,7 +1082,7 @@ int saveSpectrum(std::string spectrum_file, std::string irradiation_conditions, 
 // of this function are separated by headers indicating the type of information printed to the
 // report in the the corresponding section.
 //==================================================================================================
-int prepareReport(std::string report_file, std::string irradiation_conditions, std::vector<std::string> &input_files, std::vector<std::string> &input_file_flags, int cutoff, double error, double norm, double f_factor, int num_poisson_samples, std::vector<double>& data_v, double dose_mu, double doserate_mu, int duration, std::vector<double>& energy_bins, std::vector<double>& initial_spectrum, std::vector<std::vector<double>>& nns_response, int num_iterations, std::vector<double>& ratio_v, double dose, double s_dose, std::vector<double>& spectrum, std::vector<double>& uncertainty_v, std::vector<double>& icrp_factors, std::vector<double>& subdose_v) {
+int prepareReport(std::string report_file, std::string irradiation_conditions, std::vector<std::string> &input_files, std::vector<std::string> &input_file_flags, int cutoff, double error, double norm, double f_factor, int num_poisson_samples, std::vector<double>& measurements_nc, double dose_mu, double doserate_mu, int duration, std::vector<double>& energy_bins, std::vector<double>& initial_spectrum, std::vector<std::vector<double>>& nns_response, int num_iterations, std::vector<double>& mlem_ratio, double dose, double s_dose, std::vector<double>& spectrum, std::vector<double>& uncertainty_v, std::vector<double>& icrp_factors, std::vector<double>& subdose_v) {
     std::string HEADER_DIVIDE = "************************************************************************************************************************\n";
     std::string SECTION_DIVIDE = "\n========================================================================================================================\n\n";
     std::string COLSTRING = "--------------------";
@@ -1269,8 +1129,8 @@ int prepareReport(std::string report_file, std::string irradiation_conditions, s
     // rfile << "Measured Data (measurement duration: " << duration << "s)\n\n";
     rfile << std::left << std::setw(cw) << "# of moderators" << "Charge (nC)\n";
     rfile << std::left << std::setw(cw) << COLSTRING << COLSTRING << "\n";
-    for (int i=0; i<data_v.size(); i++) {
-        rfile << std::left << std::setw(cw) << i << data_v[i] << "\n";
+    for (int i=0; i<measurements_nc.size(); i++) {
+        rfile << std::left << std::setw(cw) << i << measurements_nc[i] << "\n";
     }
     rfile << SECTION_DIVIDE;
 
@@ -1308,7 +1168,7 @@ int prepareReport(std::string report_file, std::string irradiation_conditions, s
     int thw = 13; // NNS response column width
     //row 1
     rfile << std::left << std::setw(thw) << "# moderators" << "| ";
-    for (int j=0; j<ratio_v.size(); j++) {
+    for (int j=0; j<mlem_ratio.size(); j++) {
         rfile << std::left << std::setw(rw) << j;
     }
     rfile << "\n";
@@ -1320,8 +1180,8 @@ int prepareReport(std::string report_file, std::string irradiation_conditions, s
     rfile << "\n";
     // row thw
     rfile << std::left << std::setw(thw) << "ratio" << "| ";
-    for (int j=0; j<ratio_v.size(); j++) {
-        rfile << std::left << std::setw(rw) << ratio_v[j];
+    for (int j=0; j<mlem_ratio.size(); j++) {
+        rfile << std::left << std::setw(rw) << mlem_ratio[j];
     }
     rfile << "\n";
     rfile << SECTION_DIVIDE;
@@ -1382,7 +1242,6 @@ int readInputFile2D(std::string file_name, std::vector<std::vector<double>>& inp
 
         // Loop through the line, delimiting at commas
         while (getline(line_stream, stoken, ',')) {
-            std::cout << stoken << "\n";
             new_column.push_back(atof(stoken.c_str())); // add data to the vector
         }
         input_vector.push_back(new_column);
@@ -1397,4 +1256,101 @@ int checkDimensions(int reference_size, std::string reference_string, int test_s
         throw std::logic_error(error_message.str());   
     }
     return 1;
+}
+
+int runMLEM(int cutoff, double error, int num_measurements, int num_bins, std::vector<double> &measurements, std::vector<double> &spectrum, std::vector<std::vector<double>> &nns_response, std::vector<double> &mlem_ratio) {
+    int mlem_index; // index of MLEM iteration
+
+    for (mlem_index = 1; mlem_index < cutoff; mlem_index++) {
+        mlem_ratio.clear(); // wipe previous ratios for each iteration
+
+        // vector that stores the MLEM-estimated data to be compared with measured data
+        std::vector<double> mlem_estimate;
+
+        // Apply system matrix, the nns_response, to current spectral estimate to get MLEM-estimated
+        // data. Save results in mlem_estimate
+        // Units: mlem_estimate [cps] = nns_response [cm^2] x spectru  [cps / cm^2]
+        for(int i_meas = 0; i_meas < num_measurements; i_meas++)
+        {
+            double temp_value = 0;
+            for(int i_bin = 0; i_bin < num_bins; i_bin++)
+            {
+                temp_value += nns_response[i_meas][i_bin]*spectrum[i_bin];
+            }
+            mlem_estimate.push_back(temp_value);
+        }
+
+        // Create the transpose matrix of the system matrix (for upcoming backprojection)
+        std::vector<std::vector<double>> transpose_response;
+
+        for(int i_bin=0; i_bin<num_bins; i_bin++) 
+        {
+            std::vector<double> new_column;
+            for (int i_meas=0; i_meas<num_measurements; i_meas++) 
+            {
+                new_column.push_back(nns_response[i_meas][i_bin]);
+            }
+            transpose_response.push_back(new_column);
+        }
+
+        // Calculate ratio between each measured data point and corresponding MLEM-estimated data point
+        for(int i_meas = 0; i_meas < num_measurements; i_meas++)
+        {
+            mlem_ratio.push_back(measurements[i_meas]/mlem_estimate[i_meas]);
+        }
+
+        // matrix that stores the correction factor to be applied to each MLEM-estimated spectral value
+        std::vector<double> mlem_correction;
+
+        // Create the correction factors to be applied to MLEM-estimated spectral values:
+        //  - multiply transpose system matrix by ratio values
+        for(int i_bin = 0; i_bin < num_bins; i_bin++)
+        {
+            double temp_value = 0;
+            for(int i_meas = 0; i_meas < num_measurements; i_meas++)
+            {
+                temp_value += transpose_response[i_bin][i_meas]*mlem_ratio[i_meas];
+            }
+            mlem_correction.push_back(temp_value);
+        }
+
+        // matrix that stores the normalization factors (sensitivity) to be applied to each MLEM-estimated
+        // spectral value
+        std::vector<double> mlem_normalization;
+
+        // Create the normalization factors to be applied to MLEM-estimated spectral values:
+        //  - each element of f stores the sum of 8 elements of the transpose system (response)
+        //    matrix. The 8 elements correspond to the relative contributions of each MLEM-estimated
+        //    data point to the MLEM-estimated spectral value.
+        for(int i_bin = 0; i_bin < num_bins; i_bin++)
+        {
+            double temp_value = 0;
+            for(int i_meas = 0; i_meas < num_measurements; i_meas++)
+            {
+                temp_value += transpose_response[i_bin][i_meas];
+            }
+            mlem_normalization.push_back(temp_value);
+        }
+
+        // Apply correction factors and normalization to get new spectral estimate
+        for(int i_bin=0; i_bin < num_bins; i_bin++)
+        {
+            spectrum[i_bin] = (spectrum[i_bin]*mlem_correction[i_bin]/mlem_normalization[i_bin]);
+        }
+
+        // Prematurely end MLEM iterations if ratio between measured and MLEM-estimated data points
+        // is within tolerace specified by 'error'
+        bool continue_mlem = false;
+        for (int i_meas=0; i_meas < num_measurements; i_meas++) {
+            if (mlem_ratio[i_meas] >= (1+error) || mlem_ratio[i_meas] <= (1-error)) {
+                continue_mlem = true;
+                break;
+            }   
+        }
+        if (!continue_mlem) {
+            break;
+        }
+    }
+
+    return mlem_index;
 }
