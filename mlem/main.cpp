@@ -57,7 +57,7 @@ int runMLEM(int cutoff, double error, int num_measurements, int num_bins, std::v
 double calculateDose(int num_bins, std::vector<double> &spectrum, std::vector<double> &icrp_factors);
 int calculateRMSD_vector(int num_samples, std::vector<double> &true_vector, std::vector<std::vector<double>> &sampled_vectors, std::vector<double> &rms_differences);
 double calculateRMSD(int num_samples, double true_value, std::vector<double> &sample_vector);
-
+int plotSpectrum(std::string figure_file_pre, std::string figure_file_suf, std::string irradiation_conditions, int num_measurements, int num_bins, std::vector<double> &energy_bins, std::vector<double> &spectrum, std::vector<double> &spectrum_uncertainty);
 
 // Constants
 std::string DOSE_HEADERS[] = {
@@ -344,151 +344,11 @@ int main(int argc, char* argv[])
     std::cout << "Generated summary report: " << report_file << "\n\n";
 
     //----------------------------------------------------------------------------------------------
-    // ROOT plotting stuff
+    // Plot the spectrum
     //----------------------------------------------------------------------------------------------
+    plotSpectrum(figure_file_pre, figure_file_suf, irradiation_conditions, num_measurements, num_bins, energy_bins, spectrum, spectrum_uncertainty);
 
-    //-----------------------------------------------------------------------------------------------
-    // Creating the line matrices for (ini and bins matrices) to be used in the plotting
-    //-----------------------------------------------------------------------------------------------
-
-    double ini_line[52];
-
-    for (int i = 0; i < 52; i++)
-    {
-        for (int j = 0; j < 1; j++)
-        {
-        ini_line[i] = spectrum[i];
-        }
-    }
-
-    //std::cout << '\n';
-    //std::cout << "The output line matrix is equal to:" << '\n'; // newline
-
-    //for (int i = 0; i < 52; ++i)
-    //{
-    //std::cout << ini_line[i] << ' ';
-    //}
-
-    double bins_line[52];
-
-    for (int i = 0; i < 52; i++)
-    {
-        for (int j = 0; j < 1; j++)
-        {
-        bins_line[i] = energy_bins[i];
-        }
-    }
-
-    //std::cout << '\n';
-    //std::cout << "The energy bins line matrix is equal to:" << '\n'; // newline
-
-    //for (int i = 0; i < 52; ++i)
-    //{
-    //std::cout << bins_line[i] << ' ';
-    //}
-
-
-    //---------------------------------------------------------------------------------------------
-    // ROOT plotting procedure
-    //---------------------------------------------------------------------------------------------
-
-    int NBINS = 51;
-
-    double_t edges[NBINS + 1];
-
-    for (int i = 0; i < 52; i++)
-    {
-        edges[i] = bins_line[i];
-    }
-
-    TCanvas *c1 = new TCanvas("c1","c1",800,600); // Resulution of the graph is 800*600 pixels.
-
-    TH1F *h1 = new TH1F("h1","h1",NBINS,edges);
-
-    for (int i = 0; i < 52; i++)
-    {
-        h1->Fill(bins_line[i], ini_line[i]);
-    }
-
-    h1->SetStats(0);   // Do not show the stats (mean and standard deviation);
-    h1->SetLineColor(kBlue);
-    h1->SetLineWidth(1);
-    h1->SetTitle("NEUTRON SPECTRUM");
-    h1->GetXaxis()->SetTitleOffset(1.4);
-    h1->GetXaxis()->CenterTitle();
-    h1->SetXTitle("Energy [MeV]");
-    h1->GetYaxis()->SetTitleOffset(1.4);
-    h1->GetYaxis()->CenterTitle();
-    h1->SetYTitle("Fluence Rate [ncm^(-2)s^(-1)]");
-    h1->Draw("HIST");  // Draw the histogram without the error bars;
-
-
-    double_t s_line[51];
-
-    for (int i = 0; i < 51; i++)
-    {
-        s_line[i] = spectrum_uncertainty[i];
-    }
-
-    //std::cout << '\n';
-    //std::cout << "The standard deviation line matrix is equal to:" << '\n'; // newline
-
-    //for (int i = 0; i < 51; ++i)
-    //{
-    //std::cout << s_line[i] << ' ';
-    //}
-
-    double_t bins_line_avr[51];
-
-    for (int i = 0; i < 51; i++)
-    {
-    bins_line_avr[i] = (bins_line[i] + bins_line[i+1])/2;
-    }
-
-    //std::cout << '\n';
-    //std::cout << "The average energy bins line matrix is equal to:" << '\n'; // newline
-
-    //for (int i = 0; i < 51; ++i)
-    //{
-    //std::cout << bins_line_avr[i] << ' ';
-    //}
-
-    double_t ini_line_e[51];
-
-    for (int i = 0; i < 51; i++)
-    {
-        for (int j = 0; j < 1; j++)
-        {
-        ini_line_e[i] = spectrum[i];
-        }
-    }
-
-    //std::cout << '\n';
-    //std::cout << "The output line matrix is equal to:" << '\n'; // newline
-
-    //for (int i = 0; i < 51; ++i)
-    //{
-    //std::cout << ini_line_e[i] << ' ';
-    //}
-
-    TGraphErrors *ge = new TGraphErrors(51, bins_line_avr, ini_line_e, 0, s_line);
-    ge->SetFillColor(3);
-    ge->SetFillStyle(3003);
-    ge->Draw("P3");
-
-    c1->SetLogx();
-
-    c1->Update();
-
-    c1->Modified();
-
-    std::ostringstream figure_file;
-    figure_file << figure_file_pre << irradiation_conditions << figure_file_suf;
-    const char *cstr_figure_file = figure_file.str().c_str();
-    c1->Print(cstr_figure_file);
-
-  return 0;
-
+    return 0;
 }
 
 //**************************************************************************************************
@@ -1089,4 +949,79 @@ double calculateRMSD(int num_samples, double true_value, std::vector<double> &sa
     double rms_diff = sqrt(avg_sq_diff);
 
     return rms_diff;
+}
+
+//==================================================================================================
+// Plot a single flux spectrum (and its uncertainty) as a function of energy. Output the generated
+// plot to a file using arguments passed to the function.
+//==================================================================================================
+int plotSpectrum(std::string figure_file_pre, std::string figure_file_suf, std::string irradiation_conditions, int num_measurements, int num_bins, std::vector<double> &energy_bins, std::vector<double> &spectrum, std::vector<double> &spectrum_uncertainty) {
+    
+    // Convert vectors to arrays for input into ROOT functions
+    double ini_line[num_bins];
+    double bins_line[num_bins];
+    double_t edges[num_bins];
+
+    for (int i_bin = 0; i_bin < num_bins; i_bin++)
+    {
+        ini_line[i_bin] = spectrum[i_bin];
+        bins_line[i_bin] = energy_bins[i_bin];
+        edges[i_bin] = bins_line[i_bin];
+    }
+
+    // Setup plot of the spectrum
+    int NBINS = num_bins-1;
+
+    TCanvas *c1 = new TCanvas("c1","c1",800,600); // Resulution of the graph (px) specified in parameters
+    TH1F *h1 = new TH1F("h1","h1",NBINS,edges);
+
+    for (int i_bin = 0; i_bin < num_bins; i_bin++)
+    {
+        h1->Fill(bins_line[i_bin], ini_line[i_bin]);
+    }
+
+    h1->SetStats(0);   // Do not show the stats (mean and standard deviation);
+    h1->SetLineColor(kBlue);
+    h1->SetLineWidth(1);
+    h1->SetTitle("NEUTRON SPECTRUM");
+    h1->GetXaxis()->SetTitleOffset(1.4);
+    h1->GetXaxis()->CenterTitle();
+    h1->SetXTitle("Energy [MeV]");
+    h1->GetYaxis()->SetTitleOffset(1.4);
+    h1->GetYaxis()->CenterTitle();
+    h1->SetYTitle("Fluence Rate [ncm^(-2)s^(-1)]");
+    h1->Draw("HIST");  // Draw the histogram without the error bars;
+
+    // Uncertainty plotting:
+
+    // convert spectrum uncertainy from vector to array
+    // store average bin values of adjacent bins
+    double_t s_line[NBINS]; 
+    double_t bins_line_avr[NBINS]; 
+
+    for (int i_nbin = 0; i_nbin < NBINS; i_nbin++)
+    {
+        s_line[i_nbin] = spectrum_uncertainty[i_nbin];
+        bins_line_avr[i_nbin] = (bins_line[i_nbin] + bins_line[i_nbin+1])/2;
+    }
+
+    // Setup plot of the uncertainty
+    TGraphErrors *ge = new TGraphErrors(NBINS, bins_line_avr, ini_line, 0, s_line);
+    ge->SetFillColor(3);
+    ge->SetFillStyle(3003);
+    ge->Draw("P3");
+
+    c1->SetLogx();
+
+    c1->Update();
+
+    c1->Modified();
+
+    // Output the plot to file
+    std::ostringstream figure_file;
+    figure_file << figure_file_pre << irradiation_conditions << figure_file_suf;
+    const char *cstr_figure_file = figure_file.str().c_str();
+    c1->Print(cstr_figure_file);
+
+    return 1;
 }
