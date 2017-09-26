@@ -49,7 +49,7 @@ int setSettings(std::string config_file, int &cutoff, double &norm, double &erro
 std::vector<double> getMeasurements(std::string input_file, std::string &irradiation_conditions, double &dose_mu, double &doserate_mu, int &t);
 int saveDose(std::string dose_file, std::string irradiation_conditions, double dose, double s_dose);
 int saveSpectrum(std::string spectrum_file, std::string irradiation_conditions, std::vector<double>& spectrum, std::vector<double>& spectrum_uncertainty, std::vector<double>& energy_bins);
-int prepareReport(std::string report_file, std::string irradiation_conditions, std::vector<std::string> &input_files, std::vector<std::string> &input_file_flags, int cutoff, double error, double norm, double f_factor, int num_poisson_samples, std::vector<double>& measurements_nc, double dose_mu, double doserate_mu, int duration, std::vector<double>& energy_bins, std::vector<double>& initial_spectrum, std::vector<std::vector<double>>& nns_response, int num_iterations, std::vector<double>& mlem_ratio, double dose, double s_dose, std::vector<double>& spectrum, std::vector<double>& spectrum_uncertainty, std::vector<double>& icrp_factors);
+int prepareReport(std::string report_file, std::string irradiation_conditions, std::vector<std::string> &input_files, std::vector<std::string> &input_file_flags, int cutoff, double error, double norm, double f_factor, int num_measurements, int num_bins, int num_poisson_samples, std::vector<double>& measurements_nc, double dose_mu, double doserate_mu, int duration, std::vector<double>& energy_bins, std::vector<double>& initial_spectrum, std::vector<std::vector<double>>& nns_response, int num_iterations, std::vector<double>& mlem_ratio, double dose, double s_dose, std::vector<double>& spectrum, std::vector<double>& spectrum_uncertainty, std::vector<double>& icrp_factors);
 int readInputFile1D(std::string file_name, std::vector<double>& input_vector);
 int readInputFile2D(std::string file_name, std::vector<std::vector<double>>& input_vector);
 int checkDimensions(int reference_size, std::string reference_string, int test_size, std::string test_string);
@@ -340,7 +340,7 @@ int main(int argc, char* argv[])
     std::cout << "Saved unfolded spectrum to " << o_spectrum_file << "\n";
 
     std::string report_file = report_file_pre + irradiation_conditions + report_file_suf;
-    prepareReport(report_file, irradiation_conditions, input_files, input_file_flags, cutoff, error, norm, f_factor_report, num_poisson_samples, measurements_nc, dose_mu, doserate_mu, duration, energy_bins, initial_spectrum, nns_response, num_iterations, mlem_ratio, ambient_dose_eq, ambient_dose_eq_uncertainty, spectrum, spectrum_uncertainty, icrp_factors);
+    prepareReport(report_file, irradiation_conditions, input_files, input_file_flags, cutoff, error, norm, f_factor_report, num_measurements, num_bins, num_poisson_samples, measurements_nc, dose_mu, doserate_mu, duration, energy_bins, initial_spectrum, nns_response, num_iterations, mlem_ratio, ambient_dose_eq, ambient_dose_eq_uncertainty, spectrum, spectrum_uncertainty, icrp_factors);
     std::cout << "Generated summary report: " << report_file << "\n\n";
 
     //----------------------------------------------------------------------------------------------
@@ -758,7 +758,7 @@ int saveSpectrum(std::string spectrum_file, std::string irradiation_conditions, 
 // of this function are separated by headers indicating the type of information printed to the
 // report in the the corresponding section.
 //==================================================================================================
-int prepareReport(std::string report_file, std::string irradiation_conditions, std::vector<std::string> &input_files, std::vector<std::string> &input_file_flags, int cutoff, double error, double norm, double f_factor, int num_poisson_samples, std::vector<double>& measurements_nc, double dose_mu, double doserate_mu, int duration, std::vector<double>& energy_bins, std::vector<double>& initial_spectrum, std::vector<std::vector<double>>& nns_response, int num_iterations, std::vector<double>& mlem_ratio, double dose, double s_dose, std::vector<double>& spectrum, std::vector<double>& spectrum_uncertainty, std::vector<double>& icrp_factors) {
+int prepareReport(std::string report_file, std::string irradiation_conditions, std::vector<std::string> &input_files, std::vector<std::string> &input_file_flags, int cutoff, double error, double norm, double f_factor, int num_measurements, int num_bins, int num_poisson_samples, std::vector<double>& measurements_nc, double dose_mu, double doserate_mu, int duration, std::vector<double>& energy_bins, std::vector<double>& initial_spectrum, std::vector<std::vector<double>>& nns_response, int num_iterations, std::vector<double>& mlem_ratio, double dose, double s_dose, std::vector<double>& spectrum, std::vector<double>& spectrum_uncertainty, std::vector<double>& icrp_factors) {
     std::string HEADER_DIVIDE = "************************************************************************************************************************\n";
     std::string SECTION_DIVIDE = "\n========================================================================================================================\n\n";
     std::string COLSTRING = "--------------------";
@@ -805,7 +805,7 @@ int prepareReport(std::string report_file, std::string irradiation_conditions, s
     // rfile << "Measured Data (measurement duration: " << duration << "s)\n\n";
     rfile << std::left << std::setw(cw) << "# of moderators" << "Charge (nC)\n";
     rfile << std::left << std::setw(cw) << COLSTRING << COLSTRING << "\n";
-    for (int i=0; i<measurements_nc.size(); i++) {
+    for (int i=0; i<num_measurements; i++) {
         rfile << std::left << std::setw(cw) << i << measurements_nc[i] << "\n";
     }
     rfile << SECTION_DIVIDE;
@@ -813,22 +813,22 @@ int prepareReport(std::string report_file, std::string irradiation_conditions, s
     //----------------------------------------------------------------------------------------------
     // Inputs
     //----------------------------------------------------------------------------------------------
-    rfile << "Inputs (Number of energy bins: " << energy_bins.size() << ")\n\n";
+    rfile << "Inputs (Number of energy bins: " << num_bins << ")\n\n";
     rfile << std::left << std::setw(cw) << "Energy bins" << std::setw(cw) << "Input spectrum" << "| NNS Response by # of moderators (cm^2)\n";
     rfile << std::left << std::setw(cw) << "(MeV)" << std::setw(cw) << "(n cm^-2 s^-1)" << "| ";
-    for (int j=0; j<nns_response.size(); j++) {
+    for (int j=0; j<num_measurements; j++) {
         rfile << std::left << std::setw(rw) << j;
     }
     rfile << "\n";
     rfile << std::left << std::setw(cw) << COLSTRING << std::setw(cw) << COLSTRING << "--";
-    for (int j=0; j<nns_response.size(); j++) {
+    for (int j=0; j<num_measurements; j++) {
         rfile << "---------";
     }
     rfile << "\n";
 
-    for (int i=0; i<energy_bins.size(); i++) {
+    for (int i=0; i<num_bins; i++) {
         rfile << std::left << std::setw(cw) << energy_bins[i] << std::setw(cw) << initial_spectrum[i] << "| ";
-        for (int j=0; j<nns_response.size(); j++) {
+        for (int j=0; j<num_measurements; j++) {
             rfile << std::left << std::setw(rw) << nns_response[j][i];
         }
         rfile << "\n";
@@ -844,19 +844,19 @@ int prepareReport(std::string report_file, std::string irradiation_conditions, s
     int thw = 13; // NNS response column width
     //row 1
     rfile << std::left << std::setw(thw) << "# moderators" << "| ";
-    for (int j=0; j<mlem_ratio.size(); j++) {
+    for (int j=0; j<num_measurements; j++) {
         rfile << std::left << std::setw(rw) << j;
     }
     rfile << "\n";
     // row 2
     rfile << std::left << std::setw(thw) << "-------------|-";
-    for (int j=0; j<nns_response.size(); j++) {
+    for (int j=0; j<num_measurements; j++) {
         rfile << "---------";
     }
     rfile << "\n";
     // row thw
     rfile << std::left << std::setw(thw) << "ratio" << "| ";
-    for (int j=0; j<mlem_ratio.size(); j++) {
+    for (int j=0; j<num_measurements; j++) {
         rfile << std::left << std::setw(rw) << mlem_ratio[j];
     }
     rfile << "\n";
@@ -871,7 +871,7 @@ int prepareReport(std::string report_file, std::string irradiation_conditions, s
     rfile << std::left << std::setw(cw) << "Energy bins" << std::setw(cw) << "Unfolded spectrum" << std::setw(cw) << "Uncertainty" << std::setw(cw) << "| ICRP H factor" << "Ambient Dose Equiv.\n";
     rfile << std::left << std::setw(cw) << "(MeV)" << std::setw(cw) << "(n cm^-2 s^-1)" << std::setw(cw) << "(n cm^-2 s^-1)" << std::setw(cw) << "| (pSv/cm^2)" << "(mSv/hr)\n";;
     rfile << std::left << std::setw(cw) << COLSTRING << std::setw(cw) << COLSTRING << std::setw(cw) << COLSTRING << std::setw(cw) << COLSTRING << COLSTRING << "\n";
-    for (int i=0; i<energy_bins.size(); i++) {
+    for (int i=0; i<num_bins; i++) {
         std::ostringstream icrp_string;
         icrp_string << "| " <<icrp_factors[i];
         double subdose = spectrum[i]*icrp_factors[i]*3600*(1e-9);
@@ -1080,7 +1080,7 @@ int calculateRMSD_vector(int num_samples, std::vector<double> &true_vector, std:
 //==================================================================================================
 double calculateRMSD(int num_samples, double true_value, std::vector<double> &sample_vector) {
     double sum_sq_diff = 0;
-    
+
     // Sum the square difference of poisson sampled values from the true value
     for (int i_samp = 0; i_samp < num_samples; i_samp++) {
         sum_sq_diff += ((true_value - sample_vector[i_samp])*(true_value - sample_vector[i_samp]));
