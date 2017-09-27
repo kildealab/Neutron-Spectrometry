@@ -20,7 +20,11 @@ OAWGDEFFLAGS = -D_OAWG -D_OAWG_DIR="\"`pwd`\"" -D__STDC_LIMIT_MACROS -D__STDC_CO
 # General libraries & flags
 #########################################################################
 CPP = g++
+
 CFLAGS = -o $@ -Wall -O -g -std=c++11
+GIT_COMMIT := $(shell git describe --abbrev=7 --dirty --always --tags)
+GIT_CFLAG = -DGIT_COMMIT=\"$(GIT_COMMIT)\"
+
 LFLAGS = -Wall -O -g $(ROOTCFLAGS) 
 
 OBJS = main.o fileio.o handle_args.o root_helpers.o physics_calculations.o
@@ -36,7 +40,7 @@ main.exe: $(OBJS)
 	$(CPP) $(LFLAGS) $(OBJS) $(ALLLIBS) -o main.exe
 
 main.o: main.cpp fileio.h handle_args.h root_helpers.h physics_calculations.h
-	$(CPP) -c $(CFLAGS) main.cpp
+	$(CPP) -c $(CFLAGS) $(GIT_CFLAG) main.cpp
 
 fileio.o: fileio.h fileio.cpp
 	$(CPP) -c $(CFLAGS) fileio.cpp
