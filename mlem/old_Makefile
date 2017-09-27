@@ -1,11 +1,13 @@
 ######################################################################
 #
-#	Makefile for neutron unfolding program: main.cpp
+#	Makefile for Georges_test 
+#
+#	J. Kildea  28 July, 2016 
 #
 #######################################################################
 
 #########################################################################
-# ROOT libraries & flags
+# ROOT stuff
 #########################################################################
 ROOTCFLAGS   = $(shell root-config --cflags)
 ROOTLIBS     = $(shell root-config --libs)
@@ -17,10 +19,10 @@ GLIBS           = $(ROOTGLIBS)
 OAWGDEFFLAGS = -D_OAWG -D_OAWG_DIR="\"`pwd`\"" -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS
 
 #########################################################################
-# General libraries & flags
+# General stuff
 #########################################################################
 CPP = g++
-CFLAGS = -o $@ -Wall -O -g -std=c++11
+CFLAGS = -o $@ -Wall -O -g $(ROOTCFLAGS) 
 LFLAGS = -Wall -O -g $(ROOTCFLAGS) 
 
 OBJS = main.o fileio.o handle_args.o root_helpers.o physics_calculations.o
@@ -45,7 +47,7 @@ handle_args.o: handle_args.h handle_args.cpp
 	$(CPP) -c $(CFLAGS) handle_args.cpp
 
 root_helpers.o: root_helpers.h root_helpers.cpp
-	$(CPP) -c $(CFLAGS) $(ROOTCFLAGS) root_helpers.cpp
+	$(CPP) -c $(CFLAGS) root_helpers.cpp
 
 physics_calculations.o: physics_calculations.h physics_calculations.cpp
 	$(CPP) -c $(CFLAGS) physics_calculations.cpp
