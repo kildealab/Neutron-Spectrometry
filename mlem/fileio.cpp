@@ -376,7 +376,7 @@ int prepareReport(std::string report_file, std::string irradiation_conditions, s
     rfile << std::left << std::setw(cw) << "# of moderators" << "Charge (nC)\n";
     rfile << std::left << std::setw(cw) << COLSTRING << COLSTRING << "\n";
     for (int i=0; i<num_measurements; i++) {
-        rfile << std::left << std::setw(cw) << i << measurements_nc[i] << "\n";
+        rfile << std::left << std::setw(cw) << num_measurements-1-i << measurements_nc[i] << "\n";
     }
     rfile << SECTION_DIVIDE;
 
