@@ -102,7 +102,7 @@ double calculateDose(int num_bins, std::vector<double> &spectrum, std::vector<do
 int runMLEM(int cutoff, double error, int num_measurements, int num_bins, std::vector<double> &measurements, std::vector<double> &spectrum, std::vector<std::vector<double>> &nns_response, std::vector<double> &mlem_ratio) {
     int mlem_index; // index of MLEM iteration
 
-    for (mlem_index = 1; mlem_index < cutoff; mlem_index++) {
+    for (mlem_index = 0; mlem_index < cutoff; mlem_index++) {
         mlem_ratio.clear(); // wipe previous ratios for each iteration
 
         // vector that stores the MLEM-estimated data to be compared with measured data
