@@ -62,7 +62,10 @@ int plotSpectrum(std::string figure_file_pre, std::string figure_file_suf, std::
     h1->SetStats(0);   // Do not show the stats (mean and standard deviation);
     h1->SetLineColor(kBlue);
     h1->SetLineWidth(1);
-    h1->SetTitle("NEUTRON SPECTRUM");
+    std::ostringstream plot_title_stream;
+    plot_title_stream << "Neutron flux: " << irradiation_conditions;
+    std::string plot_title = plot_title_stream.str();
+    h1->SetTitle(plot_title.c_str());
     h1->GetXaxis()->SetTitleOffset(1.4);
     h1->GetXaxis()->CenterTitle();
     h1->SetXTitle("Energy [MeV]");
