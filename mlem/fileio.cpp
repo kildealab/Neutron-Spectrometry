@@ -122,7 +122,12 @@ std::vector<double> getMeasurements(std::string input_file, std::string &irradia
 
         // Loop through each line, delimiting at commas
         while (getline(line_stream, stoken, ',')) {
-            data_vector.push_back(atof(stoken.c_str())); // add data to the vector
+            // Convert negative measurements to positive
+            double measurement = atof(stoken.c_str());
+            if (measurement < 0) {
+                measurement *= -1;
+            }
+            data_vector.push_back(measurement); // add data to the vector
         }
     }
 
