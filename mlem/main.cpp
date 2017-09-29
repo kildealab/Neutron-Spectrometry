@@ -112,9 +112,10 @@ int main(int argc, char* argv[])
     // Re-order measurments from (7 moderators to 0) to (0 moderators to 7)
     std::vector<double> measurements;
     for (int index=0; index < num_measurements; index++) {
-        double measurement_cps = measurements_nc[num_measurements-index-1]*norm/f_factor/duration*(dose_mu/doserate_mu);
+        double measurement_cps = measurements_nc[num_measurements-index-1]*norm/f_factor/duration;
         measurements.push_back(measurement_cps);
     }
+
 
     //----------------------------------------------------------------------------------------------
     // Print out the processed measured data matrix
