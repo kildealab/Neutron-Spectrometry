@@ -186,9 +186,13 @@ int main(int argc, char* argv[])
     //----------------------------------------------------------------------------------------------
     // Run the MLEM algorithm, iterating <cutoff> times.
     // Final result, i.e. MLEM-estimated spectrum, outputted in 'ini' matrix
+    // Note: the normalized system matrix is calculated first. It is required in unfolding, and is
+    // a constant value.
     //----------------------------------------------------------------------------------------------
+    std::vector<double> normalized_response = normalizeResponse(num_bins, num_measurements, nns_response);
+
     std::vector<double> mlem_ratio; // vector that stores the ratio between measured data and MLEM estimated data
-    int num_iterations = runMLEM(cutoff, error, num_measurements, num_bins, measurements, spectrum, nns_response, mlem_ratio);
+    int num_iterations = runMLEM(cutoff, error, num_measurements, num_bins, measurements, spectrum, nns_response, normalized_response, mlem_ratio);
 
     //----------------------------------------------------------------------------------------------
     // Display the result (output) matrix of the MLEM algorithm, which represents reconstructed 
@@ -239,7 +243,7 @@ int main(int argc, char* argv[])
         }
 
         // Do MLEM on the initial spectrum & sampled measurement values
-        runMLEM(cutoff, error, num_measurements, num_bins, sampled_measurements, sampled_spectrum, nns_response, sampled_mlem_ratio);
+        runMLEM(cutoff, error, num_measurements, num_bins, sampled_measurements, sampled_spectrum, nns_response, normalized_response, sampled_mlem_ratio);
         sampled_spectra.push_back(sampled_spectrum); // add to growing array of sampled spectra
 
         // Calculate the ambient dose equivalent associated with the sampled spectrum

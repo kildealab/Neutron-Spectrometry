@@ -19,6 +19,29 @@
 // Create an mt19937 object, called mrand, that is seeded with the current time in seconds
 std::mt19937 mrand(std::time(0));
 
+//==================================================================================================
+// Return a 1D normalized vector of a system matrix used in MLEM-style reconstruction algorithms
+//==================================================================================================
+std::vector<double> normalizeResponse(int num_bins, int num_measurements, std::vector<std::vector<double>>& system_response)
+{
+    std::vector<double> normalized_vector;
+    // Create the normalization factors to be applied to MLEM-estimated spectral values:
+    //  - each element of f stores the sum of 8 elements of the transpose system (response)
+    //    matrix. The 8 elements correspond to the relative contributions of each MLEM-estimated
+    //    data point to the MLEM-estimated spectral value.
+    for(int i_bin = 0; i_bin < num_bins; i_bin++)
+    {
+        double temp_value = 0;
+        for(int i_meas = 0; i_meas < num_measurements; i_meas++)
+        {
+            temp_value += system_response[i_meas][i_bin];
+        }
+        normalized_vector.push_back(temp_value);
+    }
+
+    return normalized_vector;
+}
+
 
 //==================================================================================================
 // Return a poisson_distribution object, d that can be sampled from
@@ -99,7 +122,7 @@ double calculateDose(int num_bins, std::vector<double> &spectrum, std::vector<do
 // that spectrum is updated as the algorithm progresses (passed by reference). Similarly for 
 // mlem_ratio
 //==================================================================================================
-int runMLEM(int cutoff, double error, int num_measurements, int num_bins, std::vector<double> &measurements, std::vector<double> &spectrum, std::vector<std::vector<double>> &nns_response, std::vector<double> &mlem_ratio) {
+int runMLEM(int cutoff, double error, int num_measurements, int num_bins, std::vector<double> &measurements, std::vector<double> &spectrum, std::vector<std::vector<double>> &nns_response, std::vector<double> &normalized_response, std::vector<double> &mlem_ratio) {
     int mlem_index; // index of MLEM iteration
 
     for (mlem_index = 0; mlem_index < cutoff; mlem_index++) {
@@ -146,24 +169,10 @@ int runMLEM(int cutoff, double error, int num_measurements, int num_bins, std::v
         // spectral value
         std::vector<double> mlem_normalization;
 
-        // Create the normalization factors to be applied to MLEM-estimated spectral values:
-        //  - each element of f stores the sum of 8 elements of the transpose system (response)
-        //    matrix. The 8 elements correspond to the relative contributions of each MLEM-estimated
-        //    data point to the MLEM-estimated spectral value.
-        for(int i_bin = 0; i_bin < num_bins; i_bin++)
-        {
-            double temp_value = 0;
-            for(int i_meas = 0; i_meas < num_measurements; i_meas++)
-            {
-                temp_value += nns_response[i_meas][i_bin];
-            }
-            mlem_normalization.push_back(temp_value);
-        }
-
         // Apply correction factors and normalization to get new spectral estimate
         for(int i_bin=0; i_bin < num_bins; i_bin++)
         {
-            spectrum[i_bin] = (spectrum[i_bin]*mlem_correction[i_bin]/mlem_normalization[i_bin]);
+            spectrum[i_bin] = (spectrum[i_bin]*mlem_correction[i_bin]/normalized_response[i_bin]);
         }
 
         // End MLEM iterations if ratio between measured and MLEM-estimated data points is within
