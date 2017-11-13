@@ -39,13 +39,15 @@ int main(int argc, char* argv[])
     // NOTE: Indices are linked between the following arrays and vectors (i.e. input_files[0]
     // corresponds to input_file_flags[0] and input_file_defaults[0])
     // Array that stores the allowed options that specify input files
-    const int num_ifiles = 5;
+    // Add new options at end of array
+    const int num_ifiles = 6;
     std::string input_file_flags_arr[num_ifiles] = {
         "--measurements",
         "--input-spectrum",
         "--energy-bins",
         "--nns-response",
-        "--icrp-factors"
+        "--icrp-factors",
+        "--configuration"
     };
     // Array that stores default filename for each input file
     std::string input_file_defaults_arr[num_ifiles] = {
@@ -53,7 +55,8 @@ int main(int argc, char* argv[])
         "spectrum_step.csv",
         "energy_bins.csv",
         "nns_response.csv",
-        "icrp_conversions.csv"
+        "icrp_conversions.csv",
+        "mlem.cfg"
     };
 
     // Convert arrays to vectors b/c easier to work with
@@ -74,8 +77,11 @@ int main(int argc, char* argv[])
     // Notify user if unknown parameters were received
     checkUnknownParameters(arg_vector, input_file_flags);
 
-    // Input filenames
-    std::string config_file = "mlem.cfg";
+    // Get the name of the unfolding algorithm
+    // Remove file extension and director
+    std::string algorithm_name = input_files[5].substr(0, input_files[5].find(".", 0));
+    algorithm_name = algorithm_name.substr(algorithm_name.find("/", 0)+1);
+    transform(algorithm_name.begin(), algorithm_name.end(), algorithm_name.begin(),(int (*)(int))tolower);
 
     // Output filenames
     std::string dose_file = output_dir + "output_dose.csv";
@@ -86,19 +92,19 @@ int main(int argc, char* argv[])
     std::string figure_file_suf = ".png";
 
     // Apply some settings read in from a config file
-    int cutoff; // maximum # of MLEM itereations
+    int cutoff; // maximum # of iterations in the unfolding algorithm
     double norm; // vendor specfied normalization factor for the NNS used
-    double error; // The target error on ratio between the experimental data points and the estimated data points from MLEM (e.g. 0.1 means the values must be within 10% of each other before the algorithm will terminate)
+    double error; // The target error on ratio between the experimental data points and the estimated data points from unfolding (e.g. 0.1 means the values must be within 10% of each other before the algorithm will terminate)
     double f_factor; // factor that converts measured charge (in fC) to counts per second [fA/cps]
+    double beta; // factor that affects damping of high noise spectral component in MAP method
     int num_poisson_samples;
 
-    bool settings_success = setSettings(config_file, cutoff, norm, error, f_factor, num_poisson_samples);
+    bool settings_success = setSettings(input_files[5], algorithm_name, cutoff, norm, error, f_factor, beta, num_poisson_samples);
     if (!settings_success) {
-        throw std::logic_error("Unable to open configuration file: " + config_file);
+        throw std::logic_error("Unable to open configuration file: " + input_files[5]);
     }
     double f_factor_report = f_factor; // original value read in
     f_factor = f_factor / 1e6; // Convert f_factor from fA/cps to nA/cps
-
 
     // Read measured data (in nC) from input file
     std::string irradiation_conditions;
@@ -158,7 +164,7 @@ int main(int argc, char* argv[])
     checkDimensions(num_bins, "number of energy bins", nns_response[0].size(), "NNS response");
 
     //----------------------------------------------------------------------------------------------
-    // Generate the inital spectrum matrix to input into MLEM algorithm:
+    // Generate the inital spectrum matrix to input into the unfolding algorithm:
     //  - size = # of energy bins
     // Input from the input spectrum file (input_files[1])
     //  - values are neutron fluence rates [neutrons cm^-2 s^-1])
@@ -184,18 +190,29 @@ int main(int argc, char* argv[])
     checkDimensions(num_bins, "number of energy bins", icrp_factors.size(), "Number of ICRP factors");
 
     //----------------------------------------------------------------------------------------------
-    // Run the MLEM algorithm, iterating <cutoff> times.
-    // Final result, i.e. MLEM-estimated spectrum, outputted in 'ini' matrix
+    // Run the unfolding algorithm, iterating <cutoff> times.
+    // Final result, i.e. unfolded spectrum, outputted in 'ini' matrix
     // Note: the normalized system matrix is calculated first. It is required in unfolding, and is
     // a constant value.
     //----------------------------------------------------------------------------------------------
     std::vector<double> normalized_response = normalizeResponse(num_bins, num_measurements, nns_response);
 
     std::vector<double> mlem_ratio; // vector that stores the ratio between measured data and MLEM estimated data
-    int num_iterations = runMLEM(cutoff, error, num_measurements, num_bins, measurements, spectrum, nns_response, normalized_response, mlem_ratio);
+    int num_iterations;
+
+    if (algorithm_name == "mlem") {
+        num_iterations = runMLEM(cutoff, error, num_measurements, num_bins, measurements, spectrum, nns_response, normalized_response, mlem_ratio);
+    }
+    else if (algorithm_name == "map") {
+        num_iterations = runMAP(beta, cutoff, error, num_measurements, num_bins, measurements, spectrum, nns_response, normalized_response, mlem_ratio);
+    }
+    else {
+        //throw error
+        std::cout << "No unfolding algorithm found for: " + algorithm_name + '\n';
+    }
 
     //----------------------------------------------------------------------------------------------
-    // Display the result (output) matrix of the MLEM algorithm, which represents reconstructed 
+    // Display the result (output) matrix of the unfolding algorithm, which represents reconstructed 
     // spectral data.
     //----------------------------------------------------------------------------------------------
     std::cout << "The unfolded spectrum:" << '\n';
@@ -211,7 +228,7 @@ int main(int argc, char* argv[])
     // spectrum) from the actual measured charge values. 
     //----------------------------------------------------------------------------------------------
     std::cout << '\n';
-    std::cout << "The ratios between measurements and MLEM-estimate measurements:" << '\n';
+    std::cout << "The ratios between measurements and unfolded measurements:" << '\n';
 
     for (int i_meas = 0; i_meas < num_measurements; i_meas++)
     {
@@ -219,14 +236,14 @@ int main(int argc, char* argv[])
     }
 
     //----------------------------------------------------------------------------------------------
-    // Display the number of iterations of MLEM that were actually executed (<= cutoff)
+    // Display the number of unfolding iterations that were actually executed (<= cutoff)
     //----------------------------------------------------------------------------------------------
     std::cout << '\n';
-    std::cout << "The final number of MLEM iterations: " << num_iterations << std::endl;
+    std::cout << "The final number of unfolding iterations: " << num_iterations << std::endl;
 
     //----------------------------------------------------------------------------------------------
-    // Repeat MLEM algorithm on Poisson-sampled dataset for num_poisson_samples iterations. Save the
-    // sampled doses and spectra in arrays for subsequent RMSD uncertainty calcualtions.
+    // Repeat unfolding algorithm on Poisson-sampled dataset for num_poisson_samples iterations.
+    // Save the sampled doses and spectra in arrays for subsequent RMSD uncertainty calcualtions.
     //----------------------------------------------------------------------------------------------
     std::vector<std::vector<double>> sampled_spectra; // dimensions: num_poisson_samples x num_bins
     std::vector<double> sampled_dose; // dimension: num_poisson_samples
@@ -242,8 +259,18 @@ int main(int argc, char* argv[])
             sampled_measurements.push_back(sampled_value);
         }
 
-        // Do MLEM on the initial spectrum & sampled measurement values
-        runMLEM(cutoff, error, num_measurements, num_bins, sampled_measurements, sampled_spectrum, nns_response, normalized_response, sampled_mlem_ratio);
+        // Do unfolding on the initial spectrum & sampled measurement values
+        if (algorithm_name == "mlem") {
+            runMLEM(cutoff, error, num_measurements, num_bins, sampled_measurements, sampled_spectrum, nns_response, normalized_response, sampled_mlem_ratio);
+        }
+        else if (algorithm_name == "map") {
+            runMAP(beta, cutoff, error, num_measurements, num_bins, sampled_measurements, sampled_spectrum, nns_response, normalized_response, sampled_mlem_ratio);
+        }
+        else {
+            //throw error
+            std::cout << "No unfolding algorithm found for: " + algorithm_name + '\n';
+        }        
+
         sampled_spectra.push_back(sampled_spectrum); // add to growing array of sampled spectra
 
         // Calculate the ambient dose equivalent associated with the sampled spectrum
@@ -295,7 +322,7 @@ int main(int argc, char* argv[])
     std::cout << "Saved unfolded spectrum to " << o_spectrum_file << "\n";
 
     std::string report_file = report_file_pre + irradiation_conditions + report_file_suf;
-    prepareReport(report_file, irradiation_conditions, input_files, input_file_flags, cutoff, error, norm, f_factor_report, num_measurements, num_bins, num_poisson_samples, measurements_nc, dose_mu, doserate_mu, duration, energy_bins, initial_spectrum, nns_response, num_iterations, mlem_ratio, ambient_dose_eq, ambient_dose_eq_uncertainty, spectrum, spectrum_uncertainty, icrp_factors, GIT_COMMIT);
+    prepareReport(report_file, irradiation_conditions, input_files, input_file_flags, algorithm_name, cutoff, error, norm, f_factor_report, beta, num_measurements, num_bins, num_poisson_samples, measurements_nc, dose_mu, doserate_mu, duration, energy_bins, initial_spectrum, nns_response, num_iterations, mlem_ratio, ambient_dose_eq, ambient_dose_eq_uncertainty, spectrum, spectrum_uncertainty, icrp_factors, GIT_COMMIT);
     std::cout << "Generated summary report: " << report_file << "\n\n";
 
     //----------------------------------------------------------------------------------------------

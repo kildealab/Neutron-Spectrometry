@@ -42,7 +42,7 @@ bool is_empty(std::ifstream& pFile)
 //  - num_poisson_samples: assign the number of poisson samples to be taken for uncertainty
 //              estimation
 //==================================================================================================
-int setSettings(std::string config_file, int &cutoff, double &norm, double &error, double &f_factor, int &num_poisson_samples) {
+int setSettings(std::string config_file, std::string algorithm_name, int &cutoff, double &norm, double &error, double &f_factor, double &beta, int &num_poisson_samples) {
     std::ifstream cfile(config_file);
     std::string line;
     std::vector<double> settings;
@@ -72,6 +72,9 @@ int setSettings(std::string config_file, int &cutoff, double &norm, double &erro
     error = settings[2];
     f_factor = settings[3];
     num_poisson_samples = settings[4];
+    if (algorithm_name == "map") {
+        beta = settings[5];
+    }
     return true;
 }
 
@@ -92,7 +95,7 @@ std::vector<double> getMeasurements(std::string input_file, std::string &irradia
     std::ifstream ifile(input_file);
     if (!ifile.is_open()) {
         //throw error
-        std::cout << "Unable to open input file:" + input_file + '\n';
+        std::cout << "Unable to open input file: " + input_file + '\n';
     }
 
     // Load header information from 'ifile'
@@ -332,7 +335,7 @@ int checkDimensions(int reference_size, std::string reference_string, int test_s
 // of this function are separated by headers indicating the type of information printed to the
 // report in the the corresponding section.
 //==================================================================================================
-int prepareReport(std::string report_file, std::string irradiation_conditions, std::vector<std::string> &input_files, std::vector<std::string> &input_file_flags, int cutoff, double error, double norm, double f_factor, int num_measurements, int num_bins, int num_poisson_samples, std::vector<double>& measurements_nc, double dose_mu, double doserate_mu, int duration, std::vector<double>& energy_bins, std::vector<double>& initial_spectrum, std::vector<std::vector<double>>& nns_response, int num_iterations, std::vector<double>& mlem_ratio, double dose, double s_dose, std::vector<double>& spectrum, std::vector<double>& spectrum_uncertainty, std::vector<double>& icrp_factors, std::string git_commit) {
+int prepareReport(std::string report_file, std::string irradiation_conditions, std::vector<std::string> &input_files, std::vector<std::string> &input_file_flags, std::string algorithm_name, int cutoff, double error, double norm, double f_factor, double beta, int num_measurements, int num_bins, int num_poisson_samples, std::vector<double>& measurements_nc, double dose_mu, double doserate_mu, int duration, std::vector<double>& energy_bins, std::vector<double>& initial_spectrum, std::vector<std::vector<double>>& nns_response, int num_iterations, std::vector<double>& mlem_ratio, double dose, double s_dose, std::vector<double>& spectrum, std::vector<double>& spectrum_uncertainty, std::vector<double>& icrp_factors, std::string git_commit) {
     std::string HEADER_DIVIDE = "************************************************************************************************************************\n";
     std::string SECTION_DIVIDE = "\n========================================================================================================================\n\n";
     std::string COLSTRING = "--------------------";
@@ -413,9 +416,13 @@ int prepareReport(std::string report_file, std::string irradiation_conditions, s
     //----------------------------------------------------------------------------------------------
     // MLEM Processing
     //----------------------------------------------------------------------------------------------
-    rfile << "MLEM information\n\n";
+    rfile << "Unfolding information\n\n";
+    rfile << std::left << std::setw(sw) << "Algorithm: " << algorithm_name << "\n";
+    if (algorithm_name == "map") {
+        rfile << std::left << std::setw(sw) << "MAP beta value: " << beta << "\n";
+    }
     rfile << std::left << std::setw(sw) << "# of iterations: " << num_iterations << "/" << cutoff << "\n\n";
-    rfile << "Final MLEM ratio = measured charge / estimated charge:\n";
+    rfile << "Final unfolding ratio = measured charge / estimated charge:\n";
     int thw = 13; // NNS response column width
     //row 1
     rfile << std::left << std::setw(thw) << "# moderators" << "| ";
