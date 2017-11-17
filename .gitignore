@@ -1,6 +1,6 @@
 *.o
 *.DS_Store
-mlem/output/*
-mlem/input/measurements.txt
+unfolding/output/*
+unfolding/input/measurements.txt
 *.exe
-mlem/backups/*
+unfolding/backups/*
