@@ -89,7 +89,6 @@ int main(int argc, char* argv[])
     std::string report_file_pre = output_dir + "report_";
     std::string report_file_suf = ".txt";
     std::string figure_file_pre = output_dir + "figure_";
-    std::string figure_file_suf = ".png";
 
     // Apply some settings read in from a config file
     int cutoff; // maximum # of iterations in the unfolding algorithm
@@ -105,6 +104,13 @@ int main(int argc, char* argv[])
     }
     double f_factor_report = f_factor; // original value read in
     f_factor = f_factor / 1e6; // Convert f_factor from fA/cps to nA/cps
+
+    // Standard figure file suffix (file extension)
+    std::string figure_file_suf = ".png";
+    // Include algorithm name and cutoff # of iterations in the figure file suffix
+    // std::ostringstream temp_stream;
+    // temp_stream << algorithm_name << cutoff << ".png";
+    // std::string figure_file_suf = temp_stream.str();
 
     // Read measured data (in nC) from input file
     std::string irradiation_conditions;
@@ -204,8 +210,60 @@ int main(int argc, char* argv[])
         num_iterations = runMLEM(cutoff, error, num_measurements, num_bins, measurements, spectrum, nns_response, normalized_response, mlem_ratio);
     }
     else if (algorithm_name == "map") {
-        num_iterations = runMAP(beta, cutoff, error, num_measurements, num_bins, measurements, spectrum, nns_response, normalized_response, mlem_ratio);
+        std::vector<double> energy_correction;
+        num_iterations = runMAP(energy_correction, beta, cutoff, error, num_measurements, num_bins, measurements, spectrum, nns_response, normalized_response, mlem_ratio);
     }
+    // else if (algorithm_name == "auto") {
+    //     std::vector<double> energy_correction;
+
+    //     static const double beta_array[] = {1e-11,5e-11,1e-10,5e-10,1e-9,5e-9,1e-8,5e-8,1e-7};
+    //     static const int n_array[] = {1000,2000,3000,4000,5000,6000,7000,8000};
+
+    //     int betas_length = sizeof(beta_array)/sizeof(*beta_array);
+    //     int n_length = sizeof(n_array)/sizeof(*n_array);
+
+    //     std::vector<double> test_spectrum;
+    //     bool found_beta = false;
+
+    //     // Find beta value
+    //     for (int i_beta=0; i_beta < betas_length; i_beta++) {
+    //         test_spectrum = initial_spectrum; // reset spectrum on each beta
+    //         for (int i_n=0; i_n < n_length; i_n++) {
+    //             // only do # of iterations since previous run (i.e. don't do 3000, then 4000. Do
+    //             // 3000 then 1000 more, etc.)
+    //             int n_iterations;
+    //             if (i_n == 0)
+    //                 n_iterations = n_array[i_n];
+    //             else
+    //                 n_iterations = n_array[i_n]-n_array[i_n-1];
+    //             runMAP(energy_correction, beta_array[i_beta], n_array[i_n], error, num_measurements, num_bins, measurements, test_spectrum, nns_response, normalized_response, mlem_ratio);
+                
+    //             // get max energy correction term
+    //             double beta_threshold = 1e-3;
+    //             double max_correction = 0.0;
+    //             for (int i_bin = 0; i_bin < num_bins; i_bin++)
+    //             {
+    //                 if (energy_correction[i_bin]>max_correction) {
+    //                     max_correction = energy_correction[i_bin];
+    //                 }
+    //                 if (energy_correction[i_bin]>beta_threshold) {
+    //                     beta = beta_array[i_beta];
+    //                     found_beta = true;
+    //                     break;
+    //                 }
+    //             }
+    //             std::cout << "cur_beta: " << beta_array[i_beta] << " | cur_n: " << n_array[i_n] << " | max correction: " << max_correction << "\n";
+    //             if (found_beta)
+    //                 break;
+    //         }
+    //         if (found_beta)
+    //             break;
+    //     }
+
+    //     std::cout << "Found beta? " << found_beta << "\n";
+    //     std::cout << "Beta " << beta << "\n";
+    //     return 0;
+    // }
     else {
         //throw error
         std::cout << "No unfolding algorithm found for: " + algorithm_name + '\n';
@@ -264,7 +322,8 @@ int main(int argc, char* argv[])
             runMLEM(cutoff, error, num_measurements, num_bins, sampled_measurements, sampled_spectrum, nns_response, normalized_response, sampled_mlem_ratio);
         }
         else if (algorithm_name == "map") {
-            runMAP(beta, cutoff, error, num_measurements, num_bins, sampled_measurements, sampled_spectrum, nns_response, normalized_response, sampled_mlem_ratio);
+            std::vector<double> sampled_energy_correction;
+            runMAP(sampled_energy_correction, beta, cutoff, error, num_measurements, num_bins, sampled_measurements, sampled_spectrum, nns_response, normalized_response, sampled_mlem_ratio);
         }
         else {
             //throw error

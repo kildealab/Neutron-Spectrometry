@@ -72,7 +72,6 @@ int plotSpectrum(std::string figure_file_pre, std::string figure_file_suf, std::
     h1->GetYaxis()->SetTitleOffset(1.4);
     h1->GetYaxis()->CenterTitle();
     h1->SetYTitle("Fluence Rate [ncm^(-2)s^(-1)]");
-    // h1->SetMaximum(1500); // If need to set maximum value on y-axis
     h1->Draw("HIST");  // Draw the histogram without the error bars;
 
     // Uncertainty plotting:

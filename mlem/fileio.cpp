@@ -67,14 +67,30 @@ int setSettings(std::string config_file, std::string algorithm_name, int &cutoff
     }
 
     // Assign the settings values to function parameters passed by reference
-    cutoff = (int)settings[0];
-    norm = settings[1];
-    error = settings[2];
-    f_factor = settings[3];
-    num_poisson_samples = settings[4];
-    if (algorithm_name == "map") {
+    // Different algorithms require different settings
+    if (algorithm_name == "mlem") {
+        cutoff = (int)settings[0];
+        norm = settings[1];
+        error = settings[2];
+        f_factor = settings[3];
+        num_poisson_samples = settings[4];
+    }
+    else if (algorithm_name == "map") {
+        cutoff = (int)settings[0];
+        norm = settings[1];
+        error = settings[2];
+        f_factor = settings[3];
+        num_poisson_samples = settings[4];
         beta = settings[5];
     }
+    if (algorithm_name == "auto") {
+        norm = settings[0];
+        error = settings[1];
+        f_factor = settings[2];
+        num_poisson_samples = settings[3];
+        beta = settings[4];
+    }
+
     return true;
 }
 
