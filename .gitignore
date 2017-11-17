@@ -2,5 +2,5 @@
 *.DS_Store
 mlem/output/*
 mlem/input/measurements.txt
-mlem/main.exe
+*.exe
 mlem/backups/*
