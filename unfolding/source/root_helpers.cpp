@@ -60,7 +60,7 @@ int plotSpectrum(std::string figure_file_pre, std::string figure_file_suf, std::
     }
 
     h1->SetStats(0);   // Do not show the stats (mean and standard deviation);
-    h1->SetLineColor(kBlue);
+    h1->SetLineColor(kBlack);
     h1->SetLineWidth(1);
     std::ostringstream plot_title_stream;
     plot_title_stream << "Neutron flux: " << irradiation_conditions;
@@ -92,8 +92,8 @@ int plotSpectrum(std::string figure_file_pre, std::string figure_file_suf, std::
     // Setup plot of the uncertainty
     TGraphErrors *ge = new TGraphErrors(NBINS, &(bins_line_avr[0]), &(spectrum[0]), 0, &(s_line[0]));
     // TGraphErrors *ge = new TGraphErrors(bins_line_avr, spectrum, 0, s_line);
-    ge->SetFillColor(3);
-    ge->SetFillStyle(3003);
+    ge->SetFillColor(920);
+    ge->SetFillStyle(3002);
     ge->Draw("P3");
 
     c1->SetLogx();

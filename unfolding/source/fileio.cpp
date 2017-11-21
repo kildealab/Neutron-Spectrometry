@@ -282,10 +282,7 @@ int saveSpectrumAsRow(std::string spectrum_file, int num_bins, std::string irrad
     // determine if file exists
     std::ifstream rfile(spectrum_file);
     bool file_empty = is_empty(rfile);
-    if (!rfile.is_open()) {
-        //throw error
-        throw std::logic_error("Unable to access file: " + spectrum_file);
-    }
+    // bool file_exists = rfile.good();
     rfile.close();
 
     // Rewrite file using lines stored in vector 'sfile_lines'
