@@ -1,4 +1,3 @@
-====================================================================================================
 # **Instructions for Unfolding** #
 README.md
 Creation Date:  2017-08-21
@@ -10,7 +9,6 @@ This file explains:
 2) The file structure of the project, including inputs & outputs
 
 Please refer to dependencies.txt for dependencies
-====================================================================================================
 
 
 ### 1) Execution instructions ###

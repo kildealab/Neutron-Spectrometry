@@ -56,7 +56,7 @@ int plotSpectrum(std::string figure_file_pre, std::string figure_file_suf, std::
 
     for (int i_bin = 0; i_bin < num_bins; i_bin++)
     {
-        h1->Fill(bins_line[i_bin], ini_line[i_bin]);
+        h1->Fill(energy_bins[i_bin], spectrum[i_bin]);
     }
 
     h1->SetStats(0);   // Do not show the stats (mean and standard deviation);
@@ -78,17 +78,20 @@ int plotSpectrum(std::string figure_file_pre, std::string figure_file_suf, std::
 
     // convert spectrum uncertainy from vector to array
     // store average bin values of adjacent bins
-    double_t s_line[NBINS]; 
-    double_t bins_line_avr[NBINS]; 
+    // double_t s_line[NBINS]; 
+    // double_t bins_line_avr[NBINS]; 
+    std::vector<double> s_line;
+    std::vector<double> bins_line_avr;
 
     for (int i_nbin = 0; i_nbin < NBINS; i_nbin++)
     {
-        s_line[i_nbin] = spectrum_uncertainty[i_nbin];
-        bins_line_avr[i_nbin] = (bins_line[i_nbin] + bins_line[i_nbin+1])/2;
+        s_line.push_back(spectrum_uncertainty[i_nbin]);
+        bins_line_avr.push_back((bins_line[i_nbin] + bins_line[i_nbin+1])/2);
     }
 
     // Setup plot of the uncertainty
-    TGraphErrors *ge = new TGraphErrors(NBINS, bins_line_avr, ini_line, 0, s_line);
+    TGraphErrors *ge = new TGraphErrors(NBINS, &(bins_line_avr[0]), &(spectrum[0]), 0, &(s_line[0]));
+    // TGraphErrors *ge = new TGraphErrors(bins_line_avr, spectrum, 0, s_line);
     ge->SetFillColor(3);
     ge->SetFillStyle(3003);
     ge->Draw("P3");

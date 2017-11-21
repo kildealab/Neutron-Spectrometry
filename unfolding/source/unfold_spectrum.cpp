@@ -377,7 +377,7 @@ int main(int argc, char* argv[])
     //----------------------------------------------------------------------------------------------
     saveDose(dose_file, irradiation_conditions, ambient_dose_eq, ambient_dose_eq_uncertainty);
     std::cout << "Saved calculated dose to " << dose_file << "\n";
-    saveSpectrum(o_spectrum_file, irradiation_conditions, spectrum, spectrum_uncertainty, energy_bins);
+    saveSpectrumAsRow(o_spectrum_file, num_bins, irradiation_conditions, spectrum, spectrum_uncertainty, energy_bins);
     std::cout << "Saved unfolded spectrum to " << o_spectrum_file << "\n";
 
     std::string report_file = report_file_pre + irradiation_conditions + report_file_suf;

@@ -4,3 +4,4 @@ unfolding/output/*
 unfolding/input/measurements.txt
 *.exe
 unfolding/backups/*
+unfolding/input/plot.cfg

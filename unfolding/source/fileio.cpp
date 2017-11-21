@@ -11,6 +11,7 @@
 #include <cmath>
 #include <stdlib.h>
 #include <vector>
+#include <map>
 
 // Constants
 std::string DOSE_HEADERS[] = {
@@ -94,6 +95,78 @@ int setSettings(std::string config_file, std::string algorithm_name, int &cutoff
     return true;
 }
 
+//==================================================================================================
+// Retrieve settings from a configuration file 'config_file' and save values in a map
+// Args:
+//  - config_file: filename of the settings file
+//  - settings: map variable that contains setting key:value pairs (key and value are strings)
+//==================================================================================================
+int setPlotSettings(std::string config_file, std::map<std::string,std::string>& settings) {
+    std::ifstream cfile(config_file);
+    std::string line;
+
+    // If file is able to be read
+    if (cfile.is_open())
+    {
+        // loop through each line in the file, extract the value for each setting into 'token'
+        while ( getline (cfile,line) )
+        {
+            // settings format: setting_name=value
+            std::string delimiter = "=";
+            std::string setting_name = line.substr(0,line.find(delimiter)); // substring from 0 to '='
+            std::string setting_value = line.substr(line.find(delimiter)+1); // substring from '=' to end of string
+        
+            bool valid_setting = checkStringMap(setting_name,settings);
+            // Throw error if setting is not valid
+            if (!valid_setting) {
+                throw std::logic_error("Unrecognized setting: " + setting_name + ". Please refer to the README for allowed settings");
+            }
+
+            settings[setting_name] = setting_value;
+        }
+        cfile.close();
+    }
+    // Problem opening the file
+    else {
+        throw std::logic_error("Unable to access file: " + config_file);
+    }
+
+    return 1;
+}
+
+//==================================================================================================
+// Check if a string exists within a vector of strings 
+// Args:
+//  - item: string to check if exists
+//  - allowed_items: vector of strings to be searched
+//==================================================================================================
+bool checkStringVector(std::string item, std::vector<std::string>& allowed_items) {
+    if(std::find(allowed_items.begin(), allowed_items.end(), item) != allowed_items.end())
+    {
+        return true;
+    }
+    else {
+        return false;
+    }
+}
+
+//==================================================================================================
+// Check if a string key (NOTE: not a value!) exists within a map of string:string pairs
+// Args:
+//  - item: string to check if matches a key in the map
+//  - test_map: map of strings to be searched for a particular key
+//==================================================================================================
+bool checkStringMap(std::string test_key, std::map<std::string, std::string>& test_map) {
+    std::map<std::string, std::string>::iterator it = test_map.find(test_key);
+
+    if(it != test_map.end())
+    {
+        return true;
+    }
+    else {
+        return false;
+    }
+}
 
 //==================================================================================================
 // Read measurement data from file
@@ -195,6 +268,68 @@ int saveDose(std::string dose_file, std::string irradiation_conditions, double d
 
 //==================================================================================================
 // Save calculated spectrum (and uncertainty spectrum) to file (append to existing data in the file)
+// Subsequent entries are appended as new rows (facilitate processing using ROOT)
+//
+// Args:
+//  - spectrum_file: filename to which results are saved
+//  - num_bins: The number of energy bins
+//  - irradiation_conditions: string that specifies measurement conditions
+//  - spectrum: the unfolded neutron flux spectrum
+//  - spectrum_uncertainty: the uncertainty spectrum for the neutron flux
+//  - energy_bins: the energy bins corresponding to spectral values
+//==================================================================================================
+int saveSpectrumAsRow(std::string spectrum_file, int num_bins, std::string irradiation_conditions, std::vector<double>& spectrum, std::vector<double> &spectrum_uncertainty, std::vector<double>& energy_bins) {
+    // determine if file exists
+    std::ifstream rfile(spectrum_file);
+    bool file_empty = is_empty(rfile);
+    if (!rfile.is_open()) {
+        //throw error
+        throw std::logic_error("Unable to access file: " + spectrum_file);
+    }
+    rfile.close();
+
+    // Rewrite file using lines stored in vector 'sfile_lines'
+    std::ofstream sfile(spectrum_file, std::ios::app);
+
+    // If the file is empty, make the first line the energy bins
+    if (file_empty) {
+        std::ostringstream line_stream;
+        line_stream << "Energy (MeV)" << ",";
+        for (int i_bin = 0; i_bin < num_bins; i_bin++) {
+            line_stream << energy_bins[i_bin];
+            if (i_bin < num_bins-1) {
+                line_stream << ",";
+            }
+        }
+        sfile << line_stream.str();
+    }
+    
+    // Append lines for the unfolded spectrum & its uncertainty
+    std::ostringstream spectrum_stream;
+    std::ostringstream error_stream;
+
+    spectrum_stream << irradiation_conditions << ",";
+    error_stream << irradiation_conditions << UNCERTAINTY_SUFFIX << ",";
+
+    for (int i_bin = 0; i_bin < num_bins; i_bin++) {
+        spectrum_stream << spectrum[i_bin];
+        error_stream << spectrum_uncertainty[i_bin];
+        if (i_bin < num_bins-1) {
+            spectrum_stream << ",";
+            error_stream << ",";
+        }
+    }
+
+    sfile << "\r\n" << spectrum_stream.str();
+    sfile << "\r\n" << error_stream.str();    
+
+    return 1;
+}
+
+//==================================================================================================
+// Save calculated spectrum (and uncertainty spectrum) to file (append to existing data in the file)
+// Subsequent entries are saved as new columns (facilitate import into spreadsheet)
+//
 // Args:
 //  - spectrum_file: filename to which results are saved
 //  - irradiation_conditions: string that specifies measurement conditions
@@ -202,7 +337,7 @@ int saveDose(std::string dose_file, std::string irradiation_conditions, double d
 //  - spectrum_uncertainty: the uncertainty spectrum for the neutron flux
 //  - energy_bins: the energy bins corresponding to spectral values
 //==================================================================================================
-int saveSpectrum(std::string spectrum_file, std::string irradiation_conditions, std::vector<double>& spectrum, std::vector<double> &spectrum_uncertainty, std::vector<double>& energy_bins) {
+int saveSpectrumAsColumn(std::string spectrum_file, std::string irradiation_conditions, std::vector<double>& spectrum, std::vector<double> &spectrum_uncertainty, std::vector<double>& energy_bins) {
     // determine if file exists
     std::ifstream sfile(spectrum_file);
     bool file_empty = is_empty(sfile);
@@ -323,6 +458,66 @@ int readInputFile2D(std::string file_name, std::vector<std::vector<double>>& inp
     return 1;
 }
 
+//==================================================================================================
+// Read a CSV file containing neutron spectra, formatted as follows:
+//  - The first row contains the energy bins
+//  - Subsequent rows contain alternating spectra and their uncertainty spectra
+//  - The first column of every row contains a header for that row (non-numeric)
+//
+// Args:
+//  - file_name: the name of the file to be read
+//  - header_vector: the vector that will be assigned header values
+//  - energy_bins: the vector that will house the energy bins
+//  - spectra_vector: the vector that will be assigned spectra values from the input file
+//  - error_vector: the vector that will be assigned uncertainties from the input file
+//==================================================================================================
+int readSpectra(std::string file_name, std::vector<std::string>& header_vector, std::vector<double>& energy_bins, std::vector<std::vector<double>>& spectra_vector, std::vector<std::vector<double>>& error_vector) {
+    std::ifstream ifile(file_name);
+    std::string iline;
+
+    if (!ifile.is_open()) {
+        //throw error
+        throw std::logic_error("Unable to open input file: " + file_name);
+    }
+
+    // Loop through each line in the file
+    int i_row = 0;
+    while (getline(ifile,iline)) {
+        std::vector<double> new_row;
+        std::istringstream line_stream(iline);
+        std::string stoken; // store individual values between delimiters on a line
+
+        // Loop through the line, delimiting at commas
+        int i_col = 0;
+        while (getline(line_stream, stoken, ',')) {
+            // The first token is the header
+            if (i_col == 0) {
+                if (i_row % 2 == 1) {
+                    header_vector.push_back(stoken);
+                }
+            }
+            else {
+                new_row.push_back(atof(stoken.c_str())); // add data to the vector
+            }
+            i_col += 1;
+        }
+
+        // The first row contains the energy bins
+        if (i_row == 0) {
+            energy_bins = new_row;
+        }
+        // Remaining rows alternate between a spectrum and an uncertainty spectrum
+        else if (i_row % 2 == 1) {
+            spectra_vector.push_back(new_row);
+        }
+        else {
+            error_vector.push_back(new_row);
+        }
+        i_row += 1;
+    }
+
+    return 1;
+}
 
 //==================================================================================================
 // Compare the size of two vectors (indicated by reference_size and test_size). If the size of test

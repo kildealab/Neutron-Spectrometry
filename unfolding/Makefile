@@ -1,7 +1,7 @@
 #***************************************************************************************************
 # Makefile for neutron unfolding program. Primary targets:
-#	1)
-#	2) 
+#	1) unfold_spectrum.exe
+#	2) plot_spectra.exe
 #***************************************************************************************************
 
 #===================================================================================================
@@ -36,6 +36,8 @@ CFLAGS = -o $@ -Wall -O -g -std=c++11 $(GIT_CFLAG) -I$(INC_DIR) -I$(SRC_DIR)
 LFLAGS = -Wall -O -g $(ROOTCFLAGS) 
 
 OBJS = $(OBJ_DIR)/unfold_spectrum.o $(OBJ_DIR)/fileio.o $(OBJ_DIR)/handle_args.o $(OBJ_DIR)/root_helpers.o $(OBJ_DIR)/physics_calculations.o
+OBJS_PLOT = $(OBJ_DIR)/plot_spectra.o $(OBJ_DIR)/fileio.o $(OBJ_DIR)/root_helpers.o
+
 
 #===================================================================================================
 # Targets
@@ -44,7 +46,7 @@ OBJS = $(OBJ_DIR)/unfold_spectrum.o $(OBJ_DIR)/fileio.o $(OBJ_DIR)/handle_args.o
 # Standard make targets
 #-----------------------------------------------------------------------------
 # make all targets
-all: unfold_spectrum.exe
+all: unfold_spectrum.exe plot_spectra.exe
 
 # tidy up
 clean: 
@@ -56,6 +58,9 @@ clean:
 unfold_spectrum.exe: $(OBJS)
 	$(CPP) $(LFLAGS) $(OBJS) $(ALLLIBS) -o unfold_spectrum.exe
 
+plot_spectra.exe: $(OBJS_PLOT)
+	$(CPP) $(LFLAGS) $(OBJS_PLOT) $(ALLLIBS) -o plot_spectra.exe
+
 #-----------------------------------------------------------------------------
 # Intermediate (object) targets
 #-----------------------------------------------------------------------------
@@ -63,6 +68,11 @@ unfold_spectrum.exe: $(OBJS)
 # unfold_spectrum.cpp)
 $(OBJ_DIR)/unfold_spectrum.o: $(SRC_DIR)/unfold_spectrum.cpp 
 	$(CPP) -c $(CFLAGS) $<
+
+$(OBJ_DIR)/plot_spectra.o: $(SRC_DIR)/plot_spectra.cpp 
+	$(CPP) -c $(CFLAGS) $(ROOTCFLAGS) $<
+
+
 
 $(OBJ_DIR)/fileio.o: $(SRC_DIR)/fileio.cpp
 	$(CPP) -c $(CFLAGS) $<
