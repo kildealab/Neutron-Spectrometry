@@ -390,8 +390,8 @@ int main(int argc, char* argv[])
     std::cout << "The uncertainty on the average energy is: " << avg_energy_uncertainty << " MeV" << std::endl;
     std::cout << '\n';
 
-    std::cout << "The neutron source strength is: " << source_strength << " n Gy^-1" << std::endl;
-    std::cout << '\n';
+    // std::cout << "The neutron source strength is: " << source_strength << " n Gy^-1" << std::endl;
+    // std::cout << '\n';
 
 
     //----------------------------------------------------------------------------------------------
