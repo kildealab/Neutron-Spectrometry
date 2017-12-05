@@ -116,6 +116,129 @@ double calculateDose(int num_bins, std::vector<double> &spectrum, std::vector<do
 
 
 //==================================================================================================
+// Calculate the total measured charge associated with a series of NNS measurements
+//==================================================================================================
+double calculateTotalCharge(int num_measurements, std::vector<double> measurements_nc) {
+    double total_charge = 0;
+
+    for (int i_meas=0; i_meas < num_measurements; i_meas++) {
+        total_charge += measurements_nc[i_meas];
+    }
+
+    return total_charge;
+}
+
+
+//==================================================================================================
+// Calculate the total neutron flux of a neutron flux spectrum
+//==================================================================================================
+double calculateTotalFlux(int num_bins, std::vector<double> &spectrum) {
+    double total_flux = 0;
+
+    for (int i_bin=0; i_bin < num_bins; i_bin++) {
+        total_flux += spectrum[i_bin];
+    }
+
+    return total_flux;
+}
+
+
+//==================================================================================================
+// Calculate the average neutron energy of a neutron flux spectrum.
+// - Normalize the flux spectrum by the total flux: result is relative contribution of each energy
+//      bin to the total flux
+// - Multiply the energy of each bin by its relative contribution & sum
+//==================================================================================================
+double calculateAverageEnergy(int num_bins, std::vector<double> &spectrum, std::vector<double> &energy_bins) {
+    double total_flux = calculateTotalFlux(num_bins,spectrum);
+    std::vector<double> normalized_energy = spectrum;
+    double avg_energy = 0;
+
+    for (int i_bin=0; i_bin < num_bins; i_bin++) {
+        avg_energy += (energy_bins[i_bin] * spectrum[i_bin]/total_flux);
+    }
+
+    return avg_energy;
+}
+
+
+//==================================================================================================
+// Calculate the uncertainty on a sum of values.
+// Implements the standard uncertainty propagation rule for sums.
+//==================================================================================================
+double calculateSumUncertainty(int num_values, std::vector<double> &value_uncertainties) {
+    double sum_uncertainty = 0;
+
+    for (int i=0; i < num_values; i++) {
+        sum_uncertainty += pow(value_uncertainties[i],2);
+    }
+
+    return sqrt(sum_uncertainty);
+}
+
+
+//==================================================================================================
+// Calculate the uncertainty on the average energy
+// Implements standard uncertainty propagation rules for products & sums.
+//==================================================================================================
+double calculateEnergyUncertainty(int num_bins, std::vector<double> energy_bins, std::vector<double> spectrum, std::vector<double> spectrum_uncertainty, double total_flux, double total_flux_uncertainty) {
+    double energy_uncertainty = 0;
+
+    for (int i_bin = 0; i_bin < num_bins; i_bin++) {
+        double temp1 = energy_bins[i_bin] * spectrum[i_bin] / total_flux;
+        double temp2 = sqrt(pow(spectrum_uncertainty[i_bin]/spectrum[i_bin],2)+pow(total_flux_uncertainty/total_flux,2));
+        double temp3 = temp1*temp2;
+        energy_uncertainty += pow(temp3,2);
+    }
+
+    energy_uncertainty = sqrt(energy_uncertainty);
+
+    return energy_uncertainty;
+}
+
+
+//==================================================================================================
+// Calculate the neutron source strength (shielding quanitiy of interest) of a neutron flux spectrum
+// Neutron source strength = # neutrons emitted from head per Gy of photon dose delivered to 
+//  isocentre
+
+// - Empirical formula for total neutron fluence is provided in NCRP 151 pg. 42 (Eq 2.16) as a
+//      function of neutron source strength. Can rearrage for source strength.
+//
+// Given a neutron flux spectrum:
+// - Convert total flux to # neutrons per Gy per cm^2 (using dose, doserate, time, and MU->cGy calibration)
+// - Divide by empirical relationship to get neutron source strength
+//==================================================================================================
+double calculateSourceStrength(int num_bins, std::vector<double> &spectrum, int duration, double dose_mu) {
+    double total_flux = calculateTotalFlux(num_bins,spectrum);
+    // Fraction of neutrons that penetrate head shielding
+    double transmission_factor = 0.9; // 1 for Pb, 0.83 for W
+    // Surface area of treatment room [cm^2]
+    double room_surface_area = 2353374.529; // For MGH
+    // div by 6 = 392229 cm^2 per wall
+    // l = w = 626 cm = 6.26 m (room dimension)
+
+    // Distance from from isocenter to point where flux was evaluated [cm]
+    double distance = 100;
+    // Factor to convert MU to Gy
+    double mu_to_gy = 100;
+
+    // Convert total flux to total fluence per Gy photon dose at isocenter 
+    double fluence_total = total_flux * duration / dose_mu * mu_to_gy;
+
+    // Factors in the empirical formula
+    double fluence_direct_factor = transmission_factor/(4 * M_PI * pow(distance,2));
+    double fluence_scatter_factor = 5.4 * transmission_factor / room_surface_area;
+    double fluence_thermal_factor = 1.26 / room_surface_area;
+
+    // Calculate source strength
+    double source_strength = fluence_total / (fluence_direct_factor + fluence_scatter_factor + fluence_thermal_factor);
+
+    return source_strength;
+}
+
+
+//==================================================================================================
 // Accept a series of measurements and an estimated input spectrum and perform the MLEM algorithm
 // until the true spectrum has been unfolded. Use the provided target error (error) and the maximum
 // number of MLEM iterations (cutoff) to determine when to cease execution of the algorithm. Note

@@ -356,21 +356,43 @@ int main(int argc, char* argv[])
     // }
 
     //----------------------------------------------------------------------------------------------
-    // Calculate the ambient dose equivalent rate and its uncertainty
+    // Calculate quantities of interest (e.g. dose & its uncertainty)
     //----------------------------------------------------------------------------------------------
     double ambient_dose_eq = calculateDose(num_bins, spectrum, icrp_factors);
     double ambient_dose_eq_uncertainty = calculateRMSD(num_poisson_samples, ambient_dose_eq, sampled_dose);
 
+    double total_charge = calculateTotalCharge(num_measurements,measurements_nc);
+
+    double total_flux = calculateTotalFlux(num_bins,spectrum);
+    double total_flux_uncertainty = calculateSumUncertainty(num_bins,spectrum_uncertainty);
+
+    double avg_energy = calculateAverageEnergy(num_bins,spectrum,energy_bins);
+    double avg_energy_uncertainty = calculateEnergyUncertainty(num_bins,energy_bins,spectrum,spectrum_uncertainty,total_flux,total_flux_uncertainty);
+
+    // double source_strength = calculateSourceStrength(num_bins,spectrum,duration,dose_mu);
+
     //----------------------------------------------------------------------------------------------
-    // Display the dose and its uncertainty
+    // Display calculated quantities
     //----------------------------------------------------------------------------------------------
     std::cout << '\n';
     std::cout << "The equivalent dose is: " << ambient_dose_eq << " mSv/h" << std::endl;
+    std::cout << "The uncertainty on the equivalent dose is: " << ambient_dose_eq_uncertainty << " mSv/h" << std::endl;
     std::cout << '\n';
 
+    std::cout << "The total measured charge is: " << total_charge << " nC" << std::endl;
     std::cout << '\n';
-    std::cout << "The error on the equivalent dose is: " << ambient_dose_eq_uncertainty << " mSv/h" << std::endl;
+
+    std::cout << "The total neutron flux is: " << total_flux << " n cm^-2 s^-1" << std::endl;
+    std::cout << "The uncertainty on the total flux is: " << total_flux_uncertainty << " n cm^-2 s^-1" << std::endl;
     std::cout << '\n';
+
+    std::cout << "The average neutron energy is: " << avg_energy << " MeV" << std::endl;
+    std::cout << "The uncertainty on the average energy is: " << avg_energy_uncertainty << " MeV" << std::endl;
+    std::cout << '\n';
+
+    std::cout << "The neutron source strength is: " << source_strength << " n Gy^-1" << std::endl;
+    std::cout << '\n';
+
 
     //----------------------------------------------------------------------------------------------
     // Save results to file
