@@ -212,13 +212,13 @@ double calculateEnergyUncertainty(int num_bins, std::vector<double> energy_bins,
 double calculateSourceStrength(int num_bins, std::vector<double> &spectrum, int duration, double dose_mu) {
     double total_flux = calculateTotalFlux(num_bins,spectrum);
     // Fraction of neutrons that penetrate head shielding
-    double transmission_factor = 0.9; // 1 for Pb, 0.83 for W
+    double transmission_factor = 0.93; // Average of 1 for Pb and 0.85 for W
     // Surface area of treatment room [cm^2]
-    double room_surface_area = 2353374.529; // For MGH
+    double room_surface_area = 2353374.529; // For MGH.. But strength does not vary much with size
     // div by 6 = 392229 cm^2 per wall
     // l = w = 626 cm = 6.26 m (room dimension)
 
-    // Distance from from isocenter to point where flux was evaluated [cm]
+    // Distance from from source (Bremsstrahlung target) to point where flux was evaluated [cm]
     double distance = 100;
     // Factor to convert MU to Gy
     double mu_to_gy = 100;

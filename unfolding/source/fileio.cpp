@@ -494,7 +494,15 @@ int readSpectra(std::string file_name, std::vector<std::string>& header_vector, 
                 }
             }
             else {
+                // If plotting per second
                 new_row.push_back(atof(stoken.c_str())); // add data to the vector
+                // If plotting per MU:
+                // if (i_row !=0) {
+                //     new_row.push_back(atof(stoken.c_str())*30/200); // add data to the vector
+                // }
+                // else {
+                //     new_row.push_back(atof(stoken.c_str()));
+                // }
             }
             i_col += 1;
         }
