@@ -39,6 +39,7 @@
 // Prototypes of helper functions
 void stringToSVector(std::string test_string, std::vector<std::string>& result_vector);
 void stringToIVector(std::string test_string, std::vector<int>& result_vector);
+void stringToFVector(std::string test_string, std::vector<float>& result_vector);
 
 // This map variable contains all configurable settings for generating the output plot
 // Default values are provided where approriate, but each of these settings may be configured
@@ -67,8 +68,15 @@ std::map<std::string,std::string> settings = {
     {"color_error", "#333333,#E79A9F,#6B8EF0,#69CF77"}, // slightly different shades
     {"show_error", "1,1,1,1"}, // Display uncertainty or not; 1=yes, 0=no
     // For line styling, refer to https://root.cern.ch/doc/master/classTAttLine.html
-    {"line_style", "1,1,1,1"}, // 
+    {"line_style", "1,1,1,1"},
     {"line_width", "1,1,1,1"},
+    {"legend_coords", "0.15,0.75,0.4,0.85"}, // start_x, start_y, end_x, end_y
+    {"textbox", "0"}, // 0 = false, 1 = true
+    {"textbox_coords", "0,0,0,0"}, // start_x, start_y, end_x, end_y
+    {"textbox_text", ""}, // Each line of text separated by commas
+    {"plot_per_mu", "0"}, // 0 = false, 1 = true
+    {"number_mu", ""},
+    {"duration", ""},
 };
 
 int main(int argc, char* argv[])
@@ -79,8 +87,7 @@ int main(int argc, char* argv[])
     std::string input_file = settings["input_dir"]+settings["input_filename"];
     std::string output_file = settings["output_dir"]+settings["output_filename"];
 
-
-    // Convert string settings (comma-delimited) to vectors
+    // Convert string settings (comma-delimited) to vectors of appropriate type
     std::vector<std::string> legend_entries;
     std::vector<std::string> color_spectra_temp; // Temporarily hold string that represents Hex color
     std::vector<std::string> color_error_temp; // Temporarily hold string that represents Hex color
@@ -89,6 +96,13 @@ int main(int argc, char* argv[])
     std::vector<int> show_error;
     std::vector<int> line_style;
     std::vector<int> line_width;
+    std::vector<float> legend_coords;
+    bool textbox = atoi(settings["textbox"].c_str());
+    std::vector<float> textbox_coords;
+    std::vector<std::string> textbox_text;
+    bool plot_per_mu = atoi(settings["plot_per_mu"].c_str());
+    std::vector<int> number_mu;
+    std::vector<int> duration;
 
     if (!settings["legend_entries"].empty())
         stringToSVector(settings["legend_entries"], legend_entries);
@@ -98,6 +112,16 @@ int main(int argc, char* argv[])
         stringToIVector(settings["line_style"], line_style);
     if (!settings["line_width"].empty())
         stringToIVector(settings["line_width"], line_width);
+    if (!settings["legend_coords"].empty())
+        stringToFVector(settings["legend_coords"], legend_coords);
+    if (!settings["textbox_coords"].empty())
+        stringToFVector(settings["textbox_coords"], textbox_coords);
+    if (!settings["textbox_text"].empty())
+        stringToSVector(settings["textbox_text"], textbox_text);
+    if (!settings["number_mu"].empty())
+        stringToIVector(settings["number_mu"], number_mu);
+    if (!settings["duration"].empty())
+        stringToIVector(settings["duration"], duration);
 
     // The color settings must be converted from strings to integers corresponding to the provided Hex color
     // The TColor:GetColor method converts from hex to TColor (which is an int)
@@ -114,14 +138,17 @@ int main(int argc, char* argv[])
         }
     }
 
+    // Adjust y-axis label if plotting per MU
+    if (plot_per_mu){
+        settings["y_label"] = "Fluence / n #upoint cm^{-2} MU^{-1}";
+    }
 
     // Read in data
     std::vector<std::string> headers;
     std::vector<double> energy_bins;
     std::vector<std::vector<double>> spectra_array;
     std::vector<std::vector<double>> error_array;
-
-    readSpectra(input_file, headers, energy_bins, spectra_array, error_array);
+    readSpectra(input_file, headers, energy_bins, spectra_array, error_array, plot_per_mu, number_mu, duration);
 
     int num_spectra = spectra_array.size();
     int num_bins = energy_bins.size() - 1;
@@ -129,25 +156,11 @@ int main(int argc, char* argv[])
 
     // Generate the plot area
     TCanvas *c1 = new TCanvas("c1","c1",atoi(settings["x_res"].c_str()),atoi(settings["y_res"].c_str())); // Resulution of the graph (px) specified in parameters
-    // TPaveText* pt = new TPaveText(0.15, 0.6, 0.55, 0.7, "nbNDC"); // nb specifies no border, NDC specifies method of defining coordinates
 
     // Generate the legend
-    // A few example options for legend dimensions:
-    // TLegend* leg = new TLegend(0.15, 0.7, 0.48, 0.85); // startx, starty, endx, endy
-    // TLegend* leg = new TLegend(0.15, 0.6, 0.6, 0.85); // per electron
-    TLegend* leg = new TLegend(0.15, 0.75, 0.4, 0.85); // per MU
-    // TLegend* leg = new TLegend(0.15, 0.52, 0.4, 0.71); // with a text box
+    TLegend* leg = new TLegend(legend_coords[0], legend_coords[1], legend_coords[2], legend_coords[3]); // with a text box
     leg->SetBorderSize(0);
     leg->SetTextSize(0.035);
-
-    // Optionally add a text box. Must draw the text box later in script as well, if necessary
-    // TPaveText* pt = new TPaveText(0.15, 0.75, 0.4, 0.85, "nbNDC"); // nb specifies no border, NDC specifies method of defining coordinates
-    // pt->AddText("Location A - 100 cm from isocentre");
-    // pt->AddText("Field size - 0.5 #times 0.5 cm^{2}");
-    // pt->SetFillColorAlpha(kWhite,1);
-    // pt->SetTextAlign(12);
-    // pt->SetTextSize(0.035);
-    // pt->SetTextFont(42);
 
     // Convert spectral data from vector to array (array is necessary in TH1F constructors)
     double bins_arr[num_bins];
@@ -221,8 +234,24 @@ int main(int argc, char* argv[])
         }
     }
 
-    leg->Draw(); // Add the legend to the canvas
-    // pt->Draw(); // Add the text box
+    // Add the legend to the canvas
+    leg->Draw();
+
+    // Optionally add a text box. Must draw the text box later in script as well, if necessary
+    if(textbox){
+        // TPaveText* pt = new TPaveText(0.15, 0.75, 0.4, 0.85, "nbNDC"); // nb specifies no border, NDC specifies method of defining coordinates
+        TPaveText* pt = new TPaveText(textbox_coords[0], textbox_coords[1], textbox_coords[2], textbox_coords[3], "nbNDC"); // nb specifies no border, NDC specifies method of defining coordinates
+        pt->SetFillColorAlpha(kWhite,1);
+        pt->SetTextAlign(12);
+        pt->SetTextSize(0.035);
+        pt->SetTextFont(42);
+
+        for (int i=0; i<textbox_text.size(); i++){
+            pt->AddText(textbox_text[i].c_str());
+        }
+        
+        pt->Draw(); // Add the text box
+    }
 
     // Prepare the Uncertainties
     // Need middle energy bin values at which the uncertainties are plotted 
@@ -289,5 +318,22 @@ void stringToIVector(std::string test_string, std::vector<int>& result_vector) {
     // Loop through each line, delimiting at commas
     while (getline(line_stream, stoken, ',')) {
         result_vector.push_back(atoi(stoken.c_str()));
+    }
+}
+
+//==================================================================================================
+// Convert a comma-delimited string into a vector of floats.
+//
+// Args:
+//  - test_string: the comma-delimited string to be processed
+//  - result_vector: the vector that will be assigned integer values
+//==================================================================================================
+void stringToFVector(std::string test_string, std::vector<float>& result_vector) {
+    std::istringstream line_stream(test_string);
+    std::string stoken; // store individual values between delimiters on a line
+
+    // Loop through each line, delimiting at commas
+    while (getline(line_stream, stoken, ',')) {
+        result_vector.push_back(atof(stoken.c_str()));
     }
 }

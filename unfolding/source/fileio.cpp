@@ -468,7 +468,7 @@ int readInputFile2D(std::string file_name, std::vector<std::vector<double>>& inp
 //  - spectra_vector: the vector that will be assigned spectra values from the input file
 //  - error_vector: the vector that will be assigned uncertainties from the input file
 //==================================================================================================
-int readSpectra(std::string file_name, std::vector<std::string>& header_vector, std::vector<double>& energy_bins, std::vector<std::vector<double>>& spectra_vector, std::vector<std::vector<double>>& error_vector) {
+int readSpectra(std::string file_name, std::vector<std::string>& header_vector, std::vector<double>& energy_bins, std::vector<std::vector<double>>& spectra_vector, std::vector<std::vector<double>>& error_vector, bool plot_per_mu, std::vector<int>& number_mu, std::vector<int>& duration) {
     std::ifstream ifile(file_name);
     std::string iline;
 
@@ -479,6 +479,7 @@ int readSpectra(std::string file_name, std::vector<std::string>& header_vector, 
 
     // Loop through each line in the file
     int i_row = 0;
+    int i_pair = 0; // index that is incremented after each spectrum-error pair
     while (getline(ifile,iline)) {
         std::vector<double> new_row;
         std::istringstream line_stream(iline);
@@ -493,16 +494,22 @@ int readSpectra(std::string file_name, std::vector<std::string>& header_vector, 
                     header_vector.push_back(stoken);
                 }
             }
+            // Add data to the vector
             else {
+                // If plotting per MU
+                if (plot_per_mu){
+                    //1st row is the energies
+                    if (i_row !=0) {
+                        new_row.push_back(atof(stoken.c_str())*duration[i_pair]/number_mu[i_pair]);
+                    }
+                    else {
+                        new_row.push_back(atof(stoken.c_str()));
+                    }
+                }
                 // If plotting per second
-                new_row.push_back(atof(stoken.c_str())); // add data to the vector
-                // If plotting per MU:
-                // if (i_row !=0) {
-                //     new_row.push_back(atof(stoken.c_str())*30/200); // add data to the vector
-                // }
-                // else {
-                //     new_row.push_back(atof(stoken.c_str()));
-                // }
+                else {
+                    new_row.push_back(atof(stoken.c_str()));
+                }
             }
             i_col += 1;
         }
@@ -517,6 +524,7 @@ int readSpectra(std::string file_name, std::vector<std::string>& header_vector, 
         }
         else {
             error_vector.push_back(new_row);
+            i_pair += 1;
         }
         i_row += 1;
     }
