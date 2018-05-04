@@ -50,8 +50,8 @@ std::map<std::string,std::string> settings = {
     {"output_filename", "neutron_spectra.png"},
     {"output_dir", "output/"},
     {"title", "Neutron Fluence Spectra"},
-    {"x_label", "Energy / MeV"},
-    {"y_label", "Fluence / n #upoint cm^{-2} s^{-1}"},
+    {"x_label", "Energy (MeV)"},
+    {"y_label", "Fluence (n #upoint cm^{-2} s^{-1})"},
     // {"y_label", "Fluence / n#upoint cm^{-2} MU^{-1}"},
     {"y_min", ""},
     {"y_max", ""},
@@ -140,7 +140,7 @@ int main(int argc, char* argv[])
 
     // Adjust y-axis label if plotting per MU
     if (plot_per_mu){
-        settings["y_label"] = "Fluence / n #upoint cm^{-2} MU^{-1}";
+        settings["y_label"] = "Fluence (n #upoint cm^{-2} MU^{-1})";
     }
 
     // Read in data
@@ -194,6 +194,9 @@ int main(int argc, char* argv[])
             leg->AddEntry(histograms[i_spec], headers[i_spec].c_str(), "l");
         else
             leg->AddEntry(histograms[i_spec], legend_entries[i_spec%legend_entries.size()].c_str(), "l");
+        if (i_spec == 1) {
+            leg->AddEntry((TObject*)0, "", "");
+        }
 
         // Title & axes manipulations. Only needs to be done for first spectrum
         if (i_spec == 0) {

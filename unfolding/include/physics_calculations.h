@@ -18,5 +18,7 @@ int calculateRMSD_vector(int num_samples, std::vector<double> &true_vector, std:
 double calculateRMSD(int num_samples, double true_value, std::vector<double> &sample_vector);
 double calculateSumUncertainty(int num_values, std::vector<double> &value_uncertainties);
 double calculateEnergyUncertainty(int num_bins, std::vector<double> energy_bins, std::vector<double> spectrum, std::vector<double> spectrum_uncertainty, double total_flux, double total_flux_uncertainty);
+std::vector<double> linearSpacedDoubleVector(double a, double b, std::size_t N);
+std::vector<int> linearSpacedIntegerVector(int a, int b, std::size_t N);
 
 #endif

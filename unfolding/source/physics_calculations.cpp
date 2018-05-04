@@ -367,6 +367,7 @@ int runMAP(std::vector<double> &energy_correction, double beta, int cutoff, doub
         // std::vector<double> energy_correction;
         energy_correction.clear();
 
+        // Without normalization:
         energy_correction.push_back(beta*pow(spectrum[0]-spectrum[1],2));
         for (int i_bin=1; i_bin < num_bins-1; i_bin++)
         {
@@ -375,6 +376,42 @@ int runMAP(std::vector<double> &energy_correction, double beta, int cutoff, doub
             energy_correction.push_back(temp_value);
         }
         energy_correction.push_back(beta*pow(spectrum[num_bins-1]-spectrum[num_bins-2],2));
+       
+        // With normalization:
+        // energy_correction.push_back(beta*sqrt(pow(spectrum[0]-spectrum[1],2))/spectrum[0]);
+        // for (int i_bin=1; i_bin < num_bins-1; i_bin++)
+        // {
+        //     double temp_value = 0;
+        //     temp_value = beta * sqrt(pow(spectrum[i_bin]-spectrum[i_bin-1],2)+pow(spectrum[i_bin]-spectrum[i_bin+1],2))/(2*spectrum[i_bin]);          
+        //     energy_correction.push_back(temp_value);
+        // }
+        // energy_correction.push_back(beta*sqrt(pow(spectrum[num_bins-1]-spectrum[num_bins-2],2))/spectrum[num_bins-1]);
+
+        // MRP technique:
+        // int num_adjacent = 1; // on either side
+        // energy_correction.push_back(0); // no correction for first term
+        // for (int i_bin=num_adjacent; i_bin < num_bins-num_adjacent; i_bin++)
+        // {
+        //     double median;
+
+        //     std::vector<double> neighbours(spectrum.begin()+i_bin-num_adjacent,spectrum.begin()+i_bin+num_adjacent+1);
+
+        //     bool increasing = std::is_sorted(neighbours.begin(), neighbours.end());
+        //     std::reverse(neighbours.begin(),neighbours.end());
+        //     bool decreasing = std::is_sorted(neighbours.begin(), neighbours.end());
+
+        //     // if values are monotonically increasing or decreasing, no energy correction
+        //     if (increasing || decreasing) {
+        //         energy_correction.push_back(0);
+        //     }
+        //     else {
+        //         std::sort(neighbours.begin(),neighbours.end());
+        //         median = neighbours[num_adjacent];
+        //         double temp_value = beta*(spectrum[i_bin]-median)/median;
+        //         energy_correction.push_back(temp_value);
+        //     }
+        // }
+        // energy_correction.push_back(0); // no correction for last term
 
         // Apply correction factors and normalization to get new spectral estimate
         for(int i_bin=0; i_bin < num_bins; i_bin++)
@@ -397,4 +434,39 @@ int runMAP(std::vector<double> &energy_correction, double beta, int cutoff, doub
     }
 
     return mlem_index;
+}
+
+
+//==================================================================================================
+// Create a linearly interpolated vector of doubles with a minimum value a and a maximum value b 
+// that contains N elements.
+// Code retrieved from: https://gist.github.com/mortenpi/f20a93c8ed3ee7785e65
+//==================================================================================================
+std::vector<double> linearSpacedDoubleVector(double a, double b, std::size_t N)
+{
+    double h = (b - a) / static_cast<double>(N-1);
+    std::vector<double> xs(N);
+    std::vector<double>::iterator x;
+    double val;
+    for (x = xs.begin(), val = a; x != xs.end(); ++x, val += h) {
+        *x = val;
+    }
+    return xs;
+}
+
+//==================================================================================================
+// Create a linearly interpolated vector of ints with a minimum value a and a maximum value b 
+// that contains N elements.
+// Code retrieved from: https://gist.github.com/mortenpi/f20a93c8ed3ee7785e65
+//==================================================================================================
+std::vector<int> linearSpacedIntegerVector(int a, int b, std::size_t N)
+{
+    int h = (b - a) / (N-1);
+    std::vector<int> xs(N);
+    std::vector<int>::iterator x;
+    int val;
+    for (x = xs.begin(), val = a; x != xs.end(); ++x, val += h) {
+        *x = val;
+    }
+    return xs;
 }

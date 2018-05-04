@@ -6,3 +6,6 @@ unfolding/input/mlem.cfg
 *.exe
 unfolding/backups/*
 unfolding/input/plot.cfg
+unfolding/input/map.cfg
+unfolding/input/auto.cfg
+map_file.csv

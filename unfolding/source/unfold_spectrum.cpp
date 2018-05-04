@@ -212,6 +212,133 @@ int main(int argc, char* argv[])
     else if (algorithm_name == "map") {
         std::vector<double> energy_correction;
         num_iterations = runMAP(energy_correction, beta, cutoff, error, num_measurements, num_bins, measurements, spectrum, nns_response, normalized_response, mlem_ratio);
+        // return 1;
+    }
+    else if (algorithm_name == "auto") {
+
+        // Create vector of beta values
+        int num_orders_magnitude = 4;
+        double min_beta = 1E-12;
+        std::vector<double> beta_vector;
+        for (int i=0; i<num_orders_magnitude; i++) {
+            std::vector<double> temp_vector = linearSpacedDoubleVector(min_beta,min_beta*10,10);
+            min_beta = min_beta*10;
+            beta_vector.insert(beta_vector.end(), temp_vector.begin(), temp_vector.end());
+        }
+
+        // Create vector of number of iterations
+        int min_num_iterations = 500;
+        int max_num_iterations = 10000;
+        int iteration_increment = 50;
+        int num_increments = ((max_num_iterations - min_num_iterations) / iteration_increment)+1;
+        std::vector<int> num_iterations_vector = linearSpacedIntegerVector(min_num_iterations,max_num_iterations,num_increments);
+        
+        // Create needed variables
+        int num_beta_samples = beta_vector.size();
+        int num_iteration_samples = num_iterations_vector.size();
+        std::cout << num_beta_samples << "\n";
+        std::cout << num_iteration_samples << "\n";
+
+        std::vector<double> current_spectrum; // the reconstructed spectrum
+        double poi; // parameter of interest
+        std::vector<double> energy_correction; // energy correction term used in MAP
+
+        // Create stream to append results. First row is number of iteration increments
+        std::ostringstream results_stream;
+        // results_stream << std::scientific;
+        results_stream << "0"; // empty first "cell"
+        for (int i_num = 0; i_num < num_iteration_samples; i_num++) {
+            results_stream << ",";
+            results_stream << num_iterations_vector[i_num];
+        }
+        results_stream << "\n";
+
+        // Loop through betas
+        for (int i_beta=0; i_beta < num_beta_samples; i_beta++) {
+            current_spectrum = initial_spectrum; // re-initialize spectrum for each beta
+            results_stream << beta_vector[i_beta] << ",";
+
+            // Loop through number of iterations
+            for (int i_num=0; i_num < num_iteration_samples; i_num++) {
+                int num_iterations;
+
+                // only do # of iterations since previous run (i.e. don't do 3000, then 4000. Do
+                // 3000 then 1000 more, etc.)
+                if (i_num == 0)
+                    num_iterations = num_iterations_vector[i_num];
+                else
+                    num_iterations = num_iterations_vector[i_num]-num_iterations_vector[i_num-1];
+                runMAP(energy_correction, beta_vector[i_beta], num_iterations, error, num_measurements, num_bins, measurements, current_spectrum, nns_response, normalized_response, mlem_ratio);
+            
+                // Calculate one of the following parameters of interest & save to results stream
+                // // Total fluence:
+                // poi = calculateTotalFlux(num_bins,current_spectrum);
+                // // Total dose:
+                // poi = calculateDose(num_bins, current_spectrum, icrp_factors);
+                // // Total energy (penalty) term:
+                // poi = 0;
+                // for (auto& n : energy_correction)
+                //     poi += n;
+                // // Maximum "error" in MLEM ratio
+                double max_mlem_ratio = 0.0;
+                for (int i=0; i < num_measurements; i++) {
+                    if (mlem_ratio[i] > max_mlem_ratio) {
+                        max_mlem_ratio = mlem_ratio[i];
+                    }
+                }
+                poi = max_mlem_ratio;
+
+                results_stream << poi;
+                if (i_num == num_iteration_samples-1)
+                    results_stream << "\n";
+
+                else
+                    results_stream << ",";
+            }
+        }
+
+        // Save results for parameter of interest to CSV file
+        std::ofstream map_file;
+        map_file.open("map_file.csv", std::ios_base::out);
+        std::string results_string = results_stream.str();
+        map_file << results_string;
+        map_file.close();
+
+        // for (int i_beta=0; i_beta < num_beta_samples; i_beta++) {
+        //     current_spectrum = initial_spectrum; // reset spectrum on each beta
+        //     for (int i_n=0; i_n < n_length; i_n++) {
+        //         // only do # of iterations since previous run (i.e. don't do 3000, then 4000. Do
+        //         // 3000 then 1000 more, etc.)
+        //         int n_iterations;
+        //         if (i_n == 0)
+        //             n_iterations = n_array[i_n];
+        //         else
+        //             n_iterations = n_array[i_n]-n_array[i_n-1];
+        //         runMAP(energy_correction, beta_array[i_beta], n_array[i_n], error, num_measurements, num_bins, measurements, test_spectrum, nns_response, normalized_response, mlem_ratio);
+                
+        //         // get max energy correction term
+        //         double beta_threshold = 1e-3;
+        //         double max_correction = 0.0;
+        //         for (int i_bin = 0; i_bin < num_bins; i_bin++)
+        //         {
+        //             if (energy_correction[i_bin]>max_correction) {
+        //                 max_correction = energy_correction[i_bin];
+        //             }
+        //             if (energy_correction[i_bin]>beta_threshold) {
+        //                 beta = beta_array[i_beta];
+        //                 found_beta = true;
+        //                 break;
+        //             }
+        //         }
+        //         std::cout << "cur_beta: " << beta_array[i_beta] << " | cur_n: " << n_array[i_n] << " | max correction: " << max_correction << "\n";
+        //         if (found_beta)
+        //             break;
+        //     }
+        //     if (found_beta)
+        //         break;
+        // }
+
+        return 1;
     }
     // else if (algorithm_name == "auto") {
     //     std::vector<double> energy_correction;
