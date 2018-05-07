@@ -21,7 +21,7 @@ Please refer to dependencies.txt for dependencies
             * Negative charge values are acceptable
 
 * Determine which algorithm to use for unfolding:
-    * Settings for each allowed algorithm are provided in the input/ director as \*.cfg files
+    * Settings for each allowed algorithm are provided in the input/ directory as \*.cfg files
 
 * Adjust settings (optional):
     * edit the appropriate input/\*.cfg file
@@ -31,7 +31,7 @@ Please refer to dependencies.txt for dependencies
     $ make
 
 * Execute the program and specify 1 or more input files using the options below (if any option is not
-  included then a default file is used, as specified in []):
+  included then a default file is used, as specified in square brackets below):
     $ ./unfold_spectrum.exe
     * Allowed Options:
         * --configuration [mlem.cfg]
@@ -51,7 +51,20 @@ Please refer to dependencies.txt for dependencies
     * ***mlem_max_error*** - The maximum allowed error in reconstructed measurement values from the true measurment values (in nC). Calculated for each unfolding iteration for each measured value (8). Once all values are within this max error, unfolding algorithm will stop.
     * ***f_factor*** - Vendor-provided calibration factor to convert measured current (i.e. measured charge divided by duration) to counts per second (cps). Value in units of [fA / cps]. Value was verified experimentally.
     * ***num_poisson_samples*** - Number of times to repeat unfolding using poisson-sampled data to generate statistical uncertainties.
-    * ***beta*** - [MAP only] Tuning parameter to dampen high noise component of unfolded neutron spectrum.
+    * ***beta*** - [MAP only] Tuning (weighting) parameter to set the strength of the MAP/OSL prior.
+    * ***prior*** - [MAP only] The prior to be used as the penalty factor in MAP unfolding. Possible values:
+        * ***quadratic*** - First prior for MAP/OSL unfolding, proposed by Green, 1990. Smooths data, no edge preservation.
+        * ***mrp*** - Median Root Prior used to penalize areas that are not monotonically increasing or decreasing (preserves edges).
+    * ***parameter_of_interest*** - [OPTIMIZE only] The parameter of interest to be calculated in order to determine the optimal beta. Possible values:
+        * ***total_fluence*** - The integrated fluence of the unfolded spectrum.
+        * ***total_dose*** - The total neutron ambident dose equivalent.
+        * ***total_energy_correction*** - The total enery correction term (prior \* beta), summed across all bins.
+        * ***max_mlem_ratio*** - The maximum deviation in the MLEM ratio of unfolded data relative to measured data.
+    * ***min_num_iterations*** - [OPTIMIZE only] Minimum number of iterations to consider
+    * ***max_num_iterations*** - [OPTIMIZE only] Maximum number of iterations to consider
+    * ***iteration_increment*** - [OPTIMIZE only] When performing optimization, how many iterations to do before recalculating parameter of interest.
+    * ***min_beta*** - [OPTIMIZE only] Minimum beta factor to consider
+    * ***max_beta*** - [OPTIMIZE only] Maximum beta factor to consider
 
 * Files read by the program are included in input/
     * 4 files from this directory are read by the program, but multiple options may exist
@@ -76,4 +89,5 @@ Please refer to dependencies.txt for dependencies
     * ***output_dose.csv*** - The measured total neutron ambient dose equivalent rate and its uncertainty are appended to this file. The new values are inserted as a new row.
     * ***report_\*.txt*** - Report file generated each time the program is executed. The report contains all pertinent inputs & outputs of the program.
     * ***figure_\*.png*** - Figure file generated each time the program is executed. The figure displays the spectrum and its uncertainty plotted as a function of energy.
+    * ***map_file.csv*** - [OPTIMIZE only] 2D "matrix" of parameter of interest values to be used to generate a contour map.
 

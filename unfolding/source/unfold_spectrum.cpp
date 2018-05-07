@@ -19,6 +19,7 @@
 #include <vector>
 
 // Local
+#include "custom_classes.h"
 #include "fileio.h"
 #include "handle_args.h"
 #include "root_helpers.h"
@@ -78,7 +79,7 @@ int main(int argc, char* argv[])
     checkUnknownParameters(arg_vector, input_file_flags);
 
     // Get the name of the unfolding algorithm
-    // Remove file extension and director
+    // Remove file extension and directory
     std::string algorithm_name = input_files[5].substr(0, input_files[5].find(".", 0));
     algorithm_name = algorithm_name.substr(algorithm_name.find("/", 0)+1);
     transform(algorithm_name.begin(), algorithm_name.end(), algorithm_name.begin(),(int (*)(int))tolower);
@@ -91,25 +92,17 @@ int main(int argc, char* argv[])
     std::string figure_file_pre = output_dir + "figure_";
 
     // Apply some settings read in from a config file
-    int cutoff; // maximum # of iterations in the unfolding algorithm
-    double norm; // vendor specfied normalization factor for the NNS used
-    double error; // The target error on ratio between the experimental data points and the estimated data points from unfolding (e.g. 0.1 means the values must be within 10% of each other before the algorithm will terminate)
-    double f_factor; // factor that converts measured charge (in fC) to counts per second [fA/cps]
-    double beta; // factor that affects damping of high noise spectral component in MAP method
-    int num_poisson_samples;
+    UnfoldingSettings settings;
+    setSettings(input_files[5], algorithm_name, settings);
 
-    bool settings_success = setSettings(input_files[5], algorithm_name, cutoff, norm, error, f_factor, beta, num_poisson_samples);
-    if (!settings_success) {
-        throw std::logic_error("Unable to open configuration file: " + input_files[5]);
-    }
-    double f_factor_report = f_factor; // original value read in
-    f_factor = f_factor / 1e6; // Convert f_factor from fA/cps to nA/cps
+    double f_factor_report = settings.f_factor; // original value read in
+    settings.set_f_factor(settings.f_factor / 1e6); // Convert f_factor from fA/cps to nA/cps
 
     // Standard figure file suffix (file extension)
     std::string figure_file_suf = ".png";
     // Include algorithm name and cutoff # of iterations in the figure file suffix
     // std::ostringstream temp_stream;
-    // temp_stream << algorithm_name << cutoff << ".png";
+    // temp_stream << algorithm_name << settings.cutoff << ".png";
     // std::string figure_file_suf = temp_stream.str();
 
     // Read measured data (in nC) from input file
@@ -124,7 +117,7 @@ int main(int argc, char* argv[])
     // Re-order measurments from (7 moderators to 0) to (0 moderators to 7)
     std::vector<double> measurements;
     for (int index=0; index < num_measurements; index++) {
-        double measurement_cps = measurements_nc[num_measurements-index-1]*norm/f_factor/duration;
+        double measurement_cps = measurements_nc[num_measurements-index-1]*settings.norm/settings.f_factor/duration;
         measurements.push_back(measurement_cps);
     }
 
@@ -207,40 +200,33 @@ int main(int argc, char* argv[])
     int num_iterations;
 
     if (algorithm_name == "mlem") {
-        num_iterations = runMLEM(cutoff, error, num_measurements, num_bins, measurements, spectrum, nns_response, normalized_response, mlem_ratio);
+        num_iterations = runMLEM(settings.cutoff, settings.error, num_measurements, num_bins, measurements, spectrum, nns_response, normalized_response, mlem_ratio);
     }
     else if (algorithm_name == "map") {
         std::vector<double> energy_correction;
-        num_iterations = runMAP(energy_correction, beta, cutoff, error, num_measurements, num_bins, measurements, spectrum, nns_response, normalized_response, mlem_ratio);
+        num_iterations = runMAP(energy_correction, settings.beta, settings.prior, settings.cutoff, settings.error, num_measurements, num_bins, measurements, spectrum, nns_response, normalized_response, mlem_ratio);
         // return 1;
     }
     else if (algorithm_name == "auto") {
-
         // Create vector of beta values
-        int num_orders_magnitude = 4;
-        double min_beta = 1E-12;
+        int num_orders_magnitude = log10(settings.max_beta/settings.min_beta);
+        double current_beta = settings.min_beta;
         std::vector<double> beta_vector;
         for (int i=0; i<num_orders_magnitude; i++) {
-            std::vector<double> temp_vector = linearSpacedDoubleVector(min_beta,min_beta*10,10);
-            min_beta = min_beta*10;
+            std::vector<double> temp_vector = linearSpacedDoubleVector(current_beta,current_beta*10,10);
+            current_beta = current_beta*10;
             beta_vector.insert(beta_vector.end(), temp_vector.begin(), temp_vector.end());
         }
 
         // Create vector of number of iterations
-        int min_num_iterations = 500;
-        int max_num_iterations = 10000;
-        int iteration_increment = 50;
-        int num_increments = ((max_num_iterations - min_num_iterations) / iteration_increment)+1;
-        std::vector<int> num_iterations_vector = linearSpacedIntegerVector(min_num_iterations,max_num_iterations,num_increments);
+        int num_increments = ((settings.max_num_iterations - settings.min_num_iterations) / settings.iteration_increment)+1;
+        std::vector<int> num_iterations_vector = linearSpacedIntegerVector(settings.min_num_iterations,settings.max_num_iterations,num_increments);
         
         // Create needed variables
         int num_beta_samples = beta_vector.size();
         int num_iteration_samples = num_iterations_vector.size();
-        std::cout << num_beta_samples << "\n";
-        std::cout << num_iteration_samples << "\n";
 
         std::vector<double> current_spectrum; // the reconstructed spectrum
-        double poi; // parameter of interest
         std::vector<double> energy_correction; // energy correction term used in MAP
 
         // Create stream to append results. First row is number of iteration increments
@@ -263,32 +249,41 @@ int main(int argc, char* argv[])
                 int num_iterations;
 
                 // only do # of iterations since previous run (i.e. don't do 3000, then 4000. Do
-                // 3000 then 1000 more, etc.)
+                // 3000 then iteration_size more, etc.)
                 if (i_num == 0)
                     num_iterations = num_iterations_vector[i_num];
                 else
                     num_iterations = num_iterations_vector[i_num]-num_iterations_vector[i_num-1];
-                runMAP(energy_correction, beta_vector[i_beta], num_iterations, error, num_measurements, num_bins, measurements, current_spectrum, nns_response, normalized_response, mlem_ratio);
+                runMAP(energy_correction, beta_vector[i_beta], settings.prior, num_iterations, settings.error, num_measurements, num_bins, measurements, current_spectrum, nns_response, normalized_response, mlem_ratio);
             
                 // Calculate one of the following parameters of interest & save to results stream
-                // // Total fluence:
-                // poi = calculateTotalFlux(num_bins,current_spectrum);
-                // // Total dose:
-                // poi = calculateDose(num_bins, current_spectrum, icrp_factors);
-                // // Total energy (penalty) term:
-                // poi = 0;
-                // for (auto& n : energy_correction)
-                //     poi += n;
-                // // Maximum "error" in MLEM ratio
-                double max_mlem_ratio = 0.0;
-                for (int i=0; i < num_measurements; i++) {
-                    if (mlem_ratio[i] > max_mlem_ratio) {
-                        max_mlem_ratio = mlem_ratio[i];
-                    }
+                double poi_value = 0;
+                // Total fluence
+                if (settings.parameter_of_interest == "total_fluence")
+                    poi_value = calculateTotalFlux(num_bins,current_spectrum);
+                // Total dose:
+                else if (settings.parameter_of_interest == "total_dose")
+                    poi_value = calculateDose(num_bins, current_spectrum, icrp_factors);
+                // Total energy (penalty) term:
+                else if (settings.parameter_of_interest == "total_energy_correction") {
+                    for (auto& n : energy_correction)
+                        poi_value += n;
                 }
-                poi = max_mlem_ratio;
+                // Maximum "error" in MLEM ratio
+                else if (settings.parameter_of_interest == "max_mlem_ratio") {
+                    double max_mlem_ratio = 0.0;
+                    for (int i=0; i < num_measurements; i++) {
+                        if (mlem_ratio[i] > max_mlem_ratio) {
+                            max_mlem_ratio = mlem_ratio[i];
+                        }
+                    }
+                    poi_value = max_mlem_ratio;
+                }
+                else {
+                    throw std::logic_error("Unrecognized parameter of interest: " + settings.parameter_of_interest + ". Please refer to the README for allowed parameters");
+                }
 
-                results_stream << poi;
+                results_stream << poi_value;
                 if (i_num == num_iteration_samples-1)
                     results_stream << "\n";
 
@@ -298,99 +293,17 @@ int main(int argc, char* argv[])
         }
 
         // Save results for parameter of interest to CSV file
+        std::string map_filename = "output/map_file.csv";
         std::ofstream map_file;
-        map_file.open("map_file.csv", std::ios_base::out);
+        map_file.open(map_filename, std::ios_base::out);
         std::string results_string = results_stream.str();
         map_file << results_string;
         map_file.close();
 
-        // for (int i_beta=0; i_beta < num_beta_samples; i_beta++) {
-        //     current_spectrum = initial_spectrum; // reset spectrum on each beta
-        //     for (int i_n=0; i_n < n_length; i_n++) {
-        //         // only do # of iterations since previous run (i.e. don't do 3000, then 4000. Do
-        //         // 3000 then 1000 more, etc.)
-        //         int n_iterations;
-        //         if (i_n == 0)
-        //             n_iterations = n_array[i_n];
-        //         else
-        //             n_iterations = n_array[i_n]-n_array[i_n-1];
-        //         runMAP(energy_correction, beta_array[i_beta], n_array[i_n], error, num_measurements, num_bins, measurements, test_spectrum, nns_response, normalized_response, mlem_ratio);
-                
-        //         // get max energy correction term
-        //         double beta_threshold = 1e-3;
-        //         double max_correction = 0.0;
-        //         for (int i_bin = 0; i_bin < num_bins; i_bin++)
-        //         {
-        //             if (energy_correction[i_bin]>max_correction) {
-        //                 max_correction = energy_correction[i_bin];
-        //             }
-        //             if (energy_correction[i_bin]>beta_threshold) {
-        //                 beta = beta_array[i_beta];
-        //                 found_beta = true;
-        //                 break;
-        //             }
-        //         }
-        //         std::cout << "cur_beta: " << beta_array[i_beta] << " | cur_n: " << n_array[i_n] << " | max correction: " << max_correction << "\n";
-        //         if (found_beta)
-        //             break;
-        //     }
-        //     if (found_beta)
-        //         break;
-        // }
+        std::cout << "Saved 2D matrix of " << settings.parameter_of_interest << " values to " << map_filename << "\n";
 
         return 1;
     }
-    // else if (algorithm_name == "auto") {
-    //     std::vector<double> energy_correction;
-
-    //     static const double beta_array[] = {1e-11,5e-11,1e-10,5e-10,1e-9,5e-9,1e-8,5e-8,1e-7};
-    //     static const int n_array[] = {1000,2000,3000,4000,5000,6000,7000,8000};
-
-    //     int betas_length = sizeof(beta_array)/sizeof(*beta_array);
-    //     int n_length = sizeof(n_array)/sizeof(*n_array);
-
-    //     std::vector<double> test_spectrum;
-    //     bool found_beta = false;
-
-    //     // Find beta value
-    //     for (int i_beta=0; i_beta < betas_length; i_beta++) {
-    //         test_spectrum = initial_spectrum; // reset spectrum on each beta
-    //         for (int i_n=0; i_n < n_length; i_n++) {
-    //             // only do # of iterations since previous run (i.e. don't do 3000, then 4000. Do
-    //             // 3000 then 1000 more, etc.)
-    //             int n_iterations;
-    //             if (i_n == 0)
-    //                 n_iterations = n_array[i_n];
-    //             else
-    //                 n_iterations = n_array[i_n]-n_array[i_n-1];
-    //             runMAP(energy_correction, beta_array[i_beta], n_array[i_n], error, num_measurements, num_bins, measurements, test_spectrum, nns_response, normalized_response, mlem_ratio);
-                
-    //             // get max energy correction term
-    //             double beta_threshold = 1e-3;
-    //             double max_correction = 0.0;
-    //             for (int i_bin = 0; i_bin < num_bins; i_bin++)
-    //             {
-    //                 if (energy_correction[i_bin]>max_correction) {
-    //                     max_correction = energy_correction[i_bin];
-    //                 }
-    //                 if (energy_correction[i_bin]>beta_threshold) {
-    //                     beta = beta_array[i_beta];
-    //                     found_beta = true;
-    //                     break;
-    //                 }
-    //             }
-    //             std::cout << "cur_beta: " << beta_array[i_beta] << " | cur_n: " << n_array[i_n] << " | max correction: " << max_correction << "\n";
-    //             if (found_beta)
-    //                 break;
-    //         }
-    //         if (found_beta)
-    //             break;
-    //     }
-
-    //     std::cout << "Found beta? " << found_beta << "\n";
-    //     std::cout << "Beta " << beta << "\n";
-    //     return 0;
-    // }
     else {
         //throw error
         std::cout << "No unfolding algorithm found for: " + algorithm_name + '\n';
@@ -433,7 +346,7 @@ int main(int argc, char* argv[])
     std::vector<std::vector<double>> sampled_spectra; // dimensions: num_poisson_samples x num_bins
     std::vector<double> sampled_dose; // dimension: num_poisson_samples
 
-    for (int i_poiss = 0; i_poiss < num_poisson_samples; i_poiss++) {
+    for (int i_poiss = 0; i_poiss < settings.num_poisson_samples; i_poiss++) {
         std::vector<double> sampled_measurements; // dimension: num_measurements
         std::vector<double> sampled_mlem_ratio; // dimension: num_measurements
         std::vector<double> sampled_spectrum = initial_spectrum; // dimension: num_bins
@@ -446,11 +359,11 @@ int main(int argc, char* argv[])
 
         // Do unfolding on the initial spectrum & sampled measurement values
         if (algorithm_name == "mlem") {
-            runMLEM(cutoff, error, num_measurements, num_bins, sampled_measurements, sampled_spectrum, nns_response, normalized_response, sampled_mlem_ratio);
+            runMLEM(settings.cutoff, settings.error, num_measurements, num_bins, sampled_measurements, sampled_spectrum, nns_response, normalized_response, sampled_mlem_ratio);
         }
         else if (algorithm_name == "map") {
             std::vector<double> sampled_energy_correction;
-            runMAP(sampled_energy_correction, beta, cutoff, error, num_measurements, num_bins, sampled_measurements, sampled_spectrum, nns_response, normalized_response, sampled_mlem_ratio);
+            runMAP(sampled_energy_correction, settings.beta, settings.prior, settings.cutoff, settings.error, num_measurements, num_bins, sampled_measurements, sampled_spectrum, nns_response, normalized_response, sampled_mlem_ratio);
         }
         else {
             //throw error
@@ -469,7 +382,7 @@ int main(int argc, char* argv[])
     // Calculate RMSD between sampled spectra and the unfolded spectrum
     //----------------------------------------------------------------------------------------------
     std::vector<double> spectrum_uncertainty;
-    calculateRMSD_vector(num_poisson_samples, spectrum, sampled_spectra, spectrum_uncertainty);
+    calculateRMSD_vector(settings.num_poisson_samples, spectrum, sampled_spectra, spectrum_uncertainty);
 
     //----------------------------------------------------------------------------------------------
     // Print the uncertainty spectrum
@@ -486,7 +399,7 @@ int main(int argc, char* argv[])
     // Calculate quantities of interest (e.g. dose & its uncertainty)
     //----------------------------------------------------------------------------------------------
     double ambient_dose_eq = calculateDose(num_bins, spectrum, icrp_factors);
-    double ambient_dose_eq_uncertainty = calculateRMSD(num_poisson_samples, ambient_dose_eq, sampled_dose);
+    double ambient_dose_eq_uncertainty = calculateRMSD(settings.num_poisson_samples, ambient_dose_eq, sampled_dose);
 
     double total_charge = calculateTotalCharge(num_measurements,measurements_nc);
 
@@ -530,7 +443,7 @@ int main(int argc, char* argv[])
     std::cout << "Saved unfolded spectrum to " << o_spectrum_file << "\n";
 
     std::string report_file = report_file_pre + irradiation_conditions + report_file_suf;
-    prepareReport(report_file, irradiation_conditions, input_files, input_file_flags, algorithm_name, cutoff, error, norm, f_factor_report, beta, num_measurements, num_bins, num_poisson_samples, measurements_nc, dose_mu, doserate_mu, duration, energy_bins, initial_spectrum, nns_response, num_iterations, mlem_ratio, ambient_dose_eq, ambient_dose_eq_uncertainty, total_charge, total_flux, total_flux_uncertainty, avg_energy, avg_energy_uncertainty, spectrum, spectrum_uncertainty, icrp_factors, GIT_COMMIT);
+    prepareReport(report_file, irradiation_conditions, input_files, input_file_flags, algorithm_name, settings.cutoff, settings.error, settings.norm, f_factor_report, settings.beta, num_measurements, num_bins, settings.num_poisson_samples, measurements_nc, dose_mu, doserate_mu, duration, energy_bins, initial_spectrum, nns_response, num_iterations, mlem_ratio, ambient_dose_eq, ambient_dose_eq_uncertainty, total_charge, total_flux, total_flux_uncertainty, avg_energy, avg_energy_uncertainty, spectrum, spectrum_uncertainty, icrp_factors, GIT_COMMIT);
     std::cout << "Generated summary report: " << report_file << "\n\n";
 
     //----------------------------------------------------------------------------------------------

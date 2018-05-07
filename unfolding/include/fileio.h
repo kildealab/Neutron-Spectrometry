@@ -5,9 +5,10 @@
 #include <fstream>
 #include <vector>
 #include <map>
+#include "custom_classes.h"
 
 bool is_empty(std::ifstream& pFile);
-int setSettings(std::string config_file, std::string algorithm_name, int &cutoff, double &norm, double &error, double &f_factor, double &beta, int &num_poisson_samples);
+int setSettings(std::string config_file, std::string algorithm_name, UnfoldingSettings &settings);
 int setPlotSettings(std::string config_file, std::map<std::string,std::string>& settings);
 bool checkStringVector(std::string item, std::vector<std::string>& allowed_items);
 bool checkStringMap(std::string test_key, std::map<std::string, std::string>& test_map);

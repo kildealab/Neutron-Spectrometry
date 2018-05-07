@@ -35,8 +35,8 @@ CFLAGS = -o $@ -Wall -O -g -std=c++11 $(GIT_CFLAG) -I$(INC_DIR) -I$(SRC_DIR)
 
 LFLAGS = -Wall -O -g $(ROOTCFLAGS) 
 
-OBJS = $(OBJ_DIR)/unfold_spectrum.o $(OBJ_DIR)/fileio.o $(OBJ_DIR)/handle_args.o $(OBJ_DIR)/root_helpers.o $(OBJ_DIR)/physics_calculations.o
-OBJS_PLOT = $(OBJ_DIR)/plot_spectra.o $(OBJ_DIR)/fileio.o $(OBJ_DIR)/root_helpers.o
+OBJS = $(OBJ_DIR)/unfold_spectrum.o $(OBJ_DIR)/fileio.o $(OBJ_DIR)/handle_args.o $(OBJ_DIR)/root_helpers.o $(OBJ_DIR)/physics_calculations.o $(OBJ_DIR)/custom_classes.o
+OBJS_PLOT = $(OBJ_DIR)/plot_spectra.o $(OBJ_DIR)/fileio.o $(OBJ_DIR)/root_helpers.o $(OBJ_DIR)/custom_classes.o
 
 
 #===================================================================================================
@@ -84,6 +84,9 @@ $(OBJ_DIR)/root_helpers.o: $(SRC_DIR)/root_helpers.cpp
 	$(CPP) -c $(CFLAGS) $(ROOTCFLAGS) $<
 
 $(OBJ_DIR)/physics_calculations.o: $(SRC_DIR)/physics_calculations.cpp
+	$(CPP) -c $(CFLAGS) $<
+
+$(OBJ_DIR)/custom_classes.o: $(SRC_DIR)/custom_classes.cpp
 	$(CPP) -c $(CFLAGS) $<
 
 # The following can be used instead of the above explicit commands for each object file (except for

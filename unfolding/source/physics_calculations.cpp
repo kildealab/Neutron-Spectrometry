@@ -320,7 +320,7 @@ int runMLEM(int cutoff, double error, int num_measurements, int num_bins, std::v
 // that spectrum is updated as the algorithm progresses (passed by reference). Similarly for 
 // mlem_ratio
 //==================================================================================================
-int runMAP(std::vector<double> &energy_correction, double beta, int cutoff, double error, int num_measurements, int num_bins, std::vector<double> &measurements, std::vector<double> &spectrum, std::vector<std::vector<double>> &nns_response, std::vector<double> &normalized_response, std::vector<double> &mlem_ratio) {
+int runMAP(std::vector<double> &energy_correction, double beta, std::string prior, int cutoff, double error, int num_measurements, int num_bins, std::vector<double> &measurements, std::vector<double> &spectrum, std::vector<std::vector<double>> &nns_response, std::vector<double> &normalized_response, std::vector<double> &mlem_ratio) {
     int mlem_index; // index of MLEM iteration
 
     for (mlem_index = 0; mlem_index < cutoff; mlem_index++) {
@@ -363,55 +363,67 @@ int runMAP(std::vector<double> &energy_correction, double beta, int cutoff, doub
             mlem_correction.push_back(temp_value);
         }
 
+        //------------------------------------------------------------------------------------------
         // Create the MAP energy correction factors to be incorporated in the normalization
         // std::vector<double> energy_correction;
         energy_correction.clear();
 
-        // Without normalization:
-        energy_correction.push_back(beta*pow(spectrum[0]-spectrum[1],2));
-        for (int i_bin=1; i_bin < num_bins-1; i_bin++)
-        {
-            double temp_value = 0;
-            temp_value = beta * (pow(spectrum[i_bin]-spectrum[i_bin-1],2)+pow(spectrum[i_bin]-spectrum[i_bin+1],2));          
-            energy_correction.push_back(temp_value);
+        // Quadratic prior (smoothing, no edge preservation):
+        if (prior == "quadratic") {
+            energy_correction.push_back(beta*pow(spectrum[0]-spectrum[1],2));
+            for (int i_bin=1; i_bin < num_bins-1; i_bin++)
+            {
+                double temp_value = 0;
+                temp_value = beta * (pow(spectrum[i_bin]-spectrum[i_bin-1],2)+pow(spectrum[i_bin]-spectrum[i_bin+1],2));          
+                energy_correction.push_back(temp_value);
+            }
+            energy_correction.push_back(beta*pow(spectrum[num_bins-1]-spectrum[num_bins-2],2));
         }
-        energy_correction.push_back(beta*pow(spectrum[num_bins-1]-spectrum[num_bins-2],2));
-       
-        // With normalization:
-        // energy_correction.push_back(beta*sqrt(pow(spectrum[0]-spectrum[1],2))/spectrum[0]);
-        // for (int i_bin=1; i_bin < num_bins-1; i_bin++)
-        // {
-        //     double temp_value = 0;
-        //     temp_value = beta * sqrt(pow(spectrum[i_bin]-spectrum[i_bin-1],2)+pow(spectrum[i_bin]-spectrum[i_bin+1],2))/(2*spectrum[i_bin]);          
-        //     energy_correction.push_back(temp_value);
-        // }
-        // energy_correction.push_back(beta*sqrt(pow(spectrum[num_bins-1]-spectrum[num_bins-2],2))/spectrum[num_bins-1]);
+        // Normalized quadratic prior
+        else if (prior == "quadratic_normalized") {
+            energy_correction.push_back(beta*sqrt(pow(spectrum[0]-spectrum[1],2))/spectrum[0]);
+            for (int i_bin=1; i_bin < num_bins-1; i_bin++)
+            {
+                double temp_value = 0;
+                temp_value = beta * sqrt(pow(spectrum[i_bin]-spectrum[i_bin-1],2)+pow(spectrum[i_bin]-spectrum[i_bin+1],2))/(2*spectrum[i_bin]);          
+                energy_correction.push_back(temp_value);
+            }
+            energy_correction.push_back(beta*sqrt(pow(spectrum[num_bins-1]-spectrum[num_bins-2],2))/spectrum[num_bins-1]);
+        }
+        // Median Root Prior (edge preservation by not penalizing areas of monotonic increase or decrease)
+        else if (prior == "mrp") {
+            int num_adjacent = 1; // on either side
+            energy_correction.push_back(0); // no correction for first term
+            for (int i_bin=num_adjacent; i_bin < num_bins-num_adjacent; i_bin++)
+            {
+                double median;
 
-        // MRP technique:
-        // int num_adjacent = 1; // on either side
-        // energy_correction.push_back(0); // no correction for first term
-        // for (int i_bin=num_adjacent; i_bin < num_bins-num_adjacent; i_bin++)
-        // {
-        //     double median;
+                std::vector<double> neighbours(spectrum.begin()+i_bin-num_adjacent,spectrum.begin()+i_bin+num_adjacent+1);
 
-        //     std::vector<double> neighbours(spectrum.begin()+i_bin-num_adjacent,spectrum.begin()+i_bin+num_adjacent+1);
+                // Determine if spectrum is monotonically increasing or decreasing by comparing
+                // current value with its neighbours
+                bool increasing = std::is_sorted(neighbours.begin(), neighbours.end());
+                std::reverse(neighbours.begin(),neighbours.end());
+                bool decreasing = std::is_sorted(neighbours.begin(), neighbours.end());
 
-        //     bool increasing = std::is_sorted(neighbours.begin(), neighbours.end());
-        //     std::reverse(neighbours.begin(),neighbours.end());
-        //     bool decreasing = std::is_sorted(neighbours.begin(), neighbours.end());
-
-        //     // if values are monotonically increasing or decreasing, no energy correction
-        //     if (increasing || decreasing) {
-        //         energy_correction.push_back(0);
-        //     }
-        //     else {
-        //         std::sort(neighbours.begin(),neighbours.end());
-        //         median = neighbours[num_adjacent];
-        //         double temp_value = beta*(spectrum[i_bin]-median)/median;
-        //         energy_correction.push_back(temp_value);
-        //     }
-        // }
-        // energy_correction.push_back(0); // no correction for last term
+                // if values are monotonically increasing or decreasing, no energy correction
+                if (increasing || decreasing) {
+                    energy_correction.push_back(0);
+                }
+                // Otherwise, apply energy correction 
+                else {
+                    std::sort(neighbours.begin(),neighbours.end());
+                    median = neighbours[num_adjacent];
+                    double temp_value = beta*(spectrum[i_bin]-median)/median;
+                    energy_correction.push_back(temp_value);
+                }
+            }
+            energy_correction.push_back(0); // no correction for last term
+        }
+        else {
+            throw std::logic_error("Unrecognized prior: " + prior + ". Please refer to the README for allowed priors");
+        }
+        //------------------------------------------------------------------------------------------
 
         // Apply correction factors and normalization to get new spectral estimate
         for(int i_bin=0; i_bin < num_bins; i_bin++)

@@ -36,17 +36,11 @@ bool is_empty(std::ifstream& pFile)
 // Args:
 //  - config_file: filename of the settings file
 //  - cutoff: assign the maximum number of MLEM iterations
-//  - norm: assign the vendor-specified NNS normalization factor
-//  - error: assign the maximum allowed error from unity in the ratio between measured and MLEM
-//              estimated measurements
-//  - f_factor: assign the conversion factor between measured current in fA and counts per second
-//  - num_poisson_samples: assign the number of poisson samples to be taken for uncertainty
-//              estimation
+//  - settings: UnfoldingSettings object that will store necessary parameters input from config_file
 //==================================================================================================
-int setSettings(std::string config_file, std::string algorithm_name, int &cutoff, double &norm, double &error, double &f_factor, double &beta, int &num_poisson_samples) {
+int setSettings(std::string config_file, std::string algorithm_name, UnfoldingSettings &settings) {
     std::ifstream cfile(config_file);
     std::string line;
-    std::vector<double> settings;
 
     // If file is able to be read
     if (cfile.is_open())
@@ -56,43 +50,47 @@ int setSettings(std::string config_file, std::string algorithm_name, int &cutoff
         {
             // settings format: setting_name=value
             std::string delimiter = "=";
-            std::string token = line.substr(line.find(delimiter)+1); // substring from '=' to end of string
-            // std::cout << token << '\n';
-            settings.push_back(atof(token.c_str())); // convert str to double, insert into vector
+            std::string settings_name = line.substr(0,line.find(delimiter)); // substring from 0 to '='
+            std::string settings_value = line.substr(line.find(delimiter)+1); // substring from '=' to end of string
+            
+            if (settings_name == "nns_normalization")
+                settings.set_norm(atof(settings_value.c_str()));
+            else if (settings_name == "mlem_max_error")
+                settings.set_error(atof(settings_value.c_str()));
+            else if (settings_name == "f_factor")
+                settings.set_f_factor(atof(settings_value.c_str()));
+            else if (settings_name == "mlem_cutoff")
+                settings.set_cutoff(atoi(settings_value.c_str()));
+            else if (settings_name == "num_poisson_samples")
+                settings.set_num_poisson_samples(atoi(settings_value.c_str()));
+            else if (settings_name == "beta")
+                settings.set_beta(atof(settings_value.c_str()));
+            else if (settings_name == "prior")
+                settings.set_prior(settings_value);
+            else if (settings_name == "min_num_iterations")
+                settings.set_min_num_iterations(atoi(settings_value.c_str()));
+            else if (settings_name == "max_num_iterations")
+                settings.set_max_num_iterations(atoi(settings_value.c_str()));
+            else if (settings_name == "iteration_increment")
+                settings.set_iteration_increment(atoi(settings_value.c_str()));
+            else if (settings_name == "min_beta")
+                settings.set_min_beta(atof(settings_value.c_str()));
+            else if (settings_name == "max_beta")
+                settings.set_max_beta(atof(settings_value.c_str()));
+            else if (settings_name == "parameter_of_interest")
+                settings.set_parameter_of_interest(settings_value);
+            else
+                throw std::logic_error("Unrecognized setting: " + settings_name + ". Please refer to the README for allowed settings");
         }
         cfile.close();
     }
+
     // Problem opening the file
     else {
-        return false;
+        throw std::logic_error("Unable to access file: " + config_file);
     }
 
-    // Assign the settings values to function parameters passed by reference
-    // Different algorithms require different settings
-    if (algorithm_name == "mlem") {
-        cutoff = (int)settings[0];
-        norm = settings[1];
-        error = settings[2];
-        f_factor = settings[3];
-        num_poisson_samples = settings[4];
-    }
-    else if (algorithm_name == "map") {
-        cutoff = (int)settings[0];
-        norm = settings[1];
-        error = settings[2];
-        f_factor = settings[3];
-        num_poisson_samples = settings[4];
-        beta = settings[5];
-    }
-    if (algorithm_name == "auto") {
-        norm = settings[0];
-        error = settings[1];
-        f_factor = settings[2];
-        num_poisson_samples = settings[3];
-        beta = settings[4];
-    }
-
-    return true;
+    return 1;
 }
 
 //==================================================================================================
