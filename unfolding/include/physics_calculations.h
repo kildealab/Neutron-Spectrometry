@@ -12,6 +12,9 @@ int runMAP(std::vector<double> &energy_correction, double beta, std::string prio
 double calculateDose(int num_bins, std::vector<double> &spectrum, std::vector<double> &icrp_factors);
 double calculateTotalCharge(int num_measurements, std::vector<double> measurements_nc);
 double calculateTotalFlux(int num_bins, std::vector<double> &spectrum);
+double calculateTotalEnergyCorrection(std::vector<double> &energy_correction);
+double calculateMaxRatio(int num_measurements, std::vector<double> &mlem_ratio);
+double calculateAvgRatio(int num_measurements, std::vector<double> &mlem_ratio);
 double calculateAverageEnergy(int num_bins, std::vector<double> &spectrum, std::vector<double> &energy_bins);
 double calculateSourceStrength(int num_bins, std::vector<double> &spectrum, int duration, double dose_mu);
 int calculateRMSD_vector(int num_samples, std::vector<double> &true_vector, std::vector<std::vector<double>> &sampled_vectors, std::vector<double> &rms_differences);

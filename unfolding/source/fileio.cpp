@@ -35,10 +35,9 @@ bool is_empty(std::ifstream& pFile)
 // Retrieve settings from a configuration file 'config_file' and save values in relevant variables
 // Args:
 //  - config_file: filename of the settings file
-//  - cutoff: assign the maximum number of MLEM iterations
 //  - settings: UnfoldingSettings object that will store necessary parameters input from config_file
 //==================================================================================================
-int setSettings(std::string config_file, std::string algorithm_name, UnfoldingSettings &settings) {
+int setSettings(std::string config_file, UnfoldingSettings &settings) {
     std::ifstream cfile(config_file);
     std::string line;
 
@@ -53,45 +52,56 @@ int setSettings(std::string config_file, std::string algorithm_name, UnfoldingSe
             std::string settings_name = line.substr(0,line.find(delimiter)); // substring from 0 to '='
             std::string settings_value = line.substr(line.find(delimiter)+1); // substring from '=' to end of string
             
-            if (settings_name == "nns_normalization")
-                settings.set_norm(atof(settings_value.c_str()));
-            else if (settings_name == "mlem_max_error")
-                settings.set_error(atof(settings_value.c_str()));
-            else if (settings_name == "f_factor")
-                settings.set_f_factor(atof(settings_value.c_str()));
-            else if (settings_name == "mlem_cutoff")
-                settings.set_cutoff(atoi(settings_value.c_str()));
-            else if (settings_name == "num_poisson_samples")
-                settings.set_num_poisson_samples(atoi(settings_value.c_str()));
-            else if (settings_name == "beta")
-                settings.set_beta(atof(settings_value.c_str()));
-            else if (settings_name == "prior")
-                settings.set_prior(settings_value);
-            else if (settings_name == "min_num_iterations")
-                settings.set_min_num_iterations(atoi(settings_value.c_str()));
-            else if (settings_name == "max_num_iterations")
-                settings.set_max_num_iterations(atoi(settings_value.c_str()));
-            else if (settings_name == "iteration_increment")
-                settings.set_iteration_increment(atoi(settings_value.c_str()));
-            else if (settings_name == "min_beta")
-                settings.set_min_beta(atof(settings_value.c_str()));
-            else if (settings_name == "max_beta")
-                settings.set_max_beta(atof(settings_value.c_str()));
-            else if (settings_name == "parameter_of_interest")
-                settings.set_parameter_of_interest(settings_value);
-            else
-                throw std::logic_error("Unrecognized setting: " + settings_name + ". Please refer to the README for allowed settings");
+            // Apply the setting value to the setting name
+            settings.set_setting(settings_name,settings_value);
         }
         cfile.close();
     }
 
     // Problem opening the file
     else {
-        throw std::logic_error("Unable to access file: " + config_file);
+        throw std::logic_error("Unable to access configuration file: " + config_file);
     }
 
     return 1;
 }
+
+
+//==================================================================================================
+// Retrieve settings from a configuration file 'config_file' and save values in a settings object
+// Args:
+//  - config_file: filename of the settings file
+//  - settings: PlotSettings object that will store necessary parameters input from config_file
+//==================================================================================================
+int setPlotSettings(std::string config_file, PlotSettings &settings) {
+    std::ifstream cfile(config_file);
+    std::string line;
+
+    // If file is able to be read
+    if (cfile.is_open())
+    {
+        // loop through each line in the file, extract the value for each setting into 'token'
+        while ( getline (cfile,line) )
+        {
+            // settings format: setting_name=value
+            std::string delimiter = "=";
+            std::string settings_name = line.substr(0,line.find(delimiter)); // substring from 0 to '='
+            std::string settings_value = line.substr(line.find(delimiter)+1); // substring from '=' to end of string
+
+            // Apply the setting value to the setting name
+            settings.set_setting(settings_name,settings_value);
+        }
+        cfile.close();
+    }
+
+    // Problem opening the file
+    else {
+        throw std::logic_error("Unable to access configuration file: " + config_file);
+    }
+
+    return 1;
+}
+
 
 //==================================================================================================
 // Retrieve settings from a configuration file 'config_file' and save values in a map
@@ -99,7 +109,7 @@ int setSettings(std::string config_file, std::string algorithm_name, UnfoldingSe
 //  - config_file: filename of the settings file
 //  - settings: map variable that contains setting key:value pairs (key and value are strings)
 //==================================================================================================
-int setPlotSettings(std::string config_file, std::map<std::string,std::string>& settings) {
+int setPlotSettingsOld(std::string config_file, std::map<std::string,std::string>& settings) {
     std::ifstream cfile(config_file);
     std::string line;
 
@@ -126,7 +136,7 @@ int setPlotSettings(std::string config_file, std::map<std::string,std::string>& 
     }
     // Problem opening the file
     else {
-        throw std::logic_error("Unable to access file: " + config_file);
+        throw std::logic_error("Unable to access configuration file: " + config_file);
     }
 
     return 1;
@@ -689,5 +699,114 @@ int prepareReport(std::string report_file, std::string irradiation_conditions, s
     }
 
     rfile.close();
+    return 1;
+}
+
+//==================================================================================================
+// Convert a comma-delimited string into a vector of strings.
+//
+// Args:
+//  - test_string: the comma-delimited string to be processed
+//  - result_vector: the vector that will be assigned string values
+//==================================================================================================
+void stringToSVector(std::string test_string, std::vector<std::string>& result_vector) {
+    result_vector.clear();
+    std::istringstream line_stream(test_string);
+    std::string stoken; // store individual values between delimiters on a line
+
+    // Loop through each line, delimiting at commas
+    while (getline(line_stream, stoken, ',')) {
+        result_vector.push_back(stoken);
+    }
+}
+
+//==================================================================================================
+// Convert a comma-delimited string into a vector of integers.
+//
+// Args:
+//  - test_string: the comma-delimited string to be processed
+//  - result_vector: the vector that will be assigned integer values
+//==================================================================================================
+void stringToIVector(std::string test_string, std::vector<int>& result_vector) {
+    result_vector.clear();
+    std::istringstream line_stream(test_string);
+    std::string stoken; // store individual values between delimiters on a line
+
+    // Loop through each line, delimiting at commas
+    while (getline(line_stream, stoken, ',')) {
+        result_vector.push_back(atoi(stoken.c_str()));
+    }
+}
+
+//==================================================================================================
+// Convert a comma-delimited string into a vector of floats.
+//
+// Args:
+//  - test_string: the comma-delimited string to be processed
+//  - result_vector: the vector that will be assigned integer values
+//==================================================================================================
+void stringToDVector(std::string test_string, std::vector<float>& result_vector) {
+    result_vector.clear();
+    std::istringstream line_stream(test_string);
+    std::string stoken; // store individual values between delimiters on a line
+
+    // Loop through each line, delimiting at commas
+    while (getline(line_stream, stoken, ',')) {
+        result_vector.push_back((double) atof(stoken.c_str()));
+    }
+}
+
+//==================================================================================================
+// Read a CSV file containing XYY data to be plotted that is formatted as follows
+//  - The first row contains the x data
+//  - Subsequent rows contain y data
+//  - The first column of every row contains a header for that row (non-numeric)
+//
+// Args:
+//  - file_name: the name of the file to be read
+//  - header_vector: the vector that will be assigned header values
+//  - x_data: the 1D vector that will store the x data (first row)
+//  - y_data: the 2D vector that will store the y data (subsequent rows)
+//==================================================================================================
+int readXYYCSV(std::string file_name, std::vector<std::string>& header_vector, std::vector<double>& x_data, std::vector<std::vector<double>>& y_data) {
+    std::ifstream ifile(file_name);
+    std::string iline;
+
+    if (!ifile.is_open()) {
+        //throw error
+        throw std::logic_error("Unable to open data file: " + file_name);
+    }
+
+    // Loop through each line in the file
+    int i_row = 0;
+    while (getline(ifile,iline)) {
+        std::vector<double> new_row;
+        std::istringstream line_stream(iline);
+        std::string stoken; // store individual values between delimiters on a line
+
+        // Loop through the line, delimiting at commas
+        int i_col = 0;
+        while (getline(line_stream, stoken, ',')) {
+            // The first token is the header
+            if (i_col == 0) {
+                header_vector.push_back(stoken);
+            }
+            // Add data to the vector
+            else {
+                new_row.push_back(atof(stoken.c_str()));
+            }
+            i_col += 1;
+        }
+
+        // The first row contains the x data
+        if (i_row == 0) {
+            x_data = new_row;
+        }
+        // Subsequent rows contain the y data
+        else {
+            y_data.push_back(new_row);
+        }
+        i_row += 1;
+    }
     return 1;
 }

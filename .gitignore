@@ -8,4 +8,6 @@ unfolding/backups/*
 unfolding/input/plot.cfg
 unfolding/input/map.cfg
 unfolding/input/auto.cfg
+unfolding/input/auto_mlem.cfg
+unfolding/input/plot_lines.cfg
 map_file.csv

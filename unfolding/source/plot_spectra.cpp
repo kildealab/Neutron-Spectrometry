@@ -38,9 +38,9 @@
 #include "TVirtualPad.h"
 
 // Prototypes of helper functions
-void stringToSVector(std::string test_string, std::vector<std::string>& result_vector);
-void stringToIVector(std::string test_string, std::vector<int>& result_vector);
-void stringToFVector(std::string test_string, std::vector<float>& result_vector);
+// void stringToSVector(std::string test_string, std::vector<std::string>& result_vector);
+// void stringToIVector(std::string test_string, std::vector<int>& result_vector);
+// void stringToFVector(std::string test_string, std::vector<float>& result_vector);
 
 // This map variable contains all configurable settings for generating the output plot
 // Default values are provided where approriate, but each of these settings may be configured
@@ -84,7 +84,7 @@ int main(int argc, char* argv[])
 {
     // Set Settings
     std::string settings_file = "input/plot.cfg";
-    setPlotSettings(settings_file, settings); // Fill settings map with any user provided settings
+    setPlotSettingsOld(settings_file, settings); // Fill settings map with any user provided settings
     std::string input_file = settings["input_dir"]+settings["input_filename"];
     std::string output_file = settings["output_dir"]+settings["output_filename"];
 
@@ -114,9 +114,9 @@ int main(int argc, char* argv[])
     if (!settings["line_width"].empty())
         stringToIVector(settings["line_width"], line_width);
     if (!settings["legend_coords"].empty())
-        stringToFVector(settings["legend_coords"], legend_coords);
+        stringToDVector(settings["legend_coords"], legend_coords);
     if (!settings["textbox_coords"].empty())
-        stringToFVector(settings["textbox_coords"], textbox_coords);
+        stringToDVector(settings["textbox_coords"], textbox_coords);
     if (!settings["textbox_text"].empty())
         stringToSVector(settings["textbox_text"], textbox_text);
     if (!settings["number_mu"].empty())
@@ -195,9 +195,9 @@ int main(int argc, char* argv[])
             leg->AddEntry(histograms[i_spec], headers[i_spec].c_str(), "l");
         else
             leg->AddEntry(histograms[i_spec], legend_entries[i_spec%legend_entries.size()].c_str(), "l");
-        if (i_spec == 1) {
-            leg->AddEntry((TObject*)0, "", "");
-        }
+        // if (i_spec == 1) {
+        //     leg->AddEntry((TObject*)0, "", "");
+        // }
 
         // Title & axes manipulations. Only needs to be done for first spectrum
         if (i_spec == 0) {
@@ -214,17 +214,17 @@ int main(int argc, char* argv[])
             histograms[i_spec]->SetTickLength(0.015,"xy"); // Length of tick marks (default = 0.02)
 
             // Set x-axis range
-            // histograms[i_spec]->GetXaxis()->SetRange(0,52); // Range according to bin number
-            histograms[i_spec]->GetXaxis()->SetRangeUser(1e-9,10); // Range according to value (must be in range spanned by bins)
+            histograms[i_spec]->GetXaxis()->SetRange(0,52); // Range according to bin number
+            // histograms[i_spec]->GetXaxis()->SetRangeUser(1e-9,10); // Range according to value (must be in range spanned by bins)
             
             // Set axis tick label size
             histograms[i_spec]->GetYaxis()->SetLabelSize(0.03);
             histograms[i_spec]->GetXaxis()->SetLabelSize(0.03);
 
             if (!settings["y_min"].empty())
-                histograms[i_spec]->SetMinimum(atoi(settings["y_min"].c_str()));
+                histograms[i_spec]->SetMinimum(atof(settings["y_min"].c_str()));
             if (!settings["y_max"].empty())
-                histograms[i_spec]->SetMaximum(atoi(settings["y_max"].c_str()));
+                histograms[i_spec]->SetMaximum(atof(settings["y_max"].c_str()));
             // Set # of divisions on the y axis
             // refer to https://root.cern.ch/doc/master/classTAttAxis.html#ae3067b6d4218970d09418291cbd84084
             if (!settings["y_num_divs"].empty())
@@ -289,55 +289,4 @@ int main(int argc, char* argv[])
     c1->Print(cstr_figure_file);
 
     return 0;
-}
-
-//==================================================================================================
-// Convert a comma-delimited string into a vector of strings.
-//
-// Args:
-//  - test_string: the comma-delimited string to be processed
-//  - result_vector: the vector that will be assigned string values
-//==================================================================================================
-void stringToSVector(std::string test_string, std::vector<std::string>& result_vector) {
-    std::istringstream line_stream(test_string);
-    std::string stoken; // store individual values between delimiters on a line
-
-    // Loop through each line, delimiting at commas
-    while (getline(line_stream, stoken, ',')) {
-        result_vector.push_back(stoken);
-    }
-}
-
-//==================================================================================================
-// Convert a comma-delimited string into a vector of integers.
-//
-// Args:
-//  - test_string: the comma-delimited string to be processed
-//  - result_vector: the vector that will be assigned integer values
-//==================================================================================================
-void stringToIVector(std::string test_string, std::vector<int>& result_vector) {
-    std::istringstream line_stream(test_string);
-    std::string stoken; // store individual values between delimiters on a line
-
-    // Loop through each line, delimiting at commas
-    while (getline(line_stream, stoken, ',')) {
-        result_vector.push_back(atoi(stoken.c_str()));
-    }
-}
-
-//==================================================================================================
-// Convert a comma-delimited string into a vector of floats.
-//
-// Args:
-//  - test_string: the comma-delimited string to be processed
-//  - result_vector: the vector that will be assigned integer values
-//==================================================================================================
-void stringToFVector(std::string test_string, std::vector<float>& result_vector) {
-    std::istringstream line_stream(test_string);
-    std::string stoken; // store individual values between delimiters on a line
-
-    // Loop through each line, delimiting at commas
-    while (getline(line_stream, stoken, ',')) {
-        result_vector.push_back(atof(stoken.c_str()));
-    }
 }

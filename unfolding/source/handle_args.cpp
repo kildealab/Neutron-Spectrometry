@@ -38,7 +38,7 @@ int setfile(std::vector<std::string> &arg_vector, std::string directory, std::st
         else {
             // throw error saying no file provided for *iter_measurements -= 1
             iter_args -= 1;
-            std::cout << "Error: no file provided for argument: " << *iter_args << "\n";
+            throw std::logic_error("Error: no file provided for argument " + *iter_args);
         }
     }
     // If no match was found for the target arg_string within arg_vector, use the default filename
@@ -65,7 +65,8 @@ void checkUnknownParameters(std::vector<std::string> &arg_vector, std::vector<st
         
         // If not match was found, notify user
         if(iter_args == input_file_flags.end()) {
-            std::cout << "Warning: Ignored unknown argument " << arg_vector[i] << "\n";
+            throw std::logic_error("Error: Ignored unknown argument " + arg_vector[i]);
+            // std::cout << "Warning: Ignored unknown argument " << arg_vector[i] << "\n";
         }
         // If a match was found, skip the next argument (should be the filename)
         else {

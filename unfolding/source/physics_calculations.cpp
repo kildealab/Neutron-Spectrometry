@@ -144,6 +144,47 @@ double calculateTotalFlux(int num_bins, std::vector<double> &spectrum) {
 
 
 //==================================================================================================
+// Calculate the total energy correction for the MAP algorithm
+//==================================================================================================
+double calculateTotalEnergyCorrection(std::vector<double> &energy_correction) {
+    double total_energy_correction = 0;
+    for (auto& n : energy_correction)
+        total_energy_correction += n;
+
+    return total_energy_correction;
+}
+
+
+//==================================================================================================
+// Calculate the maximum deviation from 1.0 among the ratio between reconstructed CPS measurements
+// measured CPS measurements
+//==================================================================================================
+double calculateMaxRatio(int num_measurements, std::vector<double> &mlem_ratio) {
+    double max_mlem_ratio = 0;
+    for (int i=0; i < num_measurements; i++) {
+        if (abs(1.0-mlem_ratio[i]) > max_mlem_ratio) {
+            max_mlem_ratio = abs(1.0-mlem_ratio[i]);
+        }
+    }
+    return max_mlem_ratio;
+}
+
+
+//==================================================================================================
+// Calculate the average deviation from 1.0 among the ratio between reconstructed CPS measurements
+// measured CPS measurements
+//==================================================================================================
+double calculateAvgRatio(int num_measurements, std::vector<double> &mlem_ratio) {
+    double avg_mlem_ratio = 0.0;
+    for (int i=0; i < num_measurements; i++) {
+        avg_mlem_ratio += abs(1.0-mlem_ratio[i]);
+    }
+    return avg_mlem_ratio/num_measurements;
+
+}
+
+
+//==================================================================================================
 // Calculate the average neutron energy of a neutron flux spectrum.
 // - Normalize the flux spectrum by the total flux: result is relative contribution of each energy
 //      bin to the total flux
@@ -417,6 +458,57 @@ int runMAP(std::vector<double> &energy_correction, double beta, std::string prio
                     double temp_value = beta*(spectrum[i_bin]-median)/median;
                     energy_correction.push_back(temp_value);
                 }
+            }
+            energy_correction.push_back(0); // no correction for last term
+        }
+        // Custom Mean Root Prior
+        else if (prior == "meanrp") {
+            int num_adjacent = 1; // on either side
+            energy_correction.push_back(0); // no correction for first term
+            for (int i_bin=num_adjacent; i_bin < num_bins-num_adjacent; i_bin++)
+            {
+                double mean = 0.0;
+
+                for (int i_n=i_bin-num_adjacent; i_n <= i_bin+num_adjacent; i_n++) {
+                    mean += spectrum[i_n];
+                }
+
+                std::vector<double> neighbours(spectrum.begin()+i_bin-num_adjacent,spectrum.begin()+i_bin+num_adjacent+1);
+
+                // Determine if spectrum is monotonically increasing or decreasing by comparing
+                // current value with its neighbours
+                bool increasing = std::is_sorted(neighbours.begin(), neighbours.end());
+                std::reverse(neighbours.begin(),neighbours.end());
+                bool decreasing = std::is_sorted(neighbours.begin(), neighbours.end());
+
+                // if values are monotonically increasing or decreasing, no energy correction
+                if (increasing || decreasing) {
+                    energy_correction.push_back(0);
+                }
+                // Otherwise, apply energy correction 
+                else {
+                    double temp_value = beta*(spectrum[i_bin]-mean)/mean;
+                    energy_correction.push_back(temp_value);
+                }
+            }
+            energy_correction.push_back(0); // no correction for last term
+        }
+        // Custom Mean Root Prior
+        else if (prior == "gaussians") {
+            int num_adjacent = 1; // on either side
+            energy_correction.push_back(0); // no correction for first term
+            for (int i_bin=num_adjacent; i_bin < num_bins-num_adjacent; i_bin++)
+            {
+                double mean = 0.0;
+
+                for (int i_n=i_bin-num_adjacent; i_n <= i_bin+num_adjacent; i_n++) {
+                    mean += spectrum[i_n];
+                }
+                
+                mean = mean / ((2*num_adjacent)+1);
+
+                double temp_value = beta*(spectrum[i_bin]-mean)/mean;
+                energy_correction.push_back(temp_value);
             }
             energy_correction.push_back(0); // no correction for last term
         }

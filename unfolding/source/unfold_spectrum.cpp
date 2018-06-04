@@ -93,7 +93,7 @@ int main(int argc, char* argv[])
 
     // Apply some settings read in from a config file
     UnfoldingSettings settings;
-    setSettings(input_files[5], algorithm_name, settings);
+    setSettings(input_files[5], settings);
 
     double f_factor_report = settings.f_factor; // original value read in
     settings.set_f_factor(settings.f_factor / 1e6); // Convert f_factor from fA/cps to nA/cps
@@ -206,103 +206,6 @@ int main(int argc, char* argv[])
         std::vector<double> energy_correction;
         num_iterations = runMAP(energy_correction, settings.beta, settings.prior, settings.cutoff, settings.error, num_measurements, num_bins, measurements, spectrum, nns_response, normalized_response, mlem_ratio);
         // return 1;
-    }
-    else if (algorithm_name == "auto") {
-        // Create vector of beta values
-        int num_orders_magnitude = log10(settings.max_beta/settings.min_beta);
-        double current_beta = settings.min_beta;
-        std::vector<double> beta_vector;
-        for (int i=0; i<num_orders_magnitude; i++) {
-            std::vector<double> temp_vector = linearSpacedDoubleVector(current_beta,current_beta*10,10);
-            current_beta = current_beta*10;
-            beta_vector.insert(beta_vector.end(), temp_vector.begin(), temp_vector.end());
-        }
-
-        // Create vector of number of iterations
-        int num_increments = ((settings.max_num_iterations - settings.min_num_iterations) / settings.iteration_increment)+1;
-        std::vector<int> num_iterations_vector = linearSpacedIntegerVector(settings.min_num_iterations,settings.max_num_iterations,num_increments);
-        
-        // Create needed variables
-        int num_beta_samples = beta_vector.size();
-        int num_iteration_samples = num_iterations_vector.size();
-
-        std::vector<double> current_spectrum; // the reconstructed spectrum
-        std::vector<double> energy_correction; // energy correction term used in MAP
-
-        // Create stream to append results. First row is number of iteration increments
-        std::ostringstream results_stream;
-        // results_stream << std::scientific;
-        results_stream << "0"; // empty first "cell"
-        for (int i_num = 0; i_num < num_iteration_samples; i_num++) {
-            results_stream << ",";
-            results_stream << num_iterations_vector[i_num];
-        }
-        results_stream << "\n";
-
-        // Loop through betas
-        for (int i_beta=0; i_beta < num_beta_samples; i_beta++) {
-            current_spectrum = initial_spectrum; // re-initialize spectrum for each beta
-            results_stream << beta_vector[i_beta] << ",";
-
-            // Loop through number of iterations
-            for (int i_num=0; i_num < num_iteration_samples; i_num++) {
-                int num_iterations;
-
-                // only do # of iterations since previous run (i.e. don't do 3000, then 4000. Do
-                // 3000 then iteration_size more, etc.)
-                if (i_num == 0)
-                    num_iterations = num_iterations_vector[i_num];
-                else
-                    num_iterations = num_iterations_vector[i_num]-num_iterations_vector[i_num-1];
-                runMAP(energy_correction, beta_vector[i_beta], settings.prior, num_iterations, settings.error, num_measurements, num_bins, measurements, current_spectrum, nns_response, normalized_response, mlem_ratio);
-            
-                // Calculate one of the following parameters of interest & save to results stream
-                double poi_value = 0;
-                // Total fluence
-                if (settings.parameter_of_interest == "total_fluence")
-                    poi_value = calculateTotalFlux(num_bins,current_spectrum);
-                // Total dose:
-                else if (settings.parameter_of_interest == "total_dose")
-                    poi_value = calculateDose(num_bins, current_spectrum, icrp_factors);
-                // Total energy (penalty) term:
-                else if (settings.parameter_of_interest == "total_energy_correction") {
-                    for (auto& n : energy_correction)
-                        poi_value += n;
-                }
-                // Maximum "error" in MLEM ratio
-                else if (settings.parameter_of_interest == "max_mlem_ratio") {
-                    double max_mlem_ratio = 0.0;
-                    for (int i=0; i < num_measurements; i++) {
-                        if (mlem_ratio[i] > max_mlem_ratio) {
-                            max_mlem_ratio = mlem_ratio[i];
-                        }
-                    }
-                    poi_value = max_mlem_ratio;
-                }
-                else {
-                    throw std::logic_error("Unrecognized parameter of interest: " + settings.parameter_of_interest + ". Please refer to the README for allowed parameters");
-                }
-
-                results_stream << poi_value;
-                if (i_num == num_iteration_samples-1)
-                    results_stream << "\n";
-
-                else
-                    results_stream << ",";
-            }
-        }
-
-        // Save results for parameter of interest to CSV file
-        std::string map_filename = "output/map_file.csv";
-        std::ofstream map_file;
-        map_file.open(map_filename, std::ios_base::out);
-        std::string results_string = results_stream.str();
-        map_file << results_string;
-        map_file.close();
-
-        std::cout << "Saved 2D matrix of " << settings.parameter_of_interest << " values to " << map_filename << "\n";
-
-        return 1;
     }
     else {
         //throw error

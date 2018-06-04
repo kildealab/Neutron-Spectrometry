@@ -37,7 +37,8 @@ LFLAGS = -Wall -O -g $(ROOTCFLAGS)
 
 OBJS = $(OBJ_DIR)/unfold_spectrum.o $(OBJ_DIR)/fileio.o $(OBJ_DIR)/handle_args.o $(OBJ_DIR)/root_helpers.o $(OBJ_DIR)/physics_calculations.o $(OBJ_DIR)/custom_classes.o
 OBJS_PLOT = $(OBJ_DIR)/plot_spectra.o $(OBJ_DIR)/fileio.o $(OBJ_DIR)/root_helpers.o $(OBJ_DIR)/custom_classes.o
-
+OBJS_AUTO = $(OBJ_DIR)/auto_unfold_spectrum.o $(OBJ_DIR)/fileio.o $(OBJ_DIR)/handle_args.o $(OBJ_DIR)/root_helpers.o $(OBJ_DIR)/physics_calculations.o $(OBJ_DIR)/custom_classes.o
+OBJS_LINE = $(OBJ_DIR)/plot_lines.o $(OBJ_DIR)/fileio.o $(OBJ_DIR)/root_helpers.o $(OBJ_DIR)/custom_classes.o
 
 #===================================================================================================
 # Targets
@@ -46,11 +47,11 @@ OBJS_PLOT = $(OBJ_DIR)/plot_spectra.o $(OBJ_DIR)/fileio.o $(OBJ_DIR)/root_helper
 # Standard make targets
 #-----------------------------------------------------------------------------
 # make all targets
-all: unfold_spectrum.exe plot_spectra.exe
+all: unfold_spectrum.exe plot_spectra.exe auto_unfold_spectrum.exe plot_lines.exe
 
 # tidy up
 clean: 
-	rm -rf $(OBJ_DIR)/*.o unfold_spectrum.exe
+	rm -rf $(OBJ_DIR)/*.o unfold_spectrum.exe plot_spectra.exe auto_unfold_spectrum.exe plot_lines.exe
 
 #-----------------------------------------------------------------------------
 # Primary (executable) targets
@@ -61,6 +62,12 @@ unfold_spectrum.exe: $(OBJS)
 plot_spectra.exe: $(OBJS_PLOT)
 	$(CPP) $(LFLAGS) $(OBJS_PLOT) $(ALLLIBS) -o plot_spectra.exe
 
+auto_unfold_spectrum.exe: $(OBJS_AUTO)
+	$(CPP) $(LFLAGS) $(OBJS_AUTO) $(ALLLIBS) -o auto_unfold_spectrum.exe
+
+plot_lines.exe: $(OBJS_LINE)
+	$(CPP) $(LFLAGS) $(OBJS_LINE) $(ALLLIBS) -o plot_lines.exe
+
 #-----------------------------------------------------------------------------
 # Intermediate (object) targets
 #-----------------------------------------------------------------------------
@@ -70,6 +77,12 @@ $(OBJ_DIR)/unfold_spectrum.o: $(SRC_DIR)/unfold_spectrum.cpp
 	$(CPP) -c $(CFLAGS) $<
 
 $(OBJ_DIR)/plot_spectra.o: $(SRC_DIR)/plot_spectra.cpp 
+	$(CPP) -c $(CFLAGS) $(ROOTCFLAGS) $<
+
+$(OBJ_DIR)/auto_unfold_spectrum.o: $(SRC_DIR)/auto_unfold_spectrum.cpp 
+	$(CPP) -c $(CFLAGS) $<
+
+$(OBJ_DIR)/plot_lines.o: $(SRC_DIR)/plot_lines.cpp 
 	$(CPP) -c $(CFLAGS) $(ROOTCFLAGS) $<
 
 
