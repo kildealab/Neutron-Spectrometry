@@ -103,4 +103,53 @@ class PlotSettings {
         void set_textbox_text(std::string);
 };
 
+class SurfaceSettings {
+    public:
+        std::string input_filename;
+        std::string input_dir;
+        std::string output_filename;
+        std::string output_dir;
+        std::string title;
+        std::string x_label;
+        std::string y_label;
+        std::string z_label;
+        double y_min;
+        double y_max;
+        int x_min;
+        int x_max;
+        double z_min;
+        double z_max;
+        int x_res;
+        int y_res;
+        int x_num_divs;
+        int z_num_divs;
+        int color_palette;
+        int num_color_bins;
+
+        SurfaceSettings(); 
+
+        void set_setting(std::string,std::string);
+
+        void set_input_filename(std::string);
+        void set_input_dir(std::string);
+        void set_output_filename(std::string);
+        void set_output_dir(std::string);
+        void set_title(std::string);
+        void set_x_label(std::string);
+        void set_y_label(std::string);
+        void set_z_label(std::string);
+        void set_y_min(std::string);
+        void set_y_max(std::string);
+        void set_x_min(std::string);
+        void set_x_max(std::string);
+        void set_z_min(std::string);
+        void set_z_max(std::string);
+        void set_x_res(std::string);
+        void set_y_res(std::string);
+        void set_x_num_divs(std::string);
+        void set_z_num_divs(std::string);
+        void set_color_palette(std::string);
+        void set_num_color_bins(std::string);
+};
+
 #endif

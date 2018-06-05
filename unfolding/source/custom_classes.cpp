@@ -110,9 +110,9 @@ void UnfoldingSettings::set_algorithm(std::string algorithm) {
 // Default Constructor for PlotSettings
 //--------------------------------------------------------------------------------------------------
 PlotSettings::PlotSettings() {
-    input_filename = "output.csv";
+    input_filename = "poi_output_mlem.csv";
     input_dir = "output/";
-    output_filename = "output.png";
+    output_filename = "poi_output_mlem.png";
     output_dir = "output/";
     title = "";
     x_label = "";
@@ -268,4 +268,141 @@ void PlotSettings::set_textbox_coords(std::string textbox_coords) {
 }
 void PlotSettings::set_textbox_text(std::string textbox_text) {
     stringToSVector(textbox_text,this->textbox_text);
+}
+
+
+
+//--------------------------------------------------------------------------------------------------
+// Default Constructor for SurfaceSettings
+//--------------------------------------------------------------------------------------------------
+SurfaceSettings::SurfaceSettings() {
+    input_filename = "poi_output_map.csv";
+    input_dir = "output/";
+    output_filename = "poi_output_map.png";
+    output_dir = "output/";
+    title = "";
+    x_label = "";
+    y_label = "";
+    z_label = "";
+    y_min = 0; // if plotting detects max and min are the same, use default limits
+    y_max = 0;
+    x_min = 0; // if plotting detects max and min are the same, use default limits
+    x_max = 0;
+    z_min = 0; // if plotting detects max and min are the same, use default limits
+    z_max = 0;
+    x_res = 800;
+    y_res = 600;
+    x_num_divs = 206;
+    z_num_divs = 203;
+    color_palette = 55;
+    num_color_bins = 40;
+}
+
+// Apply a value to a setting:
+void SurfaceSettings::set_setting(std::string settings_name, std::string settings_value) {
+    if (settings_name == "input_filename")
+        this->set_input_filename(settings_value);
+    else if (settings_name == "input_dir")
+        this->set_input_dir(settings_value);
+    else if (settings_name == "output_filename")
+        this->set_output_filename(settings_value);
+    else if (settings_name == "output_dir")
+        this->set_output_dir(settings_value);
+    else if (settings_name == "title")
+        this->set_title(settings_value);
+    else if (settings_name == "x_label")
+        this->set_x_label(settings_value);
+    else if (settings_name == "y_label")
+        this->set_y_label(settings_value);
+    else if (settings_name == "z_label")
+        this->set_z_label(settings_value);
+    else if (settings_name == "x_min")
+        this->set_x_min(settings_value);
+    else if (settings_name == "x_max")
+        this->set_x_max(settings_value);
+    else if (settings_name == "y_min")
+        this->set_y_min(settings_value);
+    else if (settings_name == "y_max")
+        this->set_y_max(settings_value);
+    else if (settings_name == "z_min")
+        this->set_z_min(settings_value);
+    else if (settings_name == "z_max")
+        this->set_z_max(settings_value);
+    else if (settings_name == "x_res")
+        this->set_x_res(settings_value);
+    else if (settings_name == "y_res")
+        this->set_y_res(settings_value);
+    else if (settings_name == "z_num_divs")
+        this->set_z_num_divs(settings_value);
+    else if (settings_name == "x_num_divs")
+        this->set_x_num_divs(settings_value);
+    else if (settings_name == "color_palette")
+        this->set_color_palette(settings_value);
+    else if (settings_name == "num_color_bins")
+        this->set_num_color_bins(settings_value);
+
+    else
+        throw std::logic_error("Unrecognized setting: " + settings_name + ". Please refer to the README for allowed settings");
+}
+
+// Setter functions
+void SurfaceSettings::set_input_filename(std::string input_filename) {
+    this->input_filename = input_filename;
+}
+void SurfaceSettings::set_input_dir(std::string input_dir) {
+    this->input_dir = input_dir;
+}
+void SurfaceSettings::set_output_filename(std::string output_filename) {
+    this->output_filename = output_filename;
+}
+void SurfaceSettings::set_output_dir(std::string output_dir) {
+    this->output_dir = output_dir;
+}
+void SurfaceSettings::set_title(std::string title) {
+    this->title = title;
+}
+void SurfaceSettings::set_x_label(std::string x_label) {
+    this->x_label = x_label;
+}
+void SurfaceSettings::set_y_label(std::string y_label) {
+    this->y_label = y_label;
+}
+void SurfaceSettings::set_z_label(std::string z_label) {
+    this->z_label = z_label;
+}
+void SurfaceSettings::set_x_min(std::string x_min) {
+    this->x_min = stoi(x_min);
+}
+void SurfaceSettings::set_x_max(std::string x_max) {
+    this->x_max = stoi(x_max);
+}
+void SurfaceSettings::set_y_min(std::string y_min) {
+    this->y_min = stod(y_min);
+}
+void SurfaceSettings::set_y_max(std::string y_max) {
+    this->y_max = stod(y_max);
+}
+void SurfaceSettings::set_z_min(std::string z_min) {
+    this->z_min = stod(z_min);
+}
+void SurfaceSettings::set_z_max(std::string z_max) {
+    this->z_max = stod(z_max);
+}
+void SurfaceSettings::set_x_res(std::string x_res) {
+    this->x_res = stoi(x_res);
+}
+void SurfaceSettings::set_y_res(std::string y_res) {
+    this->y_res = stoi(y_res);
+}
+void SurfaceSettings::set_x_num_divs(std::string x_num_divs) {
+    this->x_num_divs = stoi(x_num_divs);
+}
+void SurfaceSettings::set_z_num_divs(std::string z_num_divs) {
+    this->z_num_divs = stoi(z_num_divs);
+}
+void SurfaceSettings::set_color_palette(std::string color_palette) {
+    this->color_palette = stoi(color_palette);
+}
+void SurfaceSettings::set_num_color_bins(std::string num_color_bins) {
+    this->num_color_bins = stoi(num_color_bins);
 }

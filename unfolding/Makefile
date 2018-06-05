@@ -39,6 +39,7 @@ OBJS = $(OBJ_DIR)/unfold_spectrum.o $(OBJ_DIR)/fileio.o $(OBJ_DIR)/handle_args.o
 OBJS_PLOT = $(OBJ_DIR)/plot_spectra.o $(OBJ_DIR)/fileio.o $(OBJ_DIR)/root_helpers.o $(OBJ_DIR)/custom_classes.o
 OBJS_AUTO = $(OBJ_DIR)/auto_unfold_spectrum.o $(OBJ_DIR)/fileio.o $(OBJ_DIR)/handle_args.o $(OBJ_DIR)/root_helpers.o $(OBJ_DIR)/physics_calculations.o $(OBJ_DIR)/custom_classes.o
 OBJS_LINE = $(OBJ_DIR)/plot_lines.o $(OBJ_DIR)/fileio.o $(OBJ_DIR)/root_helpers.o $(OBJ_DIR)/custom_classes.o
+OBJS_SURF = $(OBJ_DIR)/plot_surface.o $(OBJ_DIR)/fileio.o $(OBJ_DIR)/root_helpers.o $(OBJ_DIR)/custom_classes.o
 
 #===================================================================================================
 # Targets
@@ -47,11 +48,11 @@ OBJS_LINE = $(OBJ_DIR)/plot_lines.o $(OBJ_DIR)/fileio.o $(OBJ_DIR)/root_helpers.
 # Standard make targets
 #-----------------------------------------------------------------------------
 # make all targets
-all: unfold_spectrum.exe plot_spectra.exe auto_unfold_spectrum.exe plot_lines.exe
+all: unfold_spectrum.exe plot_spectra.exe auto_unfold_spectrum.exe plot_lines.exe plot_surface.exe
 
 # tidy up
 clean: 
-	rm -rf $(OBJ_DIR)/*.o unfold_spectrum.exe plot_spectra.exe auto_unfold_spectrum.exe plot_lines.exe
+	rm -rf $(OBJ_DIR)/*.o unfold_spectrum.exe plot_spectra.exe auto_unfold_spectrum.exe plot_lines.exe plot_surface.exe
 
 #-----------------------------------------------------------------------------
 # Primary (executable) targets
@@ -68,6 +69,9 @@ auto_unfold_spectrum.exe: $(OBJS_AUTO)
 plot_lines.exe: $(OBJS_LINE)
 	$(CPP) $(LFLAGS) $(OBJS_LINE) $(ALLLIBS) -o plot_lines.exe
 
+plot_surface.exe: $(OBJS_SURF)
+	$(CPP) $(LFLAGS) $(OBJS_SURF) $(ALLLIBS) -o plot_surface.exe
+
 #-----------------------------------------------------------------------------
 # Intermediate (object) targets
 #-----------------------------------------------------------------------------
@@ -83,6 +87,9 @@ $(OBJ_DIR)/auto_unfold_spectrum.o: $(SRC_DIR)/auto_unfold_spectrum.cpp
 	$(CPP) -c $(CFLAGS) $<
 
 $(OBJ_DIR)/plot_lines.o: $(SRC_DIR)/plot_lines.cpp 
+	$(CPP) -c $(CFLAGS) $(ROOTCFLAGS) $<
+
+$(OBJ_DIR)/plot_surface.o: $(SRC_DIR)/plot_surface.cpp 
 	$(CPP) -c $(CFLAGS) $(ROOTCFLAGS) $<
 
 
