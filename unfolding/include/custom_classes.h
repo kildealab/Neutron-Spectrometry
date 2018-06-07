@@ -23,6 +23,8 @@ class UnfoldingSettings {
         double max_beta;
         std::string parameter_of_interest;
         std::string algorithm;
+        std::string trend_type;
+        std::string auto_output_path;
 
         UnfoldingSettings(); 
 
@@ -42,6 +44,8 @@ class UnfoldingSettings {
         void set_max_beta(double);
         void set_parameter_of_interest(std::string);
         void set_algorithm(std::string);
+        void set_trend_type(std::string);
+        void set_auto_output_path(std::string);
 };
 
 class PlotSettings {
@@ -53,8 +57,8 @@ class PlotSettings {
         std::string title;
         std::string x_label;
         std::string y_label;
-        int y_min;
-        int y_max;
+        double y_min;
+        double y_max;
         int x_min;
         int x_max;
         int x_res;
@@ -71,6 +75,18 @@ class PlotSettings {
         int textbox;
         std::vector<float> textbox_coords;
         std::vector<std::string> textbox_text;
+
+        std::vector<std::string> plot_type;
+        int legend_border_size;
+        double legend_text_size;
+        std::vector<int> marker_style;
+        std::vector<int> marker_size;
+        double margin_left;
+        double margin_right;
+        double margin_top;
+        double margin_bottom;
+        double x_label_offset;
+        double y_label_offset;
 
         PlotSettings(); 
 
@@ -101,6 +117,18 @@ class PlotSettings {
         void set_textbox(std::string);
         void set_textbox_coords(std::string);
         void set_textbox_text(std::string);
+
+        void set_plot_type(std::string);
+        void set_legend_border_size(std::string);
+        void set_legend_text_size(std::string);
+        void set_marker_style(std::string);
+        void set_marker_size(std::string);
+        void set_margin_left(std::string);
+        void set_margin_right(std::string);
+        void set_margin_top(std::string);
+        void set_margin_bottom(std::string);
+        void set_x_label_offset(std::string);
+        void set_y_label_offset(std::string);
 };
 
 class SurfaceSettings {

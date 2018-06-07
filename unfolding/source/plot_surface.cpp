@@ -104,11 +104,9 @@ int main(int argc, char* argv[])
 
     // Number of ticks on axes
     if (settings.x_num_divs != 0){
-        std::cout << "setting x divs\n";
         dt->GetXaxis()->SetNdivisions(settings.x_num_divs,kFALSE);
     }
     if (settings.z_num_divs != 0){
-        std::cout << "setting z divs\n";
         dt->GetZaxis()->SetNdivisions(settings.z_num_divs,kFALSE);
     }
 

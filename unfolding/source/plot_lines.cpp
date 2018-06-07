@@ -60,8 +60,8 @@ int main(int argc, char* argv[])
 
     // Generate the legend
     TLegend* leg = new TLegend(settings.legend_coords[0], settings.legend_coords[1], settings.legend_coords[2], settings.legend_coords[3]); // with a text box
-    leg->SetBorderSize(0);
-    leg->SetTextSize(0.035);
+    leg->SetBorderSize(settings.legend_border_size);
+    leg->SetTextSize(settings.legend_text_size);
     leg->SetFillStyle(0);
 
     TVectorD xtv(num_points, &x_data[0]);
@@ -72,27 +72,49 @@ int main(int argc, char* argv[])
         TVectorD ytv(num_points, &y_data[i_y][0]); // need to use TVectorD when creating TGraph
         TGraph* gr = new TGraph(xtv,ytv);
 
-        // Set color
-        if (i_y < settings.color_series.size())        
-            gr->SetLineColor(TColor::GetColor(settings.color_series[i_y].c_str()));
-        // Set line width
-        if (i_y < settings.line_width.size())        
-            gr->SetLineWidth(settings.line_width[i_y]);
-        // Set line style
-        if (i_y < settings.line_style.size())        
-            gr->SetLineStyle(settings.line_style[i_y]);
+        int setting_size; // normalize all settings by the number of entries in that setting (e.g. if have 10 colors set, the 11th plot series should reuse the 1st color)
+
+        // Styling
+        setting_size = settings.plot_type.size();
+        // line plots
+        if (settings.plot_type[i_y%setting_size] == "l" || settings.plot_type[i_y%setting_size] == "c") {
+            // color
+            setting_size = settings.color_series.size();
+            gr->SetLineColor(TColor::GetColor(settings.color_series[i_y%setting_size].c_str()));
+            // width
+            setting_size = settings.line_width.size();
+            gr->SetLineWidth(settings.line_width[i_y%setting_size]);
+            // style
+            setting_size = settings.line_style.size();
+            gr->SetLineStyle(settings.line_style[i_y%setting_size]);
+        }
+        // scatter plots
+        else if (settings.plot_type[i_y%setting_size] == "p") {
+            // // color
+            setting_size = settings.color_series.size();
+            gr->SetMarkerColor(TColor::GetColor(settings.color_series[i_y%setting_size].c_str()));
+            // // // width
+            setting_size = settings.marker_size.size();
+            gr->SetMarkerSize(settings.marker_size[i_y%setting_size]);
+            // // // style
+            setting_size = settings.marker_style.size();
+            gr->SetMarkerStyle(settings.marker_style[i_y%setting_size]);
+        }
+        else {
+            throw std::logic_error("Unrecognized plot type: " + settings.plot_type[i_y%setting_size]);
+        }
 
         // Add current graph to growing multigraph object
-        if (i_y == 0)
-            mg->Add(gr,"lp");
-        else
-            mg->Add(gr,"cp");
+        setting_size = settings.plot_type.size();
+        mg->Add(gr,settings.plot_type[i_y%setting_size].c_str());
 
         // Add to legend
-        if (settings.legend_entries.empty())
-            leg->AddEntry(gr, headers[i_y+1].c_str(), "l"); // headers[0] is the x values header
-        else
-            leg->AddEntry(gr, settings.legend_entries[i_y].c_str(), "l");
+        if (settings.legend_entries.empty()) {
+            leg->AddEntry(gr, headers[i_y+1].c_str(), settings.plot_type[i_y%setting_size].c_str());
+        }
+        else {
+            leg->AddEntry(gr, settings.legend_entries[i_y].c_str(), settings.plot_type[i_y%setting_size].c_str());
+        }
     }
 
     // Add elements to canvas
@@ -103,8 +125,16 @@ int main(int argc, char* argv[])
     mg->SetTitle(settings.title.c_str());
     mg->GetXaxis()->SetTitle(settings.x_label.c_str());
     mg->GetXaxis()->CenterTitle();
+    mg->GetXaxis()->SetTitleOffset(settings.x_label_offset);
     mg->GetYaxis()->SetTitle(settings.y_label.c_str());
     mg->GetYaxis()->CenterTitle();
+    mg->GetYaxis()->SetTitleOffset(settings.y_label_offset);
+
+    // margins
+    c1->SetLeftMargin(settings.margin_left); 
+    c1->SetRightMargin(settings.margin_right); 
+    c1->SetTopMargin(settings.margin_top); 
+    c1->SetBottomMargin(settings.margin_bottom); 
 
     //Set axes properties
     if (settings.x_min != settings.x_max)

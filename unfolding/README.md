@@ -1,39 +1,22 @@
-# **Instructions for Unfolding** #
+# **Instructions** #
 README.md
-Creation Date:  2017-08-21
-Last Modified:  2017-11-20
+
 Authors: Georges Al Makdessi, John Kildea, Robert Maglieri, Logan Montgomery
 
 This file explains:
-1) Instructions for executing the program
-2) The file structure of the project, including inputs & outputs
+1) General instructions for compiling and executing a program
+2) The purpose of the programs
+3) The file structure of the project, including inputs & outputs
 
 Please refer to dependencies.txt for dependencies
 
-
-### 1) Execution instructions ###
-* Input measured data:
-    * Create input file (e.g. input/measurements.csv)
-    * Refer to input/template_measurements.csv for structure of the file
-        * Line 1: String representing the irradiation conditions
-        * Line 2: Measurement duration in seconds
-        * Lines 3 through 10: Measured charge values in nC (decreasing number of moderators)
-            * Negative charge values are acceptable
-
-* Determine which algorithm to use for unfolding:
-    * Settings for each allowed algorithm are provided in the input/ directory as \*.cfg files
-
-* Adjust settings (optional):
-    * edit the appropriate input/\*.cfg file
-    * If necessary, create new input input/\*.csv files (e.g. a different input spectrum)
-
+### Execution Instructions ###
 * Compile the program:
     $ make
 
-* Execute the program and specify 1 or more input files using the options below (if any option is not
-  included then a default file is used, as specified in square brackets below):
+* Execute your program of choice. For example, if unfolding, run the following
     $ ./unfold_spectrum.exe
-    * Allowed Options:
+    * Several additional options may be provided at the command line for unfolding. These options and the default values are:
         * --configuration [mlem.cfg]
         * --measurements [measurements.txt]
         * --energy-bins [energy_bins.csv]
@@ -41,53 +24,171 @@ Please refer to dependencies.txt for dependencies
         * --icrp-factors [icrp_conversions.csv]
         * --nns-response [nns_response.csv]
 
+* ***NOTE*** You must specify the measurement data (in measurements.txt or equivalent) and necessary settings (in mlem.cfg or equivalent) before unfolding the data.
 
-### 2) File structure ###
-* Main unfolding code: unfold_spectrum.cpp
-
-* Settings files: input/\*.cfg, 
-    * ***mlem_cutoff*** - max # of iterations of unfolding algorithm
-    * ***nns_normalization*** - Vendor-provided normalization factor for the NNS used (varies with NNS)
-    * ***mlem_max_error*** - The maximum allowed error in reconstructed measurement values from the true measurment values (in nC). Calculated for each unfolding iteration for each measured value (8). Once all values are within this max error, unfolding algorithm will stop.
-    * ***f_factor*** - Vendor-provided calibration factor to convert measured current (i.e. measured charge divided by duration) to counts per second (cps). Value in units of [fA / cps]. Value was verified experimentally.
-    * ***num_poisson_samples*** - Number of times to repeat unfolding using poisson-sampled data to generate statistical uncertainties.
-    * ***beta*** - [MAP only] Tuning (weighting) parameter to set the strength of the MAP/OSL prior.
-    * ***prior*** - [MAP only] The prior to be used as the penalty factor in MAP unfolding. Possible values:
+### Program #1 unfold_spectrum.exe ###
+* Unfolds measurements obtained with a Nested Neutron Spectrometer into a neutron fluence spectrum.
+* ***Inputs***:
+    * The measured charge data in nC aquired with NNS (as well as dose, dose rate, and measurement duration)
+        * --measurements [measurements.txt]
+    * Configuration settings for unfolding (e.g. algorithm, stopping criterion, etc.)
+        * --configuration [mlem.cfg]
+    * Energy bins at which fluence is calculated
+        * --energy-bins [energy_bins.csv]
+    * Input guess fluence spectrum
+        * --input-spectrum [spectrum_step.csv]
+    * NNS response functions
+        * --nns-response [nns_response.csv]
+    * ICRP 74 neutron fluence to neutron ambient dose equivalent conversion coefficients
+        * --icrp-factors [icrp_conversions.csv]
+* ***Outputs***:
+    * Unfolded fluence spectrum & uncertainty are appended as CSV data to output/output_spectra.csv
+    * The calculated ambient dose equivalent & uncertainty are appended to output/output_dose.csv
+* ***Details***:
+    * The program can unfold using a vanilla MLEM algorithm, or using the MAP (or OSL) algorithm with a user-specified prior (specify in map.cfg). Allowed priors are:
         * ***quadratic*** - First prior for MAP/OSL unfolding, proposed by Green, 1990. Smooths data, no edge preservation.
         * ***mrp*** - Median Root Prior used to penalize areas that are not monotonically increasing or decreasing (preserves edges).
-    * ***parameter_of_interest*** - [OPTIMIZE only] The parameter of interest to be calculated in order to determine the optimal beta. Possible values:
-        * ***total_fluence*** - The integrated fluence of the unfolded spectrum.
-        * ***total_dose*** - The total neutron ambident dose equivalent.
-        * ***total_energy_correction*** - The total enery correction term (prior \* beta), summed across all bins.
-        * ***max_mlem_ratio*** - The maximum deviation in the MLEM ratio of unfolded data relative to measured data.
-    * ***min_num_iterations*** - [OPTIMIZE only] Minimum number of iterations to consider
-    * ***max_num_iterations*** - [OPTIMIZE only] Maximum number of iterations to consider
-    * ***iteration_increment*** - [OPTIMIZE only] When performing optimization, how many iterations to do before recalculating parameter of interest.
-    * ***min_beta*** - [OPTIMIZE only] Minimum beta factor to consider
-    * ***max_beta*** - [OPTIMIZE only] Maximum beta factor to consider
 
-* Files read by the program are included in input/
-    * 4 files from this directory are read by the program, but multiple options may exist
-        * ***Energy bins*** - Energy bins corresponding to the values in other input files 
-            * Units: MeV
-            * Default: energy_bins.csv 
+### Program #2 plot_spectra.exe ###
+* Plots one or more neutron spectra (and their uncertainties) on a single set of axes.
+* ***Inputs***:
+    * Plot settings are read in from input/plot.cfg. Please refer to input/template_plot.cfg for full list of customizable settings.
+    * Spectra are read in from the CSV input file specified in input/plot.cfg (default is output/output_spectra.csv)
+* ***Outputs***:
+    * Spectra are plotted onto a file specified in input/plot.cfg (default is output/output_spectra.png)
+* ***Details***:
+    * The program is designed to plot neutron spectra that may be easily modified using the settings specified by the user in input/plot.cfg. The program must be rerun when the settings are modified, but does not require recompilation!
 
-        * ***Input spectrum*** - The "guess" input neutron flux spectrum inserted into the unfolding algorithm. Currently use a step function (high value at low energies and low value at high energies, step at thermal)
-            * Units:[n cm^-2 s^-1]
-            * Default: spectrum_step.csv
+### Program #3 auto_unfold_spectrum.exe ###
+* Unfold a set of neutron measurements and output a CSV file containing values of a parameter of interest that was calculated iteratively during the unfolding process.
+* ***Inputs***:
+    * The measured charge data aquired with NNS (as well as dose, dose rate, and duration)
+        * --measurements [measurements.txt]
+    * Configuration settings (e.g. algorithm, parameter of interest, max number of iterations, minimum number of iterations, step size, etc.)
+        * --configuration [auto.cfg]
+    * Energy bins at which fluence is calculated
+        * --energy-bins [energy_bins.csv]
+    * Input guess fluence spectrum
+        * --input-spectrum [spectrum_step.csv]
+    * NNS response functions
+        * --nns-response [nns_response.csv]
+    * ICRP 74 neutron fluence to neutron ambient dose equivalent conversion coefficients
+        * --icrp-factors [icrp_conversions.csv]
+* ***Outputs***:
+    * A CSV file containting the parameter of interest values are output to a file specified in input/auto.cfg.
+        * For MLEM, POI values are calculated as a function of N (one dimension), and are appended to the output file if it previously contained data.
+        * For MAP, POI values are calculated as a function of N and beta (two dimensions), and overwrite the output file if it previously contained data.
+* ***Details***:
+    * The output files are intended to be readily used with the plot_lines.exe program (for MLEM data) and the plot_surface.exe program (for MAP data).
+    * Allowed parameter of interest:
+        * total_fluence
+        * total_dose
+        * total_energy_correction (MAP specific)
+        * max_mlem_ratio
+        * avg_mlem_ratio
 
-        * ***NNS Response function*** - Vendor-provided NNS relative response as a function of energy for each level of moderation. Line 1: response for bare probe, Line 2: response for 1 moderator, etc. 
-            * Units [cm^2]
-            * Default: nns_response.csv
+### Program #4 plot_lines.exe ###
+* Plots one or more data series (y as a function of x) on a single set of axes.
+* ***Inputs***:
+    * Plot settings are read in from input/plot_lines.cfg. Please see below for full list of settings.
+        * Note, settings may be left empty and default values will be assigned
+    * Data are read in from the CSV input file specified in input/plot_lines.cfg (default is output/poi_output_mlem.csv)
+* ***Outputs***:
+    * Plots are created in a file specified in input/plot_lines.cfg (default is output/poi_output_mlem.png)
+* ***Details***:
+    * The program is designed to generate plots of parameter of interest values that may be easily modified using the settings specified by the user in input/plot_lines.cfg. The program must be rerun when the settings are modified, but does not require recompilation!
+* ***Allowed Settings***:
+    * input_filename= filename including extension
+    * input_dir= pathname ending with / (e.g. input/)
+    * output_filename= filename including extension
+    * output_dir= pathname ending with / (e.g. output/)
 
-        * ***ICRP conversion factors*** - Factors to convert neutron flux [n cm^-2 s^-1] to neutron ambient dose equivalent rate [pSv s^-1]. Values were linearly interpolated from tabulated values in ICRP 74 Table A.42 (1st data column).
-            * Units: pSv cm^2
-            * Default: icrp_conversions.crp
+    * title= Title displayed at the top of the 
+    * x_label= x-axis title
+    * y_label= y-axis title
+    * x_label_offset= Double value to shift the x-axis title up or down (1.0 is the default)
+    * y_label_offset= Double value to shift the y-axis title up or down (1.0 is the default)
 
-* Files written to by the program are located in output/
-    * ***output_spectrum.csv*** - The unfolded spectrum generated from executing this program is appended to this file. Energy bins are also included. The new spectrum is appended as a column (i.e. a new element is added to each row). Format this way for direct import into spreadsheet program
-    * ***output_dose.csv*** - The measured total neutron ambient dose equivalent rate and its uncertainty are appended to this file. The new values are inserted as a new row.
-    * ***report_\*.txt*** - Report file generated each time the program is executed. The report contains all pertinent inputs & outputs of the program.
-    * ***figure_\*.png*** - Figure file generated each time the program is executed. The figure displays the spectrum and its uncertainty plotted as a function of energy.
-    * ***map_file.csv*** - [OPTIMIZE only] 2D "matrix" of parameter of interest values to be used to generate a contour map.
+    * x_res= horizontal resolution (dimension) as a number (e.g. 3200)
+    * y_res= vertical resolution (dimension) as a number (e.g. 2400)
 
+    * x_min= minimum x-axis value
+    * x_max= maximum x-axis value
+    * y_min= minimum y-axis value
+    * y_max= maximum y-axis value
+    * x_num_divs= Number that specifies number of major and minor divisions (tick marks). See https://root.cern.ch/doc/master/classTAttAxis.html#ae3067b6d4218970d09418291cbd84084
+    * y_num_divs= Number that specifies number of major and minor divisions (tick marks). See https://root.cern.ch/doc/master/classTAttAxis.html#ae3067b6d4218970d09418291cbd84084
+
+    * plot_type= Character representing the plot type. Allowed options are l (for line plots) and p (for scatter plots)
+    * color_series= Comma-delimited list of HEX color values (e.g. #000000,#FFFFFF)
+    * line_style= Comma-delimited list of numeric line styles. See https://root.cern.ch/doc/master/classTAttLine.html
+    * line_width= Commad-delimited list of numeric line widths. See https://root.cern.ch/doc/master/classTAttLine.html
+    * marker_style= Comma-delimited list of numeric marker styles. See https://root.cern.ch/doc/master/classTAttMarker.html
+    * marker_size= Comma-delimited list numeric marker sizes. See https://root.cern.ch/doc/master/classTAttMarker.html
+
+    * margin_left= Double value representing the fraction of the plot size composed of a left margin
+    * margin_right= Double value representing the fraction of the plot size composed of a right margin
+    * margin_top= Double value representing the fraction of the plot size composed of a top margin
+    * margin_bottom= Double value representing the fraction of the plot size composed of a bottom margin
+
+    * legend_entries= Comma-delimited list of text entries to put in the legend
+    * legend_coords= 4 comma-delimited double values representing coordinates of the legend. Startx, Starty, Endx, Endy.
+    * legend_border_size= Integer representing legend border size
+    * legend_text_size= Double value representing text size as fraction of plot size (default is 0.035)
+
+    * textbox= 1 or 0 indicating whether to include a textbox
+    * textbox_coords= 4 comma-delimited double values representing coordinates of the legend. Startx, Starty, Endx, Endy.
+    * textbox_text= Comma-delimited list of text entries to put in the textbox
+
+### Program #5 plot_surface.exe ###
+* Plots z values as a function of x and y.
+* ***Inputs***:
+    * Plot settings are read in from input/plot_surface.cfg. Please refer to input/template_plot_surface.cfg for full list of customizable settings.
+    * Data are read in from the CSV input file specified in input/plot_surface.cfg (default is output/poi_output_mlem.csv)
+* ***Outputs***:
+    * Plots are created in a file specified in input/plot_lines.cfg (default is output/poi_output_mlem.png)
+* ***Details***:
+    * The program is designed to generate plots of parameter of interest values that may be easily modified using the settings specified by the user in input/plot_lines.cfg. The program must be rerun when the settings are modified, but does not require recompilation!
+* ***Allowed Settings***:
+    * input_filename= filename including extension
+    * input_dir= pathname ending with / (e.g. input/)
+    * output_filename= filename including extension
+    * output_dir= pathname ending with / (e.g. output/)
+
+    * title= Title displayed at the top of the 
+    * x_label= x-axis title
+    * y_label= y-axis title
+    * z_label= z-axis title
+
+    * x_res= horizontal resolution (dimension) as a number (e.g. 3200)
+    * y_res= vertical resolution (dimension) as a number (e.g. 2400)
+
+    * x_min= minimum x-axis value
+    * x_max= maximum x-axis value
+    * y_min= minimum y-axis value
+    * y_max= maximum y-axis value
+    * z_min= minimum z-axis value
+    * z_max= maximum z-axis value
+    * x_num_divs= Number that specifies number of major and minor divisions (tick marks). See https://root.cern.ch/doc/master/classTAttAxis.html#ae3067b6d4218970d09418291cbd84084
+    * z_num_divs= Number that specifies number of major and minor divisions (tick marks). See https://root.cern.ch/doc/master/classTAttAxis.html#ae3067b6d4218970d09418291cbd84084
+
+    * color_palette= Number that specifies the ROOT color palette to use. See "High quality predefined palettes" at https://root.cern.ch/doc/master/classTColor.html
+    * num_color_bins= The number of different color bins. More bins = more finely resolved surface.
+
+### Notes on input files###
+* Files read by programs are included in input/
+    * ***Energy bins*** - Energy bins corresponding to the values in other input files 
+        * Units: MeV
+        * Default: energy_bins.csv 
+
+    * ***Input spectrum*** - The "guess" input neutron flux spectrum inserted into the unfolding algorithm. Currently use a step function (high value at low energies and low value at high energies, step at thermal)
+        * Units:[n cm^-2 s^-1]
+        * Default: spectrum_step.csv
+
+    * ***NNS Response function*** - Vendor-provided NNS relative response as a function of energy for each level of moderation. Line 1: response for bare probe, Line 2: response for 1 moderator, etc. 
+        * Units [cm^2]
+        * Default: nns_response.csv
+
+    * ***ICRP conversion factors*** - Factors to convert neutron flux [n cm^-2 s^-1] to neutron ambient dose equivalent rate [pSv s^-1]. Values were linearly interpolated from tabulated values in ICRP 74 Table A.42 (1st data column).
+        * Units: pSv cm^2
+        * Default: icrp_conversions.crp

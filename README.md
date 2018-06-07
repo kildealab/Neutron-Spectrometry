@@ -19,6 +19,6 @@ This program is used to unfold data measured using a Nested Neutron Spectrometer
 3. Compile program using make
 4. Adjust configuration file (settings) if necessary
 5. Provide NNS measurements
-6. Run the program (including optional arguments)
+6. Run a program (including optional arguments)
 
-For more detailed guidelines on running the program, please refer to the supplied instructions file (README.txt)
+For more detailed guidelines on running the program, please refer to the supplied instructions file (unfolding/README.md)

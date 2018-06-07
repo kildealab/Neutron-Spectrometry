@@ -25,6 +25,8 @@ UnfoldingSettings::UnfoldingSettings() {
     max_beta = 1.0;
     parameter_of_interest = "fluence";
     algorithm = "mlem";
+    trend_type = "ratio";
+    auto_output_path = "output/auto.csv";
 }
 
 // Apply a value to a setting:
@@ -57,6 +59,10 @@ void UnfoldingSettings::set_setting(std::string settings_name, std::string setti
         this->set_parameter_of_interest(settings_value);
     else if (settings_name == "algorithm")
         this->set_algorithm(settings_value);
+    else if (settings_name == "trend_type")
+        this->set_trend_type(settings_value);
+    else if (settings_name == "auto_output_path")
+        this->set_auto_output_path(settings_value);
     else
         throw std::logic_error("Unrecognized setting: " + settings_name + ". Please refer to the README for allowed settings");
 
@@ -105,6 +111,12 @@ void UnfoldingSettings::set_parameter_of_interest(std::string parameter_of_inter
 void UnfoldingSettings::set_algorithm(std::string algorithm) {
     this->algorithm = algorithm;
 }
+void UnfoldingSettings::set_trend_type(std::string trend_type) {
+    this->trend_type = trend_type;
+}
+void UnfoldingSettings::set_auto_output_path(std::string auto_output_path) {
+    this->auto_output_path = auto_output_path;
+}
 
 //--------------------------------------------------------------------------------------------------
 // Default Constructor for PlotSettings
@@ -125,21 +137,36 @@ PlotSettings::PlotSettings() {
     y_res = 600;
     x_num_divs = 0;
     y_num_divs = 0;
-    // legend_entries;
-    color_series = {"#000000","#C63822","#607FD5","#55A961"};
+    legend_entries = {};
+    // color_series = {"#000000","#C63822","#607FD5","#55A961"};
+    color_series = {"#333333","#4e79a7","#59a14f","#9c755f","#f29e2b","#edc948","#bab0ac","#e15759","#b07aa1","#76b7b2","#ff9da7"};
     // color_error = {"#333333","#E79A9F","#6B8EF0","#69CF77"};
     // show_error;
-    line_style = {1,1,1,1};
-    line_width = {2,2,2,2};
+    line_style = {1};
+    line_width = {2};
     legend_coords = {0.15,0.65,0.4,0.85};
     textbox = 0;
     textbox_coords = {0.15,0.4,0.4,0.6};
-    // textbox_text;
+    textbox_text = {};
+    plot_type = {"l"};
+    legend_border_size = 0;
+    legend_text_size = 0.035;
+    marker_style = {20};
+    marker_size = {5};
+    margin_left = 0.1;
+    margin_right = 0.1;
+    margin_top = 0.1;
+    margin_bottom = 0.1;
+    x_label_offset = 1;
+    y_label_offset = 0;
 }
 
 // Apply a value to a setting:
 void PlotSettings::set_setting(std::string settings_name, std::string settings_value) {
-    if (settings_name == "input_filename")
+    if (settings_value == ""){
+        // If no setting value provided, do not apply anything
+    }
+    else if (settings_name == "input_filename")
         this->set_input_filename(settings_value);
     else if (settings_name == "input_dir")
         this->set_input_dir(settings_value);
@@ -189,6 +216,28 @@ void PlotSettings::set_setting(std::string settings_name, std::string settings_v
         this->set_textbox_coords(settings_value);
     else if (settings_name == "textbox_text")
         this->set_textbox_text(settings_value);
+    else if (settings_name == "plot_type")
+        this->set_plot_type(settings_value);
+    else if (settings_name == "legend_border_size")
+        this->set_legend_border_size(settings_value);
+    else if (settings_name == "legend_text_size")
+        this->set_legend_text_size(settings_value);
+    else if (settings_name == "marker_style")
+        this->set_marker_style(settings_value);
+    else if (settings_name == "marker_size")
+        this->set_marker_size(settings_value);
+    else if (settings_name == "margin_left")
+        this->set_margin_left(settings_value);
+    else if (settings_name == "margin_right")
+        this->set_margin_right(settings_value);
+    else if (settings_name == "margin_top")
+        this->set_margin_top(settings_value);
+    else if (settings_name == "margin_bottom")
+        this->set_margin_bottom(settings_value);
+    else if (settings_name == "x_label_offset")
+        this->set_x_label_offset(settings_value);
+    else if (settings_name == "y_label_offset")
+        this->set_y_label_offset(settings_value);
     else
         throw std::logic_error("Unrecognized setting: " + settings_name + ". Please refer to the README for allowed settings");
 }
@@ -222,10 +271,10 @@ void PlotSettings::set_x_max(std::string x_max) {
     this->x_max = stoi(x_max);
 }
 void PlotSettings::set_y_min(std::string y_min) {
-    this->y_min = stoi(y_min);
+    this->y_min = stod(y_min);
 }
 void PlotSettings::set_y_max(std::string y_max) {
-    this->y_max = stoi(y_max);
+    this->y_max = stod(y_max);
 }
 void PlotSettings::set_x_res(std::string x_res) {
     this->x_res = stoi(x_res);
@@ -269,7 +318,39 @@ void PlotSettings::set_textbox_coords(std::string textbox_coords) {
 void PlotSettings::set_textbox_text(std::string textbox_text) {
     stringToSVector(textbox_text,this->textbox_text);
 }
-
+void PlotSettings::set_plot_type(std::string plot_type) {
+    stringToSVector(plot_type,this->plot_type);
+}
+void PlotSettings::set_legend_border_size(std::string legend_border_size) {
+    this->legend_border_size = stoi(legend_border_size);
+}
+void PlotSettings::set_legend_text_size(std::string legend_text_size) {
+    this->legend_text_size = stod(legend_text_size);
+}
+void PlotSettings::set_marker_style(std::string marker_style) {
+    stringToIVector(marker_style,this->marker_style);
+}
+void PlotSettings::set_marker_size(std::string marker_size) {
+    stringToIVector(marker_size,this->marker_size);
+}
+void PlotSettings::set_margin_left(std::string margin_left) {
+    this->margin_left = stod(margin_left);
+}
+void PlotSettings::set_margin_right(std::string margin_right) {
+    this->margin_right = stod(margin_right);
+}
+void PlotSettings::set_margin_top(std::string margin_top) {
+    this->margin_top = stod(margin_top);
+}
+void PlotSettings::set_margin_bottom(std::string margin_bottom) {
+    this->margin_bottom = stod(margin_bottom);
+}
+void PlotSettings::set_x_label_offset(std::string x_label_offset) {
+    this->x_label_offset = stod(x_label_offset);
+}
+void PlotSettings::set_y_label_offset(std::string y_label_offset) {
+    this->y_label_offset = stod(y_label_offset);
+}
 
 
 //--------------------------------------------------------------------------------------------------
@@ -300,7 +381,10 @@ SurfaceSettings::SurfaceSettings() {
 
 // Apply a value to a setting:
 void SurfaceSettings::set_setting(std::string settings_name, std::string settings_value) {
-    if (settings_name == "input_filename")
+    if (settings_value == ""){
+        // If no setting value provided, do not apply anything
+    }
+    else if (settings_name == "input_filename")
         this->set_input_filename(settings_value);
     else if (settings_name == "input_dir")
         this->set_input_dir(settings_value);

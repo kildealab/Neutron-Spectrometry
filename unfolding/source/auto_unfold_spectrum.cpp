@@ -165,6 +165,86 @@ int main(int argc, char* argv[])
 
     std::vector<double> mlem_ratio; // vector that stores the ratio between measured data and MLEM estimated data
 
+    // If looking at trend in MLEM points:
+    if (settings.algorithm == "trend") {
+        // Create vector of number of iterations
+        int num_increments = ((settings.max_num_iterations - settings.min_num_iterations) / settings.iteration_increment)+1;
+        std::vector<int> num_iterations_vector = linearSpacedIntegerVector(settings.min_num_iterations,settings.max_num_iterations,num_increments);
+        int num_iteration_samples = num_iterations_vector.size();
+
+        std::vector<double> current_spectrum = initial_spectrum; // the reconstructed spectrum
+
+        // Add the Moderator numbers to the file
+        std::ostringstream results_stream;
+        results_stream << "Number of moderators,";
+        for (int i_meas = 0; i_meas < num_measurements; i_meas++) {
+            results_stream << i_meas;
+            if (i_meas != num_measurements-1)
+                results_stream << ",";
+        }
+        results_stream << "\n";
+
+        // Add the measured data to the file
+        results_stream << "Measured data,";
+        for (int i_meas = 0; i_meas < num_measurements; i_meas++) {
+            // If comparing CPS data:
+            if (settings.trend_type == "cps") {
+                results_stream << measurements[i_meas];
+            }
+            // If comparing the reconstructed MLEM ratios:
+            else if (settings.trend_type == "ratio") {
+                results_stream << 1; // ratio of measured data and itself is 1
+            }
+
+
+            if (i_meas != num_measurements-1)
+                results_stream << ",";
+        }
+        results_stream << "\n";
+
+        int total_num_iterations = 0;
+        for (int i_num=0; i_num < num_iteration_samples; i_num++) {
+            int num_iterations;
+
+            // only do # of iterations since previous run (i.e. don't do 3000, then 4000. Do
+            // 3000 then iteration_size more, etc.)
+            if (i_num == 0)
+                num_iterations = num_iterations_vector[i_num];
+            else
+                num_iterations = num_iterations_vector[i_num]-num_iterations_vector[i_num-1];
+            runMLEM(num_iterations, settings.error, num_measurements, num_bins, measurements, current_spectrum, nns_response, normalized_response, mlem_ratio);
+
+            total_num_iterations += num_iterations;
+            // Add the reconstructed measured data for current number of iterations to the file
+            results_stream << "N = " << total_num_iterations << ",";
+            for (int i_meas = 0; i_meas < num_measurements; i_meas++) {
+                // If comparing CPS data, use the returned ratio to calculate the reconstructed measurement:
+                if (settings.trend_type == "cps") {
+                    double recon_meas = measurements[i_meas] / mlem_ratio[i_meas];
+                    results_stream << recon_meas;
+                }
+                // If comparing the reconstructed MLEM ratios:
+                else if (settings.trend_type == "ratio") {
+                    results_stream << mlem_ratio[i_meas];
+                }
+
+
+                if (i_meas != num_measurements-1)
+                    results_stream << ",";
+            }
+            results_stream << "\n";
+        }        
+
+        // Save results for parameter of interest to CSV file
+        std::ofstream output_file;
+        std::string output_filename = settings.auto_output_path;
+        output_file.open(output_filename, std::ios_base::out);
+        std::string results_string = results_stream.str();
+        output_file << results_string;
+        output_file.close();
+
+        std::cout << "Saved reconstruced measured data to " << output_filename << "\n";
+    }
     // If doing MLEM unfolding:
     if (settings.algorithm == "mlem") {
         // Create vector of number of iterations
