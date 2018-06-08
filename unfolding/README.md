@@ -52,12 +52,44 @@ Please refer to dependencies.txt for dependencies
 ### Program #2 plot_spectra.exe ###
 * Plots one or more neutron spectra (and their uncertainties) on a single set of axes.
 * ***Inputs***:
-    * Plot settings are read in from input/plot.cfg. Please refer to input/template_plot.cfg for full list of customizable settings.
-    * Spectra are read in from the CSV input file specified in input/plot.cfg (default is output/output_spectra.csv)
+    * Plot settings are read in from input/plot.cfg. Please see below for an explanation of the settings.
+        * Note, settings may be left empty and default values will be assigned
+    * Spectra are read in from the CSV input file specified in input/plot_spectra.cfg (default is output/output_spectra.csv)
 * ***Outputs***:
     * Spectra are plotted onto a file specified in input/plot.cfg (default is output/output_spectra.png)
 * ***Details***:
     * The program is designed to plot neutron spectra that may be easily modified using the settings specified by the user in input/plot.cfg. The program must be rerun when the settings are modified, but does not require recompilation!
+* ***Allowed Settings***:
+    * input_filename= filename including extension
+    * input_dir= pathname ending with / (e.g. input/)
+    * output_filename= filename including extension
+    * output_dir= pathname ending with / (e.g. output/)
+
+    * title= Title displayed at the top of the 
+    * x_label= x-axis title
+    * y_label= y-axis title
+
+    * x_res= horizontal resolution (dimension) as a number (e.g. 3200)
+    * y_res= vertical resolution (dimension) as a number (e.g. 2400)
+
+    * y_min= minimum y-axis value
+    * y_max= maximum y-axis value
+    * y_num_divs= Number that specifies number of major and minor divisions (tick marks). See https://root.cern.ch/doc/master/classTAttAxis.html#ae3067b6d4218970d09418291cbd84084
+
+    * color_series= Comma-delimited list of HEX color values (e.g. #000000,#FFFFFF)
+    * line_style= Comma-delimited list of numeric line styles. See https://root.cern.ch/doc/master/classTAttLine.html
+    * line_width= Commad-delimited list of numeric line widths. See https://root.cern.ch/doc/master/classTAttLine.html
+
+    * legend_entries= Comma-delimited list of text entries to put in the legend
+    * legend_coords= 4 comma-delimited double values representing coordinates of the legend. Startx, Starty, Endx, Endy.
+
+    * textbox= 1 or 0 indicating whether to include a textbox
+    * textbox_coords= 4 comma-delimited double values representing coordinates of the legend. Startx, Starty, Endx, Endy.
+    * textbox_text= Comma-delimited list of text entries to put in the textbox
+
+    * plot_per_mu= 1 or 0 indicating whether to plot per MU instead of per second
+    * number_mu= Comma-delimited list of number of MU delivered for each spectrum; required to plot per MU
+    * duration= Comma-delimited list of duration of delivery for each spectrum; required to plot per MU
 
 ### Program #3 auto_unfold_spectrum.exe ###
 * Unfold a set of neutron measurements and output a CSV file containing values of a parameter of interest that was calculated iteratively during the unfolding process.
@@ -90,7 +122,7 @@ Please refer to dependencies.txt for dependencies
 ### Program #4 plot_lines.exe ###
 * Plots one or more data series (y as a function of x) on a single set of axes.
 * ***Inputs***:
-    * Plot settings are read in from input/plot_lines.cfg. Please see below for full list of settings.
+    * Plot settings are read in from input/plot_lines.cfg. Please see below for an explanation of the settings.
         * Note, settings may be left empty and default values will be assigned
     * Data are read in from the CSV input file specified in input/plot_lines.cfg (default is output/poi_output_mlem.csv)
 * ***Outputs***:
@@ -143,7 +175,8 @@ Please refer to dependencies.txt for dependencies
 ### Program #5 plot_surface.exe ###
 * Plots z values as a function of x and y.
 * ***Inputs***:
-    * Plot settings are read in from input/plot_surface.cfg. Please refer to input/template_plot_surface.cfg for full list of customizable settings.
+    * Plot settings are read in from input/plot_surface.cfg. Please see below for an explanation of the settings.
+        * Note, settings may be left empty and default values will be assigned
     * Data are read in from the CSV input file specified in input/plot_surface.cfg (default is output/poi_output_mlem.csv)
 * ***Outputs***:
     * Plots are created in a file specified in input/plot_lines.cfg (default is output/poi_output_mlem.png)

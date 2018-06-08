@@ -10,4 +10,6 @@ unfolding/input/map.cfg
 unfolding/input/auto.cfg
 unfolding/input/auto_mlem.cfg
 unfolding/input/plot_lines.cfg
+unfolding/input/plot_spectra.cfg
+unfolding/input/plot_surface.cfg
 map_file.csv

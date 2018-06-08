@@ -9,6 +9,7 @@
 
 bool is_empty(std::ifstream& pFile);
 int setSettings(std::string config_file, UnfoldingSettings &settings);
+int setSpectraSettings(std::string config_file, SpectraSettings &settings);
 int setPlotSettings(std::string config_file, PlotSettings &settings);
 int setSurfaceSettings(std::string config_file, SurfaceSettings &settings);
 int setPlotSettingsOld(std::string config_file, std::map<std::string,std::string>& settings);

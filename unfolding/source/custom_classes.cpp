@@ -118,6 +118,174 @@ void UnfoldingSettings::set_auto_output_path(std::string auto_output_path) {
     this->auto_output_path = auto_output_path;
 }
 
+
+//--------------------------------------------------------------------------------------------------
+// Default Constructor for SpectraSettings
+//--------------------------------------------------------------------------------------------------
+SpectraSettings::SpectraSettings() {
+    input_filename = "output_spectra.csv";
+    input_dir = "output/";
+    output_filename = "neutron_spectra.png";
+    output_dir = "output/";
+    title = "";
+    x_label = "Energy (MeV)";
+    y_label = "Fluence (n #upoint cm^{-2} s^{-1})";
+    y_min = 0; // if plotting detects max and min are the same, use default limits
+    y_max = 0;
+    x_res = 800;
+    y_res = 600;
+    y_num_divs = 0;
+    legend_entries = {};
+    color_series = {"#000000","#C63822","#607FD5","#55A961"};
+    color_error = {"#333333","#E79A9F","#6B8EF0","#69CF77"};
+    show_error = {1};
+    line_style = {1};
+    line_width = {1};
+    legend_coords = {0.15,0.75,0.4,0.85};
+    textbox = 0;
+    textbox_coords = {0.15,0.4,0.4,0.6};
+    textbox_text = {};
+    plot_per_mu = 0;
+    number_mu = {0};
+    duration = {0};
+}
+
+// Apply a value to a setting:
+void SpectraSettings::set_setting(std::string settings_name, std::string settings_value) {
+    if (settings_value == ""){
+        // If no setting value provided, do not apply anything
+    }
+    else if (settings_name == "input_filename")
+        this->set_input_filename(settings_value);
+    else if (settings_name == "input_dir")
+        this->set_input_dir(settings_value);
+    else if (settings_name == "output_filename")
+        this->set_output_filename(settings_value);
+    else if (settings_name == "output_dir")
+        this->set_output_dir(settings_value);
+    else if (settings_name == "title")
+        this->set_title(settings_value);
+    else if (settings_name == "x_label")
+        this->set_x_label(settings_value);
+    else if (settings_name == "y_label")
+        this->set_y_label(settings_value);
+    else if (settings_name == "y_min")
+        this->set_y_min(settings_value);
+    else if (settings_name == "y_max")
+        this->set_y_max(settings_value);
+    else if (settings_name == "x_res")
+        this->set_x_res(settings_value);
+    else if (settings_name == "y_res")
+        this->set_y_res(settings_value);
+    else if (settings_name == "y_num_divs")
+        this->set_y_num_divs(settings_value);
+    else if (settings_name == "legend_entries")
+        this->set_legend_entries(settings_value);
+    else if (settings_name == "color_series")
+        this->set_color_series(settings_value);
+    else if (settings_name == "color_error")
+        this->set_color_error(settings_value);
+    else if (settings_name == "show_error")
+        this->set_show_error(settings_value);
+    else if (settings_name == "line_style")
+        this->set_line_style(settings_value);
+    else if (settings_name == "line_width")
+        this->set_line_width(settings_value);
+    else if (settings_name == "legend_coords")
+        this->set_legend_coords(settings_value);
+    else if (settings_name == "textbox")
+        this->set_textbox(settings_value);
+    else if (settings_name == "textbox_coords")
+        this->set_textbox_coords(settings_value);
+    else if (settings_name == "textbox_text")
+        this->set_textbox_text(settings_value);
+    else if (settings_name == "plot_per_mu")
+        this->set_plot_per_mu(settings_value);
+    else if (settings_name == "number_mu")
+        this->set_number_mu(settings_value);
+    else if (settings_name == "duration")
+        this->set_duration(settings_value);
+    // else
+    //     throw std::logic_error("Unrecognized setting: " + settings_name + ". Please refer to the README for allowed settings");
+}
+
+void SpectraSettings::set_input_filename(std::string input_filename) {
+    this->input_filename = input_filename;
+}
+void SpectraSettings::set_input_dir(std::string input_dir) {
+    this->input_dir = input_dir;
+}
+void SpectraSettings::set_output_filename(std::string output_filename) {
+    this->output_filename = output_filename;
+}
+void SpectraSettings::set_output_dir(std::string output_dir) {
+    this->output_dir = output_dir;
+}
+void SpectraSettings::set_title(std::string title) {
+    this->title = title;
+}
+void SpectraSettings::set_x_label(std::string x_label) {
+    this->x_label = x_label;
+}
+void SpectraSettings::set_y_label(std::string y_label) {
+    this->y_label = y_label;
+}
+void SpectraSettings::set_y_min(std::string y_min) {
+    this->y_min = stod(y_min);
+}
+void SpectraSettings::set_y_max(std::string y_max) {
+    this->y_max = stod(y_max);
+}
+void SpectraSettings::set_x_res(std::string x_res) {
+    this->x_res = stoi(x_res);
+}
+void SpectraSettings::set_y_res(std::string y_res) {
+    this->y_res = stoi(y_res);
+}
+void SpectraSettings::set_y_num_divs(std::string y_num_divs) {
+    this->y_num_divs = stoi(y_num_divs);
+}
+void SpectraSettings::set_legend_entries(std::string legend_entries) {
+    stringToSVector(legend_entries,this->legend_entries);
+}
+void SpectraSettings::set_color_series(std::string color_series) {
+    stringToSVector(color_series,this->color_series);
+}
+void SpectraSettings::set_color_error(std::string color_error) {
+    stringToSVector(color_error,this->color_error);
+}
+void SpectraSettings::set_show_error(std::string show_error) {
+    stringToIVector(show_error,this->show_error);
+}
+void SpectraSettings::set_line_style(std::string line_style) {
+    stringToIVector(line_style,this->line_style);
+}
+void SpectraSettings::set_line_width(std::string line_width) {
+    stringToIVector(line_width,this->line_width);
+}
+void SpectraSettings::set_legend_coords(std::string legend_coords) {
+    stringToDVector(legend_coords,this->legend_coords);
+}
+void SpectraSettings::set_textbox(std::string textbox) {
+    this->textbox = stoi(textbox);
+} 
+void SpectraSettings::set_textbox_coords(std::string textbox_coords) {
+    stringToDVector(textbox_coords,this->textbox_coords);
+}
+void SpectraSettings::set_textbox_text(std::string textbox_text) {
+    stringToSVector(textbox_text,this->textbox_text);
+}
+void SpectraSettings::set_plot_per_mu(std::string plot_per_mu) {
+    this->plot_per_mu = stoi(plot_per_mu);
+} 
+void SpectraSettings::set_number_mu(std::string number_mu) {
+    stringToIVector(number_mu,this->number_mu);
+} 
+void SpectraSettings::set_duration(std::string duration) {
+    stringToIVector(duration,this->duration);
+} 
+
+
 //--------------------------------------------------------------------------------------------------
 // Default Constructor for PlotSettings
 //--------------------------------------------------------------------------------------------------

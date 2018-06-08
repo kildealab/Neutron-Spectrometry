@@ -71,6 +71,42 @@ int setSettings(std::string config_file, UnfoldingSettings &settings) {
 // Retrieve settings from a configuration file 'config_file' and save values in a settings object
 // Args:
 //  - config_file: filename of the settings file
+//  - settings: SpectraSettings object that will store necessary parameters input from config_file
+//==================================================================================================
+int setSpectraSettings(std::string config_file, SpectraSettings &settings) {
+    std::ifstream cfile(config_file);
+    std::string line;
+
+    // If file is able to be read
+    if (cfile.is_open())
+    {
+        // loop through each line in the file, extract the value for each setting into 'token'
+        while ( getline (cfile,line) )
+        {
+            // settings format: setting_name=value
+            std::string delimiter = "=";
+            std::string settings_name = line.substr(0,line.find(delimiter)); // substring from 0 to '='
+            std::string settings_value = line.substr(line.find(delimiter)+1); // substring from '=' to end of string
+
+            // Apply the setting value to the setting name
+            settings.set_setting(settings_name,settings_value);
+        }
+        cfile.close();
+    }
+
+    // Problem opening the file
+    else {
+        throw std::logic_error("Unable to access configuration file: " + config_file);
+    }
+
+    return 1;
+}
+
+
+//==================================================================================================
+// Retrieve settings from a configuration file 'config_file' and save values in a settings object
+// Args:
+//  - config_file: filename of the settings file
 //  - settings: PlotSettings object that will store necessary parameters input from config_file
 //==================================================================================================
 int setPlotSettings(std::string config_file, PlotSettings &settings) {
@@ -161,9 +197,9 @@ int setPlotSettingsOld(std::string config_file, std::map<std::string,std::string
         
             bool valid_setting = checkStringMap(setting_name,settings);
             // Throw error if setting is not valid
-            if (!valid_setting) {
-                throw std::logic_error("Unrecognized setting: " + setting_name + ". Please refer to the README for allowed settings");
-            }
+            // if (!valid_setting) {
+            //     throw std::logic_error("Unrecognized setting: " + setting_name + ". Please refer to the README for allowed settings");
+            // }
 
             settings[setting_name] = setting_value;
         }
@@ -543,7 +579,8 @@ int readSpectra(std::string file_name, std::vector<std::string>& header_vector, 
                 if (plot_per_mu){
                     //1st row is the energies
                     if (i_row !=0) {
-                        new_row.push_back(atof(stoken.c_str())*duration[i_pair]/number_mu[i_pair]);
+
+                        new_row.push_back(atof(stoken.c_str())*duration[i_pair%duration.size()]/number_mu[i_pair%number_mu.size()]);
                     }
                     else {
                         new_row.push_back(atof(stoken.c_str()));
