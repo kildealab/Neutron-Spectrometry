@@ -12,7 +12,6 @@ int setSettings(std::string config_file, UnfoldingSettings &settings);
 int setSpectraSettings(std::string config_file, SpectraSettings &settings);
 int setPlotSettings(std::string config_file, PlotSettings &settings);
 int setSurfaceSettings(std::string config_file, SurfaceSettings &settings);
-int setPlotSettingsOld(std::string config_file, std::map<std::string,std::string>& settings);
 bool checkStringVector(std::string item, std::vector<std::string>& allowed_items);
 bool checkStringMap(std::string test_key, std::map<std::string, std::string>& test_map);
 std::vector<double> getMeasurements(std::string input_file, std::string &irradiation_conditions, double &dose_mu, double &doserate_mu, int &duration);

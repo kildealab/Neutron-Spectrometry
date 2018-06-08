@@ -173,46 +173,6 @@ int setSurfaceSettings(std::string config_file, SurfaceSettings &settings) {
     return 1;
 }
 
-
-//==================================================================================================
-// Retrieve settings from a configuration file 'config_file' and save values in a map
-// Args:
-//  - config_file: filename of the settings file
-//  - settings: map variable that contains setting key:value pairs (key and value are strings)
-//==================================================================================================
-int setPlotSettingsOld(std::string config_file, std::map<std::string,std::string>& settings) {
-    std::ifstream cfile(config_file);
-    std::string line;
-
-    // If file is able to be read
-    if (cfile.is_open())
-    {
-        // loop through each line in the file, extract the value for each setting into 'token'
-        while ( getline (cfile,line) )
-        {
-            // settings format: setting_name=value
-            std::string delimiter = "=";
-            std::string setting_name = line.substr(0,line.find(delimiter)); // substring from 0 to '='
-            std::string setting_value = line.substr(line.find(delimiter)+1); // substring from '=' to end of string
-        
-            bool valid_setting = checkStringMap(setting_name,settings);
-            // Throw error if setting is not valid
-            // if (!valid_setting) {
-            //     throw std::logic_error("Unrecognized setting: " + setting_name + ". Please refer to the README for allowed settings");
-            // }
-
-            settings[setting_name] = setting_value;
-        }
-        cfile.close();
-    }
-    // Problem opening the file
-    else {
-        throw std::logic_error("Unable to access configuration file: " + config_file);
-    }
-
-    return 1;
-}
-
 //==================================================================================================
 // Check if a string exists within a vector of strings 
 // Args:
