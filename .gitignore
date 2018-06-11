@@ -1,6 +1,7 @@
 *.o
 *.DS_Store
 unfolding/output/*
+!unfolding/output/README.txt 
 unfolding/input/measurements.txt
 unfolding/input/mlem.cfg
 *.exe

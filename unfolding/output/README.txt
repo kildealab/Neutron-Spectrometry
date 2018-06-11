@@ -1,0 +1,1 @@
+Various outputs from programs are stored here. These files are not saved in the repository.

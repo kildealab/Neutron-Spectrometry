@@ -1,0 +1,1 @@
+Object files created during compilation are stored here. These files are not saved in the repository.

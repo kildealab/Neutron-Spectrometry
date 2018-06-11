@@ -80,7 +80,7 @@ int main(int argc, char* argv[])
 
     // Apply some settings read in from a config file
     UnfoldingSettings settings;
-    setSettings(input_dir + "auto.cfg", settings);
+    setSettings(input_dir + "auto_mlem.cfg", settings);
 
     settings.set_f_factor(settings.f_factor / 1e6); // Convert f_factor from fA/cps to nA/cps
 

@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <fstream>
 #include <vector>
+#include <algorithm>
 
 std::vector<double> normalizeResponse(int num_bins, int num_measurements, std::vector<std::vector<double>>& system_response);
 double poisson(double lambda);

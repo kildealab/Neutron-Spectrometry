@@ -5,6 +5,7 @@
 #include <fstream>
 #include <vector>
 #include <map>
+#include <algorithm>
 #include "custom_classes.h"
 
 bool is_empty(std::ifstream& pFile);
