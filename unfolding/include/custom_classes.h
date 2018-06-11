@@ -119,12 +119,13 @@ class PlotSettings {
         std::string y_label;
         double y_min;
         double y_max;
-        int x_min;
-        int x_max;
+        double x_min;
+        double x_max;
         int x_res;
         int y_res;
         int x_num_divs;
         int y_num_divs;
+        int x_log;
         std::vector<std::string> legend_entries;
         std::vector<std::string> color_series;
         // std::vector<std::string> color_error;
@@ -165,6 +166,7 @@ class PlotSettings {
         void set_x_max(std::string);
         void set_x_res(std::string);
         void set_y_res(std::string);
+        void set_x_log(std::string);
         void set_x_num_divs(std::string);
         void set_y_num_divs(std::string);
         void set_legend_entries(std::string);

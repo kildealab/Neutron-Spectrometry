@@ -44,6 +44,7 @@ int main(int argc, char* argv[])
     std::string settings_file = "input/plot_lines.cfg";
     PlotSettings settings;
     setPlotSettings(settings_file, settings); // Fill settings with any user provided settings
+    std::cout << "Post plot settings\n";
 
     // Read in data
     std::string input_path = settings.input_dir + settings.input_filename;
@@ -56,7 +57,10 @@ int main(int argc, char* argv[])
     int num_series = y_data.size();
 
     // Generate the plot area
-    TCanvas *c1 = new TCanvas("c1","c1",settings.x_res,settings.y_res); // Resulution of the graph (px) specified in parameters
+    TCanvas *c1 = new TCanvas("c1","c1",settings.x_res,settings.y_res); // Resolution of the graph (px) specified in parameters
+    if (settings.x_log) {
+        c1->SetLogx();
+    }
 
     // Generate the legend
     TLegend* leg = new TLegend(settings.legend_coords[0], settings.legend_coords[1], settings.legend_coords[2], settings.legend_coords[3]); // with a text box
@@ -137,8 +141,12 @@ int main(int argc, char* argv[])
     c1->SetBottomMargin(settings.margin_bottom); 
 
     //Set axes properties
-    if (settings.x_min != settings.x_max)
+    std::cout << "pre\n";
+    std::cout << settings.x_min << "\n";
+    std::cout << settings.x_max << "\n";
+    if (settings.x_min != settings.x_max) {
         mg->GetXaxis()->SetLimits(settings.x_min,settings.x_max);
+    }
     if (settings.y_min != settings.y_max) {
         mg->SetMinimum(settings.y_min);
         mg->SetMaximum(settings.y_max);
@@ -165,6 +173,7 @@ int main(int argc, char* argv[])
     }
 
     // Update appearance of the canvas
+    // c1->SetLogx();
     c1->Update();
     c1->Modified();
     c1->SetTickx(); // No parameter means show tick marks on both sides, labels on one

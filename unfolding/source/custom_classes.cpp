@@ -303,6 +303,7 @@ PlotSettings::PlotSettings() {
     x_max = 0;
     x_res = 800;
     y_res = 600;
+    x_log = 0;
     x_num_divs = 0;
     y_num_divs = 0;
     legend_entries = {};
@@ -360,6 +361,8 @@ void PlotSettings::set_setting(std::string settings_name, std::string settings_v
         this->set_x_res(settings_value);
     else if (settings_name == "y_res")
         this->set_y_res(settings_value);
+    else if (settings_name == "x_log")
+        this->set_x_log(settings_value);
     else if (settings_name == "y_num_divs")
         this->set_y_num_divs(settings_value);
     else if (settings_name == "x_num_divs")
@@ -433,10 +436,10 @@ void PlotSettings::set_y_label(std::string y_label) {
     this->y_label = y_label;
 }
 void PlotSettings::set_x_min(std::string x_min) {
-    this->x_min = stoi(x_min);
+    this->x_min = stod(x_min);
 }
 void PlotSettings::set_x_max(std::string x_max) {
-    this->x_max = stoi(x_max);
+    this->x_max = stod(x_max);
 }
 void PlotSettings::set_y_min(std::string y_min) {
     this->y_min = stod(y_min);
@@ -449,6 +452,9 @@ void PlotSettings::set_x_res(std::string x_res) {
 }
 void PlotSettings::set_y_res(std::string y_res) {
     this->y_res = stoi(y_res);
+}
+void PlotSettings::set_x_log(std::string x_log) {
+    this->x_log = stoi(x_log);
 }
 void PlotSettings::set_x_num_divs(std::string x_num_divs) {
     this->x_num_divs = stoi(x_num_divs);
