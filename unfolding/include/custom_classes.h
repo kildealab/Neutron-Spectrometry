@@ -69,6 +69,7 @@ class SpectraSettings {
         std::vector<int> show_error;
         std::vector<int> line_style;
         std::vector<int> line_width;
+        int border_width;
         std::vector<float> legend_coords;
         int textbox;
         std::vector<float> textbox_coords;
@@ -99,6 +100,7 @@ class SpectraSettings {
         void set_show_error(std::string);
         void set_line_style(std::string);
         void set_line_width(std::string);
+        void set_border_width(std::string);
         void set_legend_coords(std::string);
         void set_textbox(std::string);
         void set_textbox_coords(std::string);
@@ -132,6 +134,7 @@ class PlotSettings {
         // std::vector<int> show_error;
         std::vector<int> line_style;
         std::vector<int> line_width;
+        int border_width;
         std::vector<float> legend_coords;
         int textbox;
         std::vector<float> textbox_coords;
@@ -175,6 +178,7 @@ class PlotSettings {
         // void set_show_error(std::string);
         void set_line_style(std::string);
         void set_line_width(std::string);
+        void set_border_width(std::string);
         void set_legend_coords(std::string);
         void set_textbox(std::string);
         void set_textbox_coords(std::string);
@@ -215,6 +219,7 @@ class SurfaceSettings {
         int z_num_divs;
         int color_palette;
         int num_color_bins;
+        int border_width;
 
         SurfaceSettings(); 
 
@@ -240,6 +245,7 @@ class SurfaceSettings {
         void set_z_num_divs(std::string);
         void set_color_palette(std::string);
         void set_num_color_bins(std::string);
+        void set_border_width(std::string);
 };
 
 #endif

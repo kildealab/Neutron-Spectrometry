@@ -197,10 +197,11 @@ int main(int argc, char* argv[])
     std::vector<double> normalized_response = normalizeResponse(num_bins, num_measurements, nns_response);
 
     std::vector<double> mlem_ratio; // vector that stores the ratio between measured data and MLEM estimated data
+    std::vector<double> mlem_correction; // vector that stores the correction factors applied in each spectral bin
     int num_iterations;
 
     if (algorithm_name == "mlem") {
-        num_iterations = runMLEM(settings.cutoff, settings.error, num_measurements, num_bins, measurements, spectrum, nns_response, normalized_response, mlem_ratio);
+        num_iterations = runMLEM(settings.cutoff, settings.error, num_measurements, num_bins, measurements, spectrum, nns_response, normalized_response, mlem_ratio, mlem_correction);
     }
     else if (algorithm_name == "map") {
         std::vector<double> energy_correction;
@@ -252,6 +253,7 @@ int main(int argc, char* argv[])
     for (int i_poiss = 0; i_poiss < settings.num_poisson_samples; i_poiss++) {
         std::vector<double> sampled_measurements; // dimension: num_measurements
         std::vector<double> sampled_mlem_ratio; // dimension: num_measurements
+        std::vector<double> sampled_mlem_correction; // dimension: num_measurements
         std::vector<double> sampled_spectrum = initial_spectrum; // dimension: num_bins
 
         // Create Poisson sampled measurement values (CPS)
@@ -262,7 +264,7 @@ int main(int argc, char* argv[])
 
         // Do unfolding on the initial spectrum & sampled measurement values
         if (algorithm_name == "mlem") {
-            runMLEM(settings.cutoff, settings.error, num_measurements, num_bins, sampled_measurements, sampled_spectrum, nns_response, normalized_response, sampled_mlem_ratio);
+            runMLEM(settings.cutoff, settings.error, num_measurements, num_bins, sampled_measurements, sampled_spectrum, nns_response, normalized_response, sampled_mlem_ratio, sampled_mlem_correction);
         }
         else if (algorithm_name == "map") {
             std::vector<double> sampled_energy_correction;

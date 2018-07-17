@@ -278,6 +278,38 @@ double calculateSourceStrength(int num_bins, std::vector<double> &spectrum, int 
     return source_strength;
 }
 
+double calculateJFactor(int num_bins, int num_measurements, std::vector<double> &spectrum, std::vector<double> &measurements, std::vector<std::vector<double>> &nns_response) {
+    std::vector<double> mlem_estimate;
+
+    for(int i_meas = 0; i_meas < num_measurements; i_meas++)
+    {
+        double temp_value = 0;
+        for(int i_bin = 0; i_bin < num_bins; i_bin++)
+        {
+            temp_value += nns_response[i_meas][i_bin]*spectrum[i_bin];
+        }
+        mlem_estimate.push_back(temp_value);
+    }
+
+    // std::cout << "******************\n";
+    double numerator = 0;
+    double denominator = 0;
+    for(int i_meas = 0; i_meas < num_measurements; i_meas++)
+    {
+        numerator += pow(measurements[i_meas] - mlem_estimate[i_meas],2);
+        denominator += mlem_estimate[i_meas];
+        // std::cout << measurements[i_meas] << "\n";
+        // std::cout << mlem_estimate[i_meas] << "\n";
+        // std::cout << "----------" << "\n";
+    }
+    // std::cout << "******************\n";
+    // std::cout << "numerator = " << numerator << "\n";
+    // std::cout << "denominator = " << denominator << "\n";
+    // std::cout << "j = " << numerator/denominator << "\n";
+
+    return numerator/denominator;
+}
+
 
 //==================================================================================================
 // Accept a series of measurements and an estimated input spectrum and perform the MLEM algorithm
@@ -286,11 +318,12 @@ double calculateSourceStrength(int num_bins, std::vector<double> &spectrum, int 
 // that spectrum is updated as the algorithm progresses (passed by reference). Similarly for 
 // mlem_ratio
 //==================================================================================================
-int runMLEM(int cutoff, double error, int num_measurements, int num_bins, std::vector<double> &measurements, std::vector<double> &spectrum, std::vector<std::vector<double>> &nns_response, std::vector<double> &normalized_response, std::vector<double> &mlem_ratio) {
+int runMLEM(int cutoff, double error, int num_measurements, int num_bins, std::vector<double> &measurements, std::vector<double> &spectrum, std::vector<std::vector<double>> &nns_response, std::vector<double> &normalized_response, std::vector<double> &mlem_ratio, std::vector<double> &mlem_correction) {
     int mlem_index; // index of MLEM iteration
 
     for (mlem_index = 0; mlem_index < cutoff; mlem_index++) {
         mlem_ratio.clear(); // wipe previous ratios for each iteration
+        mlem_correction.clear(); // wipe previous corrections for each iteration
 
         // vector that stores the MLEM-estimated data to be compared with measured data
         std::vector<double> mlem_estimate;
@@ -315,7 +348,7 @@ int runMLEM(int cutoff, double error, int num_measurements, int num_bins, std::v
         }
 
         // matrix that stores the correction factor to be applied to each MLEM-estimated spectral value
-        std::vector<double> mlem_correction;
+        // std::vector<double> mlem_correction;
 
         // Create the correction factors to be applied to MLEM-estimated spectral values:
         //  - multiply transpose system matrix by ratio values
@@ -324,7 +357,7 @@ int runMLEM(int cutoff, double error, int num_measurements, int num_bins, std::v
             double temp_value = 0;
             for(int i_meas = 0; i_meas < num_measurements; i_meas++)
             {
-                temp_value += nns_response[i_meas][i_bin]*mlem_ratio[i_meas];
+                temp_value += nns_response[i_meas][i_bin]*mlem_ratio[i_meas]/normalized_response[i_bin];
             }
             mlem_correction.push_back(temp_value);
         }
@@ -332,7 +365,7 @@ int runMLEM(int cutoff, double error, int num_measurements, int num_bins, std::v
         // Apply correction factors and normalization to get new spectral estimate
         for(int i_bin=0; i_bin < num_bins; i_bin++)
         {
-            spectrum[i_bin] = (spectrum[i_bin]*mlem_correction[i_bin]/normalized_response[i_bin]);
+            spectrum[i_bin] = (spectrum[i_bin]*mlem_correction[i_bin]);
         }
 
         // End MLEM iterations if ratio between measured and MLEM-estimated data points is within

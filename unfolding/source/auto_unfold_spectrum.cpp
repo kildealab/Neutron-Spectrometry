@@ -164,8 +164,76 @@ int main(int argc, char* argv[])
     std::vector<double> normalized_response = normalizeResponse(num_bins, num_measurements, nns_response);
 
     std::vector<double> mlem_ratio; // vector that stores the ratio between measured data and MLEM estimated data
+    std::vector<double> mlem_correction; // vector that stores the ratio between measured data and MLEM estimated data
 
-    // If looking at trend in MLEM points:
+    //----------------------------------------------------------------------------------------------
+    // Output correction factors (52 values applied to spectrum, NOT to measurements).
+    // Each row of output file has the 52 correction factors for a specific N
+    // Visualize with plot_lines (logarithmic x-axis)
+    //----------------------------------------------------------------------------------------------
+    if (settings.algorithm == "correction_factors") {
+        // Create vector of number of iterations
+        int num_increments = ((settings.max_num_iterations - settings.min_num_iterations) / settings.iteration_increment)+1;
+        std::vector<int> num_iterations_vector = linearSpacedIntegerVector(settings.min_num_iterations,settings.max_num_iterations,num_increments);
+        int num_iteration_samples = num_iterations_vector.size();
+
+        std::vector<double> current_spectrum = initial_spectrum; // the reconstructed spectrum
+
+        // Add the iteration numbers to the file
+        std::ostringstream results_stream;
+        results_stream << "Energy (MeV),";
+        for (int i_bin = 0; i_bin < num_bins; i_bin++) {
+            results_stream << energy_bins[i_bin];
+            if (i_bin != num_bins-1)
+                results_stream << ",";
+        }
+        results_stream << "\n";
+
+        int total_num_iterations = 0;
+        for (int i_num=0; i_num < num_iteration_samples; i_num++) {
+            int num_iterations;
+
+            // only do # of iterations since previous run (i.e. don't do 3000, then 4000. Do
+            // 3000 then iteration_size more, etc.)
+            if (i_num == 0)
+                num_iterations = num_iterations_vector[i_num];
+            else
+                num_iterations = num_iterations_vector[i_num]-num_iterations_vector[i_num-1];
+            runMLEM(num_iterations, settings.error, num_measurements, num_bins, measurements, current_spectrum, nns_response, normalized_response, mlem_ratio, mlem_correction);
+
+            total_num_iterations += num_iterations;
+
+            // Add the reconstructed measured data for current number of iterations to the file
+            // Add the correction factors to the file
+            results_stream << "N = " << total_num_iterations << ",";
+            for (int i_bin = 0; i_bin < num_bins; i_bin++) {
+                results_stream << mlem_correction[i_bin];
+
+                if (i_bin != num_bins-1)
+                    results_stream << ",";
+            }
+            results_stream << "\n";
+        }        
+
+        // Save results for parameter of interest to CSV file
+        std::ofstream output_file;
+        std::string output_filename = settings.auto_output_path;
+        output_file.open(output_filename, std::ios_base::out);
+        std::string results_string = results_stream.str();
+        output_file << results_string;
+        output_file.close();
+
+        std::cout << "Saved correction factors to " << output_filename << "\n";
+    }
+
+    //----------------------------------------------------------------------------------------------
+    // Output reconstructed measured data (8 values) either as absolute values (CPS) or as ratio
+    // with real measured data.
+    // First row contains number of moderators
+    // First row contains the real measured data (either cps or ratio=1)
+    // Remaining rows have the reconstructed measurements (either cps or ratio) for a specific N
+    // Visualize with plot_lines (scatter plots)
+    //----------------------------------------------------------------------------------------------
     if (settings.algorithm == "trend") {
         // Create vector of number of iterations
         int num_increments = ((settings.max_num_iterations - settings.min_num_iterations) / settings.iteration_increment)+1;
@@ -212,7 +280,7 @@ int main(int argc, char* argv[])
                 num_iterations = num_iterations_vector[i_num];
             else
                 num_iterations = num_iterations_vector[i_num]-num_iterations_vector[i_num-1];
-            runMLEM(num_iterations, settings.error, num_measurements, num_bins, measurements, current_spectrum, nns_response, normalized_response, mlem_ratio);
+            runMLEM(num_iterations, settings.error, num_measurements, num_bins, measurements, current_spectrum, nns_response, normalized_response, mlem_ratio, mlem_correction);
 
             total_num_iterations += num_iterations;
             // Add the reconstructed measured data for current number of iterations to the file
@@ -245,7 +313,17 @@ int main(int argc, char* argv[])
 
         std::cout << "Saved reconstruced measured data to " << output_filename << "\n";
     }
-    // If doing MLEM unfolding:
+
+    //----------------------------------------------------------------------------------------------
+    // Calculate some parameter of interest (POI) at specified numbers of iterations (N). Iterate
+    // through N values as indicated by user. Append results to existing file if it exists. 
+    // Output:
+    // First row contains the iteration numbers (only done if output file is empty)
+    // Other row contains the POI value at each N. A single execution of this program will only add
+    //  one result line to the the output file. But can run mulitple times for different measured
+    //  data to append to existing file
+    // Visualize with plot_lines
+    //----------------------------------------------------------------------------------------------
     if (settings.algorithm == "mlem") {
         // Create vector of number of iterations
         int num_increments = ((settings.max_num_iterations - settings.min_num_iterations) / settings.iteration_increment)+1;
@@ -256,8 +334,8 @@ int main(int argc, char* argv[])
 
         // Create stream to append results. First row is number of iteration increments
         // determine if file exists
-        std::string map_filename = "output/poi_output_mlem.csv";
-        std::ifstream rfile(map_filename);
+        // std::string map_filename = "output/poi_output_mlem.csv";
+        std::ifstream rfile(settings.auto_output_path);
         bool file_empty = is_empty(rfile);
         // bool file_exists = rfile.good();
         rfile.close();
@@ -284,7 +362,7 @@ int main(int argc, char* argv[])
                 num_iterations = num_iterations_vector[i_num];
             else
                 num_iterations = num_iterations_vector[i_num]-num_iterations_vector[i_num-1];
-            runMLEM(num_iterations, settings.error, num_measurements, num_bins, measurements, current_spectrum, nns_response, normalized_response, mlem_ratio);
+            runMLEM(num_iterations, settings.error, num_measurements, num_bins, measurements, current_spectrum, nns_response, normalized_response, mlem_ratio, mlem_correction);
         
             // Calculate one of the following parameters of interest & save to results stream
             double poi_value = 0;
@@ -312,6 +390,11 @@ int main(int argc, char* argv[])
                     results_stream << "Average MLEM ratio,";
                 poi_value = calculateAvgRatio(num_measurements,mlem_ratio);
             }
+            else if (settings.parameter_of_interest == "j_factor") {
+                if (i_num == 0)
+                    results_stream << "J factor,";
+                poi_value = calculateJFactor(num_bins,num_measurements,current_spectrum,measurements,nns_response);
+            }
             else {
                 throw std::logic_error("Unrecognized parameter of interest: " + settings.parameter_of_interest + ". Please refer to the README for allowed parameters");
             }
@@ -325,15 +408,36 @@ int main(int argc, char* argv[])
         }
 
         // Save results for parameter of interest to CSV file
-        std::ofstream map_file;
-        map_file.open(map_filename, std::ios_base::app);
+        std::ofstream output_file;
+        output_file.open(settings.auto_output_path, std::ios_base::app);
         std::string results_string = results_stream.str();
-        map_file << results_string;
-        map_file.close();
+        output_file << results_string;
+        output_file.close();
 
-        std::cout << "Saved 2D matrix of " << settings.parameter_of_interest << " values to " << map_filename << "\n";
+        std::cout << "Saved 2D matrix of " << settings.parameter_of_interest << " values to " << settings.auto_output_path << "\n";
+
+        // // Save results for parameter of interest to CSV file
+        // std::ofstream output_file;
+        // std::string output_filename = settings.auto_output_path;
+        // output_file.open(output_filename, std::ios_base::app);
+        // std::string results_string = results_stream.str();
+        // output_file << results_string;
+        // output_file.close();
+
+        // std::cout << "Saved 2D matrix of " << settings.parameter_of_interest << " values to " << output_filename << "\n";
+
     }
-    // If doing MAP unfolding
+
+    //----------------------------------------------------------------------------------------------
+    // Calculate some parameter of interest (POI) at specified numbers of iterations and beta value.
+    // Iterate through a range of beta values, and a range of N values for each beta.
+    // Output:
+    // First row contains the iteration numbers
+    // Other rows contain the beta value in the 1st column, followed by the POI value corresponding
+    //  to the beta & N.
+    // I.e. result is a 2D matrix of POI values (function of beta and N)
+    // Visualize with plot_surface
+    //----------------------------------------------------------------------------------------------
     if (settings.algorithm == "map") {
         // Create vector of beta values
         int num_orders_magnitude = log10(settings.max_beta/settings.min_beta);
@@ -417,14 +521,13 @@ int main(int argc, char* argv[])
         }
 
         // Save results for parameter of interest to CSV file
-        std::string map_filename = "output/poi_output_map.csv";
-        std::ofstream map_file;
-        map_file.open(map_filename, std::ios_base::out);
+        std::ofstream output_file;
+        output_file.open(settings.auto_output_path, std::ios_base::out);
         std::string results_string = results_stream.str();
-        map_file << results_string;
-        map_file.close();
+        output_file << results_string;
+        output_file.close();
 
-        std::cout << "Saved 2D matrix of " << settings.parameter_of_interest << " values to " << map_filename << "\n";
+        std::cout << "Saved 2D matrix of " << settings.parameter_of_interest << " values to " << settings.auto_output_path << "\n";
     }
 
     return 0;

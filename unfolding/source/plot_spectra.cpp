@@ -202,6 +202,7 @@ int main(int argc, char* argv[])
     c1->Modified();
     c1->SetTickx(); // No parameter means show tick marks on both sides, labels on one
     c1->SetTicky(); // No parameter means show tick marks on both sides, labels on one
+    gStyle->SetLineWidth(settings.border_width); // Set width of axis/border around the plot
 
     // Output the plot to file
     const char *cstr_figure_file = output_file.c_str();

@@ -115,6 +115,7 @@ int main(int argc, char* argv[])
     // Axes ticks
     c1->SetTickx(); // No parameter means show tick marks on both sides, labels on one
     c1->SetTicky(); // No parameter means show tick marks on both sides, labels on one
+    gStyle->SetLineWidth(settings.border_width); // Set width of axis/border around the plot
     dt->GetZaxis()->SetTickLength(0); 
 
     c1->Update();

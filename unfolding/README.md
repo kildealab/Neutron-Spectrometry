@@ -79,6 +79,7 @@ Please refer to dependencies.txt for dependencies
     * color_series= Comma-delimited list of HEX color values (e.g. #000000,#FFFFFF)
     * line_style= Comma-delimited list of numeric line styles. See https://root.cern.ch/doc/master/classTAttLine.html
     * line_width= Commad-delimited list of numeric line widths. See https://root.cern.ch/doc/master/classTAttLine.html
+    * border_width= Numeric width for the border (axes) of the graph
 
     * legend_entries= Comma-delimited list of text entries to put in the legend
     * legend_coords= 4 comma-delimited double values representing coordinates of the legend. Startx, Starty, Endx, Endy.
@@ -155,6 +156,7 @@ Please refer to dependencies.txt for dependencies
     * color_series= Comma-delimited list of HEX color values (e.g. #000000,#FFFFFF)
     * line_style= Comma-delimited list of numeric line styles. See https://root.cern.ch/doc/master/classTAttLine.html
     * line_width= Commad-delimited list of numeric line widths. See https://root.cern.ch/doc/master/classTAttLine.html
+    * border_width= Numeric width for the border (axes) of the graph
     * marker_style= Comma-delimited list of numeric marker styles. See https://root.cern.ch/doc/master/classTAttMarker.html
     * marker_size= Comma-delimited list numeric marker sizes. See https://root.cern.ch/doc/master/classTAttMarker.html
 
@@ -207,6 +209,7 @@ Please refer to dependencies.txt for dependencies
 
     * color_palette= Number that specifies the ROOT color palette to use. See "High quality predefined palettes" at https://root.cern.ch/doc/master/classTColor.html
     * num_color_bins= The number of different color bins. More bins = more finely resolved surface.
+    * border_width= Numeric width for the border (axes) of the graph
 
 ### Notes on input files###
 * Files read by programs are included in input/

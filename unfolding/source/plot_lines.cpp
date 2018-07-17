@@ -44,7 +44,6 @@ int main(int argc, char* argv[])
     std::string settings_file = "input/plot_lines.cfg";
     PlotSettings settings;
     setPlotSettings(settings_file, settings); // Fill settings with any user provided settings
-    std::cout << "Post plot settings\n";
 
     // Read in data
     std::string input_path = settings.input_dir + settings.input_filename;
@@ -141,9 +140,6 @@ int main(int argc, char* argv[])
     c1->SetBottomMargin(settings.margin_bottom); 
 
     //Set axes properties
-    std::cout << "pre\n";
-    std::cout << settings.x_min << "\n";
-    std::cout << settings.x_max << "\n";
     if (settings.x_min != settings.x_max) {
         mg->GetXaxis()->SetLimits(settings.x_min,settings.x_max);
     }
@@ -178,6 +174,7 @@ int main(int argc, char* argv[])
     c1->Modified();
     c1->SetTickx(); // No parameter means show tick marks on both sides, labels on one
     c1->SetTicky(); // No parameter means show tick marks on both sides, labels on one
+    gStyle->SetLineWidth(settings.border_width); // Set width of axis/border around the plot
 
     // Output the plot to file
     std::string output_path = settings.output_dir + settings.output_filename;

@@ -141,6 +141,7 @@ SpectraSettings::SpectraSettings() {
     show_error = {1};
     line_style = {1};
     line_width = {1};
+    border_width = 1;
     legend_coords = {0.15,0.75,0.4,0.85};
     textbox = 0;
     textbox_coords = {0.15,0.4,0.4,0.6};
@@ -191,6 +192,8 @@ void SpectraSettings::set_setting(std::string settings_name, std::string setting
         this->set_line_style(settings_value);
     else if (settings_name == "line_width")
         this->set_line_width(settings_value);
+    else if (settings_name == "border_width")
+        this->set_border_width(settings_value);
     else if (settings_name == "legend_coords")
         this->set_legend_coords(settings_value);
     else if (settings_name == "textbox")
@@ -263,6 +266,9 @@ void SpectraSettings::set_line_style(std::string line_style) {
 void SpectraSettings::set_line_width(std::string line_width) {
     stringToIVector(line_width,this->line_width);
 }
+void SpectraSettings::set_border_width(std::string border_width) {
+    this->border_width = stoi(border_width);
+}
 void SpectraSettings::set_legend_coords(std::string legend_coords) {
     stringToDVector(legend_coords,this->legend_coords);
 }
@@ -313,6 +319,7 @@ PlotSettings::PlotSettings() {
     // show_error;
     line_style = {1};
     line_width = {2};
+    border_width = 1;
     legend_coords = {0.15,0.65,0.4,0.85};
     textbox = 0;
     textbox_coords = {0.15,0.4,0.4,0.6};
@@ -379,6 +386,8 @@ void PlotSettings::set_setting(std::string settings_name, std::string settings_v
         this->set_line_style(settings_value);
     else if (settings_name == "line_width")
         this->set_line_width(settings_value);
+    else if (settings_name == "border_width")
+        this->set_border_width(settings_value);
     else if (settings_name == "legend_coords")
         this->set_legend_coords(settings_value);
     else if (settings_name == "textbox")
@@ -480,6 +489,9 @@ void PlotSettings::set_line_style(std::string line_style) {
 void PlotSettings::set_line_width(std::string line_width) {
     stringToIVector(line_width,this->line_width);
 }
+void PlotSettings::set_border_width(std::string border_width) {
+    this->border_width = stoi(border_width);
+}
 void PlotSettings::set_legend_coords(std::string legend_coords) {
     stringToDVector(legend_coords,this->legend_coords);
 }
@@ -551,6 +563,7 @@ SurfaceSettings::SurfaceSettings() {
     z_num_divs = 203;
     color_palette = 55;
     num_color_bins = 40;
+    border_width = 1;
 }
 
 // Apply a value to a setting:
@@ -598,6 +611,8 @@ void SurfaceSettings::set_setting(std::string settings_name, std::string setting
         this->set_color_palette(settings_value);
     else if (settings_name == "num_color_bins")
         this->set_num_color_bins(settings_value);
+    else if (settings_name == "border_width")
+        this->set_border_width(settings_value);
 
     else
         throw std::logic_error("Unrecognized setting: " + settings_name + ". Please refer to the README for allowed settings");
@@ -663,4 +678,7 @@ void SurfaceSettings::set_color_palette(std::string color_palette) {
 }
 void SurfaceSettings::set_num_color_bins(std::string num_color_bins) {
     this->num_color_bins = stoi(num_color_bins);
+}
+void SurfaceSettings::set_border_width(std::string border_width) {
+    this->border_width = stoi(border_width);
 }
