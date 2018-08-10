@@ -381,7 +381,8 @@ int main(int argc, char* argv[])
 
         // Used if calculating RMSD
         std::vector<double> ref_spectrum;
-        readInputFile1D("/Users/loganmontgomery/code/neutrons/neutron_spectrometry/unfolding/input/spectrum_ambe.csv",ref_spectrum);
+        if (settings.parameter_of_interest == "rms")
+            readInputFile1D(settings.ref_spectrum_path,ref_spectrum);
 
         // Loop through number of iterations
         for (int i_num=0; i_num < num_iteration_samples; i_num++) {

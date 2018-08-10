@@ -29,6 +29,7 @@ UnfoldingSettings::UnfoldingSettings() {
     trend_type = "ratio";
     auto_output_path = "output/auto.csv";
     derivatives = 0;
+    ref_spectrum_path = "";
 }
 
 // Apply a value to a setting:
@@ -69,6 +70,8 @@ void UnfoldingSettings::set_setting(std::string settings_name, std::string setti
         this->set_auto_output_path(settings_value);
     else if (settings_name == "derivatives")
         this->set_derivatives(atoi(settings_value.c_str()));
+    else if (settings_name == "ref_spectrum_path")
+        this->set_ref_spectrum_path(settings_value);
     else
         throw std::logic_error("Unrecognized setting: " + settings_name + ". Please refer to the README for allowed settings");
 
@@ -128,6 +131,9 @@ void UnfoldingSettings::set_auto_output_path(std::string auto_output_path) {
 }
 void UnfoldingSettings::set_derivatives(int derivatives) {
     this->derivatives = derivatives;
+}
+void UnfoldingSettings::set_ref_spectrum_path(std::string ref_spectrum_path) {
+    this->ref_spectrum_path = ref_spectrum_path;
 }
 
 //--------------------------------------------------------------------------------------------------

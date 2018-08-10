@@ -28,6 +28,7 @@ class UnfoldingSettings {
         std::string trend_type;
         std::string auto_output_path;
         int derivatives;
+        std::string ref_spectrum_path;
 
         UnfoldingSettings(); 
 
@@ -51,6 +52,7 @@ class UnfoldingSettings {
         void set_trend_type(std::string);
         void set_auto_output_path(std::string);
         void set_derivatives(int);
+        void set_ref_spectrum_path(std::string);
 };
 
 class SpectraSettings {

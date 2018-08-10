@@ -81,6 +81,7 @@ Please refer to dependencies.txt for dependencies
     * line_width= Commad-delimited list of numeric line widths. See https://root.cern.ch/doc/master/classTAttLine.html
     * border_width= Numeric width for the border (axes) of the graph
 
+    * legend= 1 or 0 indicating whether to include the legend
     * legend_entries= Comma-delimited list of text entries to put in the legend
     * legend_coords= 4 comma-delimited double values representing coordinates of the legend. Startx, Starty, Endx, Endy.
 
@@ -91,6 +92,8 @@ Please refer to dependencies.txt for dependencies
     * plot_per_mu= 1 or 0 indicating whether to plot per MU instead of per second
     * number_mu= Comma-delimited list of number of MU delivered for each spectrum; required to plot per MU
     * duration= Comma-delimited list of duration of delivery for each spectrum; required to plot per MU
+
+    * normalize= 1 or 1 indicating whether each spectrum should be normalized such that its max value is set to 1
 
 ### Program #3 auto_unfold_spectrum.exe ###
 * Unfold a set of neutron measurements and output a CSV file containing values of a parameter of interest that was calculated iteratively during the unfolding process.
@@ -165,6 +168,7 @@ Please refer to dependencies.txt for dependencies
     * margin_top= Double value representing the fraction of the plot size composed of a top margin
     * margin_bottom= Double value representing the fraction of the plot size composed of a bottom margin
 
+    * legend= 1 or 0 indicating whether to include a legend
     * legend_entries= Comma-delimited list of text entries to put in the legend
     * legend_coords= 4 comma-delimited double values representing coordinates of the legend. Startx, Starty, Endx, Endy.
     * legend_border_size= Integer representing legend border size

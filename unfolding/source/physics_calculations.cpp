@@ -352,7 +352,7 @@ double calculateJFactor(int num_bins, int num_measurements, std::vector<double> 
     return numerator/denominator;
 }
 
-double calculateDerivatives(std::vector<double> &derivatives, int num_points, std::vector<int> &x_data, std::vector<double> &y_data) {
+void calculateDerivatives(std::vector<double> &derivatives, int num_points, std::vector<int> &x_data, std::vector<double> &y_data) {
     derivatives.clear();
 
     // first data point
