@@ -13,6 +13,7 @@ class UnfoldingSettings {
         double f_factor; // factor that converts measured charge (in fC) to counts per second [fA/cps]
         int cutoff; // maximum # of iterations in the unfolding algorithm
         int num_poisson_samples; // # of samples from Poisson distribution for uncertainty estimation
+        std::string meas_units; // string representing the units of the measured data
         // MAP specific
         double beta; // factor that affects damping of high noise spectral component in MAP method
         std::string prior;
@@ -26,6 +27,7 @@ class UnfoldingSettings {
         std::string algorithm;
         std::string trend_type;
         std::string auto_output_path;
+        int derivatives;
 
         UnfoldingSettings(); 
 
@@ -36,6 +38,7 @@ class UnfoldingSettings {
         void set_f_factor(double);
         void set_cutoff(int);
         void set_num_poisson_samples(int);
+        void set_meas_units(std::string);
         void set_beta(double);
         void set_prior(std::string);
         void set_min_num_iterations(int);
@@ -47,6 +50,7 @@ class UnfoldingSettings {
         void set_algorithm(std::string);
         void set_trend_type(std::string);
         void set_auto_output_path(std::string);
+        void set_derivatives(int);
 };
 
 class SpectraSettings {
@@ -70,6 +74,7 @@ class SpectraSettings {
         std::vector<int> line_style;
         std::vector<int> line_width;
         int border_width;
+        int legend;
         std::vector<float> legend_coords;
         int textbox;
         std::vector<float> textbox_coords;
@@ -77,6 +82,7 @@ class SpectraSettings {
         int plot_per_mu;
         std::vector<int> number_mu;
         std::vector<int> duration;
+        int normalize;
 
         SpectraSettings();
 
@@ -101,6 +107,7 @@ class SpectraSettings {
         void set_line_style(std::string);
         void set_line_width(std::string);
         void set_border_width(std::string);
+        void set_legend(std::string);
         void set_legend_coords(std::string);
         void set_textbox(std::string);
         void set_textbox_coords(std::string);
@@ -108,6 +115,7 @@ class SpectraSettings {
         void set_plot_per_mu(std::string);
         void set_number_mu(std::string);
         void set_duration(std::string);
+        void set_normalize(std::string);
 };
 
 class PlotSettings {
@@ -135,6 +143,7 @@ class PlotSettings {
         std::vector<int> line_style;
         std::vector<int> line_width;
         int border_width;
+        int legend;
         std::vector<float> legend_coords;
         int textbox;
         std::vector<float> textbox_coords;
@@ -179,6 +188,7 @@ class PlotSettings {
         void set_line_style(std::string);
         void set_line_width(std::string);
         void set_border_width(std::string);
+        void set_legend(std::string);
         void set_legend_coords(std::string);
         void set_textbox(std::string);
         void set_textbox_coords(std::string);

@@ -44,6 +44,31 @@ std::vector<double> normalizeResponse(int num_bins, int num_measurements, std::v
 
 
 //==================================================================================================
+// Normalize a vector of doubles such that the largest value in the vector is set as one. The vector
+// passed to this function is unaffected; a new normalized vector is returned.
+//==================================================================================================
+std::vector<double> normalizeVector(std::vector<double>& unnormalized_vector)
+{
+    std::vector<double> normalized_vector;
+    double max_value = 0;
+    int size = unnormalized_vector.size(); 
+
+    // Get max value
+    for (int i=0; i < size; i++) {
+        if (unnormalized_vector[i] > max_value) {
+            max_value = unnormalized_vector[i];
+        }
+    }
+    // Normalize
+    for (int i=0; i < size; i++) {
+        normalized_vector.push_back(unnormalized_vector[i]/max_value);
+    }
+
+    return normalized_vector;
+}
+
+
+//==================================================================================================
 // Return a poisson_distribution object, d that can be sampled from
 //  - accept a parameter 'lamda', that is used as the mean & std. dev of the poisson distribution
 //  - use the 'mrand' generator as the random number generator for the distribution
@@ -53,6 +78,23 @@ double poisson(double lambda)
     std::poisson_distribution<int> d(lambda); // initialization
 
     return d(mrand); // sample
+}
+
+
+//==================================================================================================
+// Calculate the root-mean-square deviation of a vector of values from a "true" value.
+//==================================================================================================
+double calculateRMSEstimator(int size, std::vector<double> &true_vector, std::vector<double> &estimate_vector) {
+    double sum_sq_diff = 0;
+
+    // Sum the square difference of poisson sampled values from the true value
+    for (int i = 0; i < size; i++) {
+        sum_sq_diff += ((true_vector[i] - estimate_vector[i])*(true_vector[i] - estimate_vector[i]));
+    }
+    double avg_sq_diff = sum_sq_diff/size;
+    double rms_diff = sqrt(avg_sq_diff);
+
+    return rms_diff;
 }
 
 
@@ -308,6 +350,21 @@ double calculateJFactor(int num_bins, int num_measurements, std::vector<double> 
     // std::cout << "j = " << numerator/denominator << "\n";
 
     return numerator/denominator;
+}
+
+double calculateDerivatives(std::vector<double> &derivatives, int num_points, std::vector<int> &x_data, std::vector<double> &y_data) {
+    derivatives.clear();
+
+    // first data point
+    derivatives.push_back((y_data[2]-y_data[1])/(x_data[2]-x_data[1]));
+
+    // Intermediate data points (not first & not last):
+    for (int i=1; i < num_points-1; i++) {
+        derivatives.push_back((y_data[i+1]-y_data[i-1])/(x_data[i+1]-x_data[i-1]));
+    }
+
+    // last data point
+    derivatives.push_back((y_data[num_points-1]-y_data[num_points-2])/(x_data[num_points-1]-x_data[num_points-2]));
 }
 
 

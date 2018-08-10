@@ -7,6 +7,7 @@
 #include <algorithm>
 
 std::vector<double> normalizeResponse(int num_bins, int num_measurements, std::vector<std::vector<double>>& system_response);
+std::vector<double> normalizeVector(std::vector<double>& unnormalized_vector);
 double poisson(double lambda);
 int runMLEM(int cutoff, double error, int num_measurements, int num_bins, std::vector<double> &measurements, std::vector<double> &spectrum, std::vector<std::vector<double>>& nns_response, std::vector<double> &normalized_response, std::vector<double> &mlem_ratio, std::vector<double> &mlem_correction);
 int runMAP(std::vector<double> &energy_correction, double beta, std::string prior, int cutoff, double error, int num_measurements, int num_bins, std::vector<double> &measurements, std::vector<double> &spectrum, std::vector<std::vector<double>>& nns_response, std::vector<double> &normalized_response, std::vector<double> &mlem_ratio);
@@ -18,11 +19,13 @@ double calculateMaxRatio(int num_measurements, std::vector<double> &mlem_ratio);
 double calculateAvgRatio(int num_measurements, std::vector<double> &mlem_ratio);
 double calculateAverageEnergy(int num_bins, std::vector<double> &spectrum, std::vector<double> &energy_bins);
 double calculateSourceStrength(int num_bins, std::vector<double> &spectrum, int duration, double dose_mu);
+double calculateRMSEstimator(int size, std::vector<double> &true_vector, std::vector<double> &estimate_vector);
 int calculateRMSD_vector(int num_samples, std::vector<double> &true_vector, std::vector<std::vector<double>> &sampled_vectors, std::vector<double> &rms_differences);
 double calculateRMSD(int num_samples, double true_value, std::vector<double> &sample_vector);
 double calculateSumUncertainty(int num_values, std::vector<double> &value_uncertainties);
 double calculateEnergyUncertainty(int num_bins, std::vector<double> energy_bins, std::vector<double> spectrum, std::vector<double> spectrum_uncertainty, double total_flux, double total_flux_uncertainty);
 double calculateJFactor(int num_bins, int num_measurements, std::vector<double> &spectrum, std::vector<double> &measurements, std::vector<std::vector<double>> &nns_response);
+double calculateDerivatives(std::vector<double> &derivatives, int num_points, std::vector<int> &x_data, std::vector<double> &y_data);
 std::vector<double> linearSpacedDoubleVector(double a, double b, std::size_t N);
 std::vector<int> linearSpacedIntegerVector(int a, int b, std::size_t N);
 

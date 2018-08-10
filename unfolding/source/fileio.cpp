@@ -269,6 +269,51 @@ std::vector<double> getMeasurements(std::string input_file, std::string &irradia
 
 
 //==================================================================================================
+// Read CPS measurement data from file
+// Args:
+//  - input_file: filename of the measurement file
+//  - irradiation_conditions: assign a string representing the measurement set (e.g. 10X_couch1)
+// Returns:
+//  - data_vector holds measurement values in nC. It is ordered from index:0 storing the value for 7
+//      moderators to index:7 storing the value for 0 moderators
+//==================================================================================================
+std::vector<double> getMeasurementsCPS(std::string input_file, std::string &irradiation_conditions) {
+    std::ifstream ifile(input_file);
+    if (!ifile.is_open()) {
+        //throw error
+        std::cout << "Unable to open input file: " + input_file + '\n';
+    }
+
+    // Load header information from 'ifile'
+    getline(ifile,irradiation_conditions);
+    // removes: carriage return '\r' from the string (which causes weird string overwriting)
+    irradiation_conditions.erase( std::remove(irradiation_conditions.begin(), irradiation_conditions.end(), '\r'), irradiation_conditions.end() );
+
+    // Loop through file, get measurement data
+    std::string line;
+    std::vector<double> data_vector;
+    while (getline(ifile,line)) {
+        std::istringstream line_stream(line);
+        std::string stoken; // store individual values between delimiters on a line
+
+        // Loop through each line, delimiting at commas
+        while (getline(line_stream, stoken, ',')) {
+            // Convert negative measurements to positive
+            double measurement = atof(stoken.c_str());
+            if (measurement < 0) {
+                measurement *= -1;
+            }
+            data_vector.push_back(measurement); // add data to the vector
+        }
+    }
+
+    ifile.close();
+    std::cout << "Data successfully retrieved from " + input_file + '\n';
+    return data_vector;
+}
+
+
+//==================================================================================================
 // Save calculated dose (and its error) to file (append to existing data in the file)
 // Args:
 //  - dose_file: filename to which results are saved
@@ -599,7 +644,7 @@ int checkDimensions(int reference_size, std::string reference_string, int test_s
 // of this function are separated by headers indicating the type of information printed to the
 // report in the the corresponding section.
 //==================================================================================================
-int prepareReport(std::string report_file, std::string irradiation_conditions, std::vector<std::string> &input_files, std::vector<std::string> &input_file_flags, std::string algorithm_name, int cutoff, double error, double norm, double f_factor, double beta, int num_measurements, int num_bins, int num_poisson_samples, std::vector<double>& measurements_nc, double dose_mu, double doserate_mu, int duration, std::vector<double>& energy_bins, std::vector<double>& initial_spectrum, std::vector<std::vector<double>>& nns_response, int num_iterations, std::vector<double>& mlem_ratio, double dose, double s_dose, double total_charge, double total_flux, double total_flux_uncertainty, double avg_energy, double avg_energy_uncertainty, std::vector<double>& spectrum, std::vector<double>& spectrum_uncertainty, std::vector<double>& icrp_factors, std::string git_commit) {
+int prepareReport(std::string report_file, std::string irradiation_conditions, std::vector<std::string> &input_files, std::vector<std::string> &input_file_flags, std::string algorithm_name, int cutoff, double error, double norm, double f_factor, double beta, int num_measurements, int num_bins, int num_poisson_samples, std::vector<double>& measurements_report, double dose_mu, double doserate_mu, int duration, std::vector<double>& energy_bins, std::vector<double>& initial_spectrum, std::vector<std::vector<double>>& nns_response, int num_iterations, std::vector<double>& mlem_ratio, double dose, double s_dose, double total_flux, double total_flux_uncertainty, double avg_energy, double avg_energy_uncertainty, std::vector<double>& spectrum, std::vector<double>& spectrum_uncertainty, std::vector<double>& icrp_factors, std::string git_commit, std::string meas_units) {
     std::string HEADER_DIVIDE = "************************************************************************************************************************\n";
     std::string SECTION_DIVIDE = "\n========================================================================================================================\n\n";
     std::string COLSTRING = "--------------------";
@@ -640,15 +685,21 @@ int prepareReport(std::string report_file, std::string irradiation_conditions, s
     //----------------------------------------------------------------------------------------------
     // Measurement
     //----------------------------------------------------------------------------------------------
+    std::string units_string;
+    if (meas_units == "cps")
+        units_string = "CPS";
+    else
+        units_string = "Charge (nC)";
+    
     rfile << "Measurement\n\n";
     rfile << std::left << std::setw(sw) << "Delivered dose:" << dose_mu << " MU\n";
     rfile << std::left << std::setw(sw) << "Delivered doserate:" << doserate_mu << " MU/min\n";
     rfile << std::left << std::setw(sw) << "Measurement duration:" << duration << " s\n\n";
     // rfile << "Measured Data (measurement duration: " << duration << "s)\n\n";
-    rfile << std::left << std::setw(cw) << "# of moderators" << "Charge (nC)\n";
+    rfile << std::left << std::setw(cw) << "# of moderators" << units_string << "\n";
     rfile << std::left << std::setw(cw) << COLSTRING << COLSTRING << "\n";
     for (int i=0; i<num_measurements; i++) {
-        rfile << std::left << std::setw(cw) << num_measurements-1-i << measurements_nc[i] << "\n";
+        rfile << std::left << std::setw(cw) << num_measurements-1-i << measurements_report[i] << "\n";
     }
     rfile << SECTION_DIVIDE;
 
@@ -714,7 +765,7 @@ int prepareReport(std::string report_file, std::string irradiation_conditions, s
     rfile << "Results\n\n";
     rfile << std::left << std::setw(sw) << "Ambient dose equivalent:" << dose << " mSv/hr\n";
     rfile << std::left << std::setw(sw) << "Uncertainty:" << s_dose << " mSv\n\n";
-    rfile << std::left << std::setw(sw) << "Total measured charge:" << total_charge << " nC\n\n";
+    // rfile << std::left << std::setw(sw) << "Total measured charge:" << total_charge << " nC\n\n";
     rfile << std::left << std::setw(sw) << "Integrated neutron flux:" << total_flux << " n cm^-2 s^-1\n";
     rfile << std::left << std::setw(sw) << "Uncertainty:" << total_flux_uncertainty << " n cm^-2 s^-1\n\n";
     rfile << std::left << std::setw(sw) << "Average neutron energy:" << avg_energy << " MeV\n";

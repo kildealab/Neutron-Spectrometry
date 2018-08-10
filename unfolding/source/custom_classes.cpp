@@ -14,6 +14,7 @@ UnfoldingSettings::UnfoldingSettings() {
     f_factor = 7.0;
     cutoff = 10000;
     num_poisson_samples = 50;
+    meas_units = "nc";
     // MAP specific
     beta = 0.0;
     prior = "mrp";
@@ -27,6 +28,7 @@ UnfoldingSettings::UnfoldingSettings() {
     algorithm = "mlem";
     trend_type = "ratio";
     auto_output_path = "output/auto.csv";
+    derivatives = 0;
 }
 
 // Apply a value to a setting:
@@ -41,6 +43,8 @@ void UnfoldingSettings::set_setting(std::string settings_name, std::string setti
         this->set_cutoff(atoi(settings_value.c_str()));
     else if (settings_name == "num_poisson_samples")
         this->set_num_poisson_samples(atoi(settings_value.c_str()));
+    else if (settings_name == "meas_units")
+        this->set_meas_units(settings_value);
     else if (settings_name == "beta")
         this->set_beta(atof(settings_value.c_str()));
     else if (settings_name == "prior")
@@ -63,6 +67,8 @@ void UnfoldingSettings::set_setting(std::string settings_name, std::string setti
         this->set_trend_type(settings_value);
     else if (settings_name == "auto_output_path")
         this->set_auto_output_path(settings_value);
+    else if (settings_name == "derivatives")
+        this->set_derivatives(atoi(settings_value.c_str()));
     else
         throw std::logic_error("Unrecognized setting: " + settings_name + ". Please refer to the README for allowed settings");
 
@@ -83,6 +89,9 @@ void UnfoldingSettings::set_cutoff(int cutoff) {
 }
 void UnfoldingSettings::set_num_poisson_samples(int num_poisson_samples) {
     this->num_poisson_samples = num_poisson_samples;
+}
+void UnfoldingSettings::set_meas_units(std::string meas_units) {
+    this->meas_units = meas_units;
 }
 void UnfoldingSettings::set_beta(double beta) {
     this->beta = beta;
@@ -117,7 +126,9 @@ void UnfoldingSettings::set_trend_type(std::string trend_type) {
 void UnfoldingSettings::set_auto_output_path(std::string auto_output_path) {
     this->auto_output_path = auto_output_path;
 }
-
+void UnfoldingSettings::set_derivatives(int derivatives) {
+    this->derivatives = derivatives;
+}
 
 //--------------------------------------------------------------------------------------------------
 // Default Constructor for SpectraSettings
@@ -142,6 +153,7 @@ SpectraSettings::SpectraSettings() {
     line_style = {1};
     line_width = {1};
     border_width = 1;
+    legend = 1;
     legend_coords = {0.15,0.75,0.4,0.85};
     textbox = 0;
     textbox_coords = {0.15,0.4,0.4,0.6};
@@ -149,6 +161,7 @@ SpectraSettings::SpectraSettings() {
     plot_per_mu = 0;
     number_mu = {0};
     duration = {0};
+    normalize = 0;
 }
 
 // Apply a value to a setting:
@@ -194,6 +207,8 @@ void SpectraSettings::set_setting(std::string settings_name, std::string setting
         this->set_line_width(settings_value);
     else if (settings_name == "border_width")
         this->set_border_width(settings_value);
+    else if (settings_name == "legend")
+        this->set_legend(settings_value);
     else if (settings_name == "legend_coords")
         this->set_legend_coords(settings_value);
     else if (settings_name == "textbox")
@@ -208,6 +223,8 @@ void SpectraSettings::set_setting(std::string settings_name, std::string setting
         this->set_number_mu(settings_value);
     else if (settings_name == "duration")
         this->set_duration(settings_value);
+    else if (settings_name == "normalize")
+        this->set_normalize(settings_value);
     // else
     //     throw std::logic_error("Unrecognized setting: " + settings_name + ". Please refer to the README for allowed settings");
 }
@@ -269,6 +286,9 @@ void SpectraSettings::set_line_width(std::string line_width) {
 void SpectraSettings::set_border_width(std::string border_width) {
     this->border_width = stoi(border_width);
 }
+void SpectraSettings::set_legend(std::string legend) {
+    this->legend = stoi(legend);
+} 
 void SpectraSettings::set_legend_coords(std::string legend_coords) {
     stringToDVector(legend_coords,this->legend_coords);
 }
@@ -289,6 +309,9 @@ void SpectraSettings::set_number_mu(std::string number_mu) {
 } 
 void SpectraSettings::set_duration(std::string duration) {
     stringToIVector(duration,this->duration);
+} 
+void SpectraSettings::set_normalize(std::string normalize) {
+    this->normalize = stoi(normalize);
 } 
 
 
@@ -320,6 +343,7 @@ PlotSettings::PlotSettings() {
     line_style = {1};
     line_width = {2};
     border_width = 1;
+    legend = 1;
     legend_coords = {0.15,0.65,0.4,0.85};
     textbox = 0;
     textbox_coords = {0.15,0.4,0.4,0.6};
@@ -388,6 +412,8 @@ void PlotSettings::set_setting(std::string settings_name, std::string settings_v
         this->set_line_width(settings_value);
     else if (settings_name == "border_width")
         this->set_border_width(settings_value);
+    else if (settings_name == "legend")
+        this->set_legend(settings_value);
     else if (settings_name == "legend_coords")
         this->set_legend_coords(settings_value);
     else if (settings_name == "textbox")
@@ -492,6 +518,9 @@ void PlotSettings::set_line_width(std::string line_width) {
 void PlotSettings::set_border_width(std::string border_width) {
     this->border_width = stoi(border_width);
 }
+void PlotSettings::set_legend(std::string legend) {
+    this->legend = stoi(legend);
+} 
 void PlotSettings::set_legend_coords(std::string legend_coords) {
     stringToDVector(legend_coords,this->legend_coords);
 }

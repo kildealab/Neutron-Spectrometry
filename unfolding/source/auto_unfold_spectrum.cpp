@@ -1,5 +1,5 @@
 //**************************************************************************************************
-// This program unfolds a set of measurements (in nC) obtained using a Nested Neutron Spectrometer
+// This program unfolds measurements (nA or cps) obtained using a Nested Neutron Spectrometer
 // to calculate one of various parameters of interest (e.g. dose, fluence, MLEM ratio) with
 // increasing iteration number. In the case of MAP unfolding, the the parameter is also calculated
 // as a function of beta.
@@ -87,21 +87,46 @@ int main(int argc, char* argv[])
     // Standard figure file suffix (file extension)
     std::string figure_file_suf = ".png";
 
-    // Read measured data (in nC) from input file
+    // Read measured data from input file
     std::string irradiation_conditions;
     double dose_mu; // dose delivered (MU) for individual measurement
     double doserate_mu; // dose rate (MU/min) used for individual measurement
     int duration; // Duration (s) of individual measurement acquisition
-    std::vector<double> measurements_nc = getMeasurements(input_files[0], irradiation_conditions, dose_mu, doserate_mu, duration);
-    int num_measurements = measurements_nc.size();
 
-    // Convert measured charge in nC to counts per second
-    // Re-order measurments from (7 moderators to 0) to (0 moderators to 7)
+    std::vector<double> measurements_nc;
     std::vector<double> measurements;
-    for (int index=0; index < num_measurements; index++) {
-        double measurement_cps = measurements_nc[num_measurements-index-1]*settings.norm/settings.f_factor/duration;
-        measurements.push_back(measurement_cps);
+    int num_measurements = 0;
+
+    // Handle inputs with different units
+    if (settings.meas_units == "cps") {
+        measurements = getMeasurementsCPS(input_files[0], irradiation_conditions);
+        num_measurements = measurements.size();
+
+        for (int index=0; index < num_measurements; index++) {
+            measurements[index] = measurements[index]*settings.norm;
+        }
+        std::reverse(measurements.begin(),measurements.end());
     }
+    else {
+        measurements_nc = getMeasurements(input_files[0], irradiation_conditions, dose_mu, doserate_mu, duration);
+        num_measurements = measurements_nc.size();
+
+        for (int index=0; index < num_measurements; index++) {
+            double measurement_cps = measurements_nc[num_measurements-index-1]*settings.norm/settings.f_factor/duration;
+            measurements.push_back(measurement_cps);
+        }
+    }
+
+    // std::vector<double> measurements_nc = getMeasurements(input_files[0], irradiation_conditions, dose_mu, doserate_mu, duration);
+    // int num_measurements = measurements_nc.size();
+
+    // // Convert measured charge in nC to counts per second
+    // // Re-order measurments from (7 moderators to 0) to (0 moderators to 7)
+    // std::vector<double> measurements;
+    // for (int index=0; index < num_measurements; index++) {
+    //     double measurement_cps = measurements_nc[num_measurements-index-1]*settings.norm/settings.f_factor/duration;
+    //     measurements.push_back(measurement_cps);
+    // }
 
     //----------------------------------------------------------------------------------------------
     // Generate the energy bins matrix:
@@ -332,6 +357,8 @@ int main(int argc, char* argv[])
 
         std::vector<double> current_spectrum = initial_spectrum; // the reconstructed spectrum
 
+        std::vector<double> derivative_poi_values; // hold poi_values in vector if doing derivative calculations
+
         // Create stream to append results. First row is number of iteration increments
         // determine if file exists
         // std::string map_filename = "output/poi_output_mlem.csv";
@@ -351,6 +378,10 @@ int main(int argc, char* argv[])
             }
             results_stream << "\n";
         }
+
+        // Used if calculating RMSD
+        std::vector<double> ref_spectrum;
+        readInputFile1D("/Users/loganmontgomery/code/neutrons/neutron_spectrometry/unfolding/input/spectrum_ambe.csv",ref_spectrum);
 
         // Loop through number of iterations
         for (int i_num=0; i_num < num_iteration_samples; i_num++) {
@@ -395,16 +426,40 @@ int main(int argc, char* argv[])
                     results_stream << "J factor,";
                 poi_value = calculateJFactor(num_bins,num_measurements,current_spectrum,measurements,nns_response);
             }
+            else if (settings.parameter_of_interest == "rms") {
+                if (i_num == 0)
+                    results_stream << "Root Mean Square Error,";
+                std::vector<double> normalized_spectrum = normalizeVector(current_spectrum);
+                poi_value = calculateRMSEstimator(num_bins,ref_spectrum,normalized_spectrum);
+            }
             else {
                 throw std::logic_error("Unrecognized parameter of interest: " + settings.parameter_of_interest + ". Please refer to the README for allowed parameters");
             }
 
-            results_stream << poi_value;
-            if (i_num == num_iteration_samples-1)
-                results_stream << "\n";
+            if (!settings.derivatives) {
+                results_stream << poi_value;
+                if (i_num == num_iteration_samples-1)
+                    results_stream << "\n";
 
-            else
-                results_stream << ",";
+                else
+                    results_stream << ",";
+            }
+            else {
+                derivative_poi_values.push_back(poi_value);
+            }
+        }
+
+        if (settings.derivatives) {
+            std::vector<double> derivative_vector;
+            calculateDerivatives(derivative_vector, num_iteration_samples, num_iterations_vector, derivative_poi_values);
+
+            for (int i_num=0; i_num < num_iteration_samples; i_num++) {
+                results_stream << derivative_vector[i_num];
+                if (i_num == num_iteration_samples-1)
+                    results_stream << "\n";
+                else
+                    results_stream << ",";
+            }
         }
 
         // Save results for parameter of interest to CSV file
@@ -414,7 +469,14 @@ int main(int argc, char* argv[])
         output_file << results_string;
         output_file.close();
 
-        std::cout << "Saved 2D matrix of " << settings.parameter_of_interest << " values to " << settings.auto_output_path << "\n";
+        if (!settings.derivatives) {
+            std::cout << "not derivatives\n";
+            std::cout << "Saved 2D matrix of " << settings.parameter_of_interest << " values to " << settings.auto_output_path << "\n";
+        }
+        else {
+            std::cout << "yes derivatives\n";
+            std::cout << "Saved 2D matrix of derivatives of " << settings.parameter_of_interest << " values to " << settings.auto_output_path << "\n";
+        }
 
         // // Save results for parameter of interest to CSV file
         // std::ofstream output_file;

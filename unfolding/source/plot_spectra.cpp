@@ -57,6 +57,24 @@ int main(int argc, char* argv[])
     int num_spectra = spectra_array.size();
     int num_bins = energy_bins.size() - 1;
 
+    // If spectra should be normalized
+    if (settings.normalize) {
+        for (int i_spec=0; i_spec < num_spectra; i_spec++) {
+            // Get max value
+            int max_value = 0;
+            for (int i_bin=0; i_bin < num_bins; i_bin++) {
+                if (spectra_array[i_spec][i_bin] > max_value) {
+                    max_value = spectra_array[i_spec][i_bin];
+                }
+            }
+            // Normalize
+            for (int i_bin=0; i_bin < num_bins; i_bin++) {
+                spectra_array[i_spec][i_bin] = spectra_array[i_spec][i_bin] / max_value;
+                error_array[i_spec][i_bin] = error_array[i_spec][i_bin] / max_value;
+            }
+        }
+    }
+
     // Generate the plot area
     TCanvas *c1 = new TCanvas("c1","c1",settings.x_res,settings.y_res); // Resolution of the graph (px) specified in parameters
 
@@ -155,7 +173,9 @@ int main(int argc, char* argv[])
     }
 
     // Add the legend to the canvas
-    leg->Draw();
+    if (settings.legend) {
+        leg->Draw();
+    }
 
     // Optionally add a text box. Must draw the text box later in script as well, if necessary
     if(settings.textbox){

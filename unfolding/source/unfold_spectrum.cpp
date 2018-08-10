@@ -105,22 +105,46 @@ int main(int argc, char* argv[])
     // temp_stream << algorithm_name << settings.cutoff << ".png";
     // std::string figure_file_suf = temp_stream.str();
 
-    // Read measured data (in nC) from input file
+    // Read measured data from input file
     std::string irradiation_conditions;
     double dose_mu; // dose delivered (MU) for individual measurement
     double doserate_mu; // dose rate (MU/min) used for individual measurement
     int duration; // Duration (s) of individual measurement acquisition
-    std::vector<double> measurements_nc = getMeasurements(input_files[0], irradiation_conditions, dose_mu, doserate_mu, duration);
-    int num_measurements = measurements_nc.size();
 
-    // Convert measured charge in nC to counts per second
-    // Re-order measurments from (7 moderators to 0) to (0 moderators to 7)
+    std::vector<double> measurements_nc;
     std::vector<double> measurements;
-    for (int index=0; index < num_measurements; index++) {
-        double measurement_cps = measurements_nc[num_measurements-index-1]*settings.norm/settings.f_factor/duration;
-        measurements.push_back(measurement_cps);
+    int num_measurements = 0;
+
+    // Handle inputs with different units
+    if (settings.meas_units == "cps") {
+        measurements = getMeasurementsCPS(input_files[0], irradiation_conditions);
+        num_measurements = measurements.size();
+
+        for (int index=0; index < num_measurements; index++) {
+            measurements[index] = measurements[index]*settings.norm;
+        }
+        std::reverse(measurements.begin(),measurements.end());
+    }
+    else {
+        measurements_nc = getMeasurements(input_files[0], irradiation_conditions, dose_mu, doserate_mu, duration);
+        num_measurements = measurements_nc.size();
+
+        for (int index=0; index < num_measurements; index++) {
+            double measurement_cps = measurements_nc[num_measurements-index-1]*settings.norm/settings.f_factor/duration;
+            measurements.push_back(measurement_cps);
+        }
     }
 
+    // std::vector<double> measurements_nc = getMeasurements(input_files[0], irradiation_conditions, dose_mu, doserate_mu, duration);
+    // int num_measurements = measurements_nc.size();
+
+    // // Convert measured charge in nC to counts per second
+    // // Re-order measurments from (7 moderators to 0) to (0 moderators to 7)
+    // std::vector<double> measurements;
+    // for (int index=0; index < num_measurements; index++) {
+    //     double measurement_cps = measurements_nc[num_measurements-index-1]*settings.norm/settings.f_factor/duration;
+    //     measurements.push_back(measurement_cps);
+    // }
 
     //----------------------------------------------------------------------------------------------
     // Print out the processed measured data matrix
@@ -306,7 +330,7 @@ int main(int argc, char* argv[])
     double ambient_dose_eq = calculateDose(num_bins, spectrum, icrp_factors);
     double ambient_dose_eq_uncertainty = calculateRMSD(settings.num_poisson_samples, ambient_dose_eq, sampled_dose);
 
-    double total_charge = calculateTotalCharge(num_measurements,measurements_nc);
+    // double total_charge = calculateTotalCharge(num_measurements,measurements_nc);
 
     double total_flux = calculateTotalFlux(num_bins,spectrum);
     double total_flux_uncertainty = calculateSumUncertainty(num_bins,spectrum_uncertainty);
@@ -324,8 +348,8 @@ int main(int argc, char* argv[])
     std::cout << "The uncertainty on the equivalent dose is: " << ambient_dose_eq_uncertainty << " mSv/h" << std::endl;
     std::cout << '\n';
 
-    std::cout << "The total measured charge is: " << total_charge << " nC" << std::endl;
-    std::cout << '\n';
+    // std::cout << "The total measured charge is: " << total_charge << " nC" << std::endl;
+    // std::cout << '\n';
 
     std::cout << "The total neutron flux is: " << total_flux << " n cm^-2 s^-1" << std::endl;
     std::cout << "The uncertainty on the total flux is: " << total_flux_uncertainty << " n cm^-2 s^-1" << std::endl;
@@ -347,8 +371,15 @@ int main(int argc, char* argv[])
     saveSpectrumAsRow(o_spectrum_file, num_bins, irradiation_conditions, spectrum, spectrum_uncertainty, energy_bins);
     std::cout << "Saved unfolded spectrum to " << o_spectrum_file << "\n";
 
+    std::vector<double> measurements_report;
+    if (settings.meas_units == "cps") {
+        measurements_report = measurements;
+        std::reverse(measurements_report.begin(),measurements_report.end());
+    }
+    else
+        measurements_report = measurements_nc;
     std::string report_file = report_file_pre + irradiation_conditions + report_file_suf;
-    prepareReport(report_file, irradiation_conditions, input_files, input_file_flags, algorithm_name, settings.cutoff, settings.error, settings.norm, f_factor_report, settings.beta, num_measurements, num_bins, settings.num_poisson_samples, measurements_nc, dose_mu, doserate_mu, duration, energy_bins, initial_spectrum, nns_response, num_iterations, mlem_ratio, ambient_dose_eq, ambient_dose_eq_uncertainty, total_charge, total_flux, total_flux_uncertainty, avg_energy, avg_energy_uncertainty, spectrum, spectrum_uncertainty, icrp_factors, GIT_COMMIT);
+    prepareReport(report_file, irradiation_conditions, input_files, input_file_flags, algorithm_name, settings.cutoff, settings.error, settings.norm, f_factor_report, settings.beta, num_measurements, num_bins, settings.num_poisson_samples, measurements_report, dose_mu, doserate_mu, duration, energy_bins, initial_spectrum, nns_response, num_iterations, mlem_ratio, ambient_dose_eq, ambient_dose_eq_uncertainty, total_flux, total_flux_uncertainty, avg_energy, avg_energy_uncertainty, spectrum, spectrum_uncertainty, icrp_factors, GIT_COMMIT, settings.meas_units);
     std::cout << "Generated summary report: " << report_file << "\n\n";
 
     //----------------------------------------------------------------------------------------------

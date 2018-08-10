@@ -122,7 +122,9 @@ int main(int argc, char* argv[])
 
     // Add elements to canvas
     mg->Draw("a");
-    leg->Draw();
+    if (settings.legend) {
+        leg->Draw();
+    }
 
     // Set titles
     mg->SetTitle(settings.title.c_str());
