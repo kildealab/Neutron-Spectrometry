@@ -60,6 +60,9 @@ int main(int argc, char* argv[])
     if (settings.x_log) {
         c1->SetLogx();
     }
+    if (settings.grayscale){
+        c1->GetCanvas()->SetGrayscale();
+    }
 
     // Generate the legend
     TLegend* leg = new TLegend(settings.legend_coords[0], settings.legend_coords[1], settings.legend_coords[2], settings.legend_coords[3]); // with a text box

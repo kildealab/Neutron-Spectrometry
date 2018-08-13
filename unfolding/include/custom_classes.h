@@ -72,6 +72,7 @@ class SpectraSettings {
         std::vector<std::string> legend_entries;
         std::vector<std::string> color_series;
         std::vector<std::string> color_error;
+        int grayscale;
         std::vector<int> show_error;
         std::vector<int> line_style;
         std::vector<int> line_width;
@@ -105,6 +106,7 @@ class SpectraSettings {
         void set_legend_entries(std::string);
         void set_color_series(std::string);
         void set_color_error(std::string);
+        void set_grayscale(std::string);
         void set_show_error(std::string);
         void set_line_style(std::string);
         void set_line_width(std::string);
@@ -140,6 +142,7 @@ class PlotSettings {
         int x_log;
         std::vector<std::string> legend_entries;
         std::vector<std::string> color_series;
+        int grayscale;
         // std::vector<std::string> color_error;
         // std::vector<int> show_error;
         std::vector<int> line_style;
@@ -185,6 +188,7 @@ class PlotSettings {
         void set_y_num_divs(std::string);
         void set_legend_entries(std::string);
         void set_color_series(std::string);
+        void set_grayscale(std::string);
         // void set_color_error(std::string);
         // void set_show_error(std::string);
         void set_line_style(std::string);

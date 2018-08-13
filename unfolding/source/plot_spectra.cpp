@@ -77,6 +77,9 @@ int main(int argc, char* argv[])
 
     // Generate the plot area
     TCanvas *c1 = new TCanvas("c1","c1",settings.x_res,settings.y_res); // Resolution of the graph (px) specified in parameters
+    if (settings.grayscale){
+        c1->GetCanvas()->SetGrayscale();
+    }
 
     // Generate the legend
     TLegend* leg = new TLegend(settings.legend_coords[0], settings.legend_coords[1], settings.legend_coords[2], settings.legend_coords[3]); // with a text box

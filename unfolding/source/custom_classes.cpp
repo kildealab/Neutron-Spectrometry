@@ -155,6 +155,7 @@ SpectraSettings::SpectraSettings() {
     legend_entries = {};
     color_series = {"#000000","#C63822","#607FD5","#55A961"};
     color_error = {"#333333","#E79A9F","#6B8EF0","#69CF77"};
+    grayscale = 0;
     show_error = {1};
     line_style = {1};
     line_width = {1};
@@ -205,6 +206,8 @@ void SpectraSettings::set_setting(std::string settings_name, std::string setting
         this->set_color_series(settings_value);
     else if (settings_name == "color_error")
         this->set_color_error(settings_value);
+    else if (settings_name == "grayscale")
+        this->set_grayscale(settings_value);
     else if (settings_name == "show_error")
         this->set_show_error(settings_value);
     else if (settings_name == "line_style")
@@ -280,6 +283,9 @@ void SpectraSettings::set_color_series(std::string color_series) {
 void SpectraSettings::set_color_error(std::string color_error) {
     stringToSVector(color_error,this->color_error);
 }
+void SpectraSettings::set_grayscale(std::string grayscale) {
+    this->grayscale = stoi(grayscale);
+} 
 void SpectraSettings::set_show_error(std::string show_error) {
     stringToIVector(show_error,this->show_error);
 }
@@ -344,6 +350,7 @@ PlotSettings::PlotSettings() {
     legend_entries = {};
     // color_series = {"#000000","#C63822","#607FD5","#55A961"};
     color_series = {"#333333","#4e79a7","#59a14f","#9c755f","#f29e2b","#edc948","#bab0ac","#e15759","#b07aa1","#76b7b2","#ff9da7"};
+    grayscale = 0;
     // color_error = {"#333333","#E79A9F","#6B8EF0","#69CF77"};
     // show_error;
     line_style = {1};
@@ -408,6 +415,8 @@ void PlotSettings::set_setting(std::string settings_name, std::string settings_v
         this->set_legend_entries(settings_value);
     else if (settings_name == "color_series")
         this->set_color_series(settings_value);
+    else if (settings_name == "grayscale")
+        this->set_grayscale(settings_value);
     // else if (settings_name == "color_error")
     //     this->set_color_error(settings_value);
     // else if (settings_name == "show_error")
@@ -509,6 +518,9 @@ void PlotSettings::set_legend_entries(std::string legend_entries) {
 void PlotSettings::set_color_series(std::string color_series) {
     stringToSVector(color_series,this->color_series);
 }
+void PlotSettings::set_grayscale(std::string grayscale) {
+    this->grayscale = stoi(grayscale);
+} 
 // void PlotSettings::set_color_error(std::string color_error) {
 //     stringToSVector(color_error,this->color_error);
 // }

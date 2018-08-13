@@ -77,6 +77,7 @@ Please refer to dependencies.txt for dependencies
     * y_num_divs= Number that specifies number of major and minor divisions (tick marks). See https://root.cern.ch/doc/master/classTAttAxis.html#ae3067b6d4218970d09418291cbd84084
 
     * color_series= Comma-delimited list of HEX color values (e.g. #000000,#FFFFFF)
+    * grayscale= 1 or 0 indicating whether figure should be output in grayscale
     * line_style= Comma-delimited list of numeric line styles. See https://root.cern.ch/doc/master/classTAttLine.html
     * line_width= Commad-delimited list of numeric line widths. See https://root.cern.ch/doc/master/classTAttLine.html
     * border_width= Numeric width for the border (axes) of the graph
@@ -157,6 +158,7 @@ Please refer to dependencies.txt for dependencies
 
     * plot_type= Character representing the plot type. Allowed options are l (for line plots) and p (for scatter plots)
     * color_series= Comma-delimited list of HEX color values (e.g. #000000,#FFFFFF)
+    * grayscale= 1 or 0 indicating whether figure should be output in grayscale
     * line_style= Comma-delimited list of numeric line styles. See https://root.cern.ch/doc/master/classTAttLine.html
     * line_width= Commad-delimited list of numeric line widths. See https://root.cern.ch/doc/master/classTAttLine.html
     * border_width= Numeric width for the border (axes) of the graph
