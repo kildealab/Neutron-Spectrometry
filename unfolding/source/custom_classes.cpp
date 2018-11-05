@@ -29,12 +29,20 @@ UnfoldingSettings::UnfoldingSettings() {
     trend_type = "ratio";
     auto_output_path = "output/auto.csv";
     derivatives = 0;
+    measurements_path = "input/measurements.txt";
+    input_spectrum_path = "input/spectrum_step.csv";
+    energy_bins_path = "input/energy_bins.csv";
+    system_response_path = "input/nns_response.csv";
+    icrp_factors_path = "input/icrp_conversions.csv";
     ref_spectrum_path = "";
 }
 
 // Apply a value to a setting:
 void UnfoldingSettings::set_setting(std::string settings_name, std::string settings_value) {
-    if (settings_name == "nns_normalization")
+    if (settings_value == ""){
+        // If no setting value provided, do not apply anything
+    }
+    else if (settings_name == "nns_normalization")
         this->set_norm(atof(settings_value.c_str()));
     else if (settings_name == "mlem_max_error")
         this->set_error(atof(settings_value.c_str()));
@@ -70,6 +78,16 @@ void UnfoldingSettings::set_setting(std::string settings_name, std::string setti
         this->set_auto_output_path(settings_value);
     else if (settings_name == "derivatives")
         this->set_derivatives(atoi(settings_value.c_str()));
+    else if (settings_name == "measurements_path")
+        this->set_measurements_path(settings_value);
+    else if (settings_name == "input_spectrum_path")
+        this->set_input_spectrum_path(settings_value);
+    else if (settings_name == "energy_bins_path")
+        this->set_energy_bins_path(settings_value);
+    else if (settings_name == "system_response_path")
+        this->set_system_response_path(settings_value);
+    else if (settings_name == "icrp_factors_path")
+        this->set_icrp_factors_path(settings_value);
     else if (settings_name == "ref_spectrum_path")
         this->set_ref_spectrum_path(settings_value);
     else
@@ -132,6 +150,21 @@ void UnfoldingSettings::set_auto_output_path(std::string auto_output_path) {
 void UnfoldingSettings::set_derivatives(int derivatives) {
     this->derivatives = derivatives;
 }
+void UnfoldingSettings::set_measurements_path(std::string measurements_path) {
+    this->measurements_path = measurements_path;
+}
+void UnfoldingSettings::set_input_spectrum_path(std::string input_spectrum_path) {
+    this->input_spectrum_path = input_spectrum_path;
+}
+void UnfoldingSettings::set_energy_bins_path(std::string energy_bins_path) {
+    this->energy_bins_path = energy_bins_path;
+}
+void UnfoldingSettings::set_system_response_path(std::string system_response_path) {
+    this->system_response_path = system_response_path;
+}
+void UnfoldingSettings::set_icrp_factors_path(std::string icrp_factors_path) {
+    this->icrp_factors_path = icrp_factors_path;
+}
 void UnfoldingSettings::set_ref_spectrum_path(std::string ref_spectrum_path) {
     this->ref_spectrum_path = ref_spectrum_path;
 }
@@ -153,8 +186,8 @@ SpectraSettings::SpectraSettings() {
     y_res = 600;
     y_num_divs = 0;
     legend_entries = {};
-    color_series = {"#000000","#C63822","#607FD5","#55A961"};
-    color_error = {"#333333","#E79A9F","#6B8EF0","#69CF77"};
+    color_series = {"#000000","#C63822","#607FD5","#55A961","#75298e","#ce884a","#33889b"};
+    color_error = {"#333333","#E79A9F","#6B8EF0","#69CF77","#ad4ace","#e2a56f","#69c6db"};
     grayscale = 0;
     show_error = {1};
     line_style = {1};
@@ -345,11 +378,14 @@ PlotSettings::PlotSettings() {
     x_res = 800;
     y_res = 600;
     x_log = 0;
+    y_log = 0;
     x_num_divs = 0;
     y_num_divs = 0;
     legend_entries = {};
     // color_series = {"#000000","#C63822","#607FD5","#55A961"};
-    color_series = {"#333333","#4e79a7","#59a14f","#9c755f","#f29e2b","#edc948","#bab0ac","#e15759","#b07aa1","#76b7b2","#ff9da7"};
+    // color_series = {"#333333","#4e79a7","#59a14f","#9c755f","#f29e2b","#edc948","#bab0ac","#e15759","#b07aa1","#76b7b2","#ff9da7"};
+    //               black      blue       red      green     purple    grey      teal       salmon   light gr    fuchsia
+    color_series = {"#000000","#4556d2","#C63822","#55A961","#75298e","#9ba5b1","#2fb5d4","#E79A9F","#4be0b0","#cb66ed"};
     grayscale = 0;
     // color_error = {"#333333","#E79A9F","#6B8EF0","#69CF77"};
     // show_error;
@@ -407,6 +443,8 @@ void PlotSettings::set_setting(std::string settings_name, std::string settings_v
         this->set_y_res(settings_value);
     else if (settings_name == "x_log")
         this->set_x_log(settings_value);
+    else if (settings_name == "y_log")
+        this->set_y_log(settings_value);
     else if (settings_name == "y_num_divs")
         this->set_y_num_divs(settings_value);
     else if (settings_name == "x_num_divs")
@@ -505,6 +543,9 @@ void PlotSettings::set_y_res(std::string y_res) {
 }
 void PlotSettings::set_x_log(std::string x_log) {
     this->x_log = stoi(x_log);
+}
+void PlotSettings::set_y_log(std::string y_log) {
+    this->y_log = stoi(y_log);
 }
 void PlotSettings::set_x_num_divs(std::string x_num_divs) {
     this->x_num_divs = stoi(x_num_divs);

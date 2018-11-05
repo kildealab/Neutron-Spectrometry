@@ -320,16 +320,17 @@ double calculateSourceStrength(int num_bins, std::vector<double> &spectrum, int 
     return source_strength;
 }
 
-double calculateJFactor(int num_bins, int num_measurements, std::vector<double> &spectrum, std::vector<double> &measurements, std::vector<std::vector<double>> &nns_response) {
+double calculateJFactor(int num_bins, int num_measurements, std::vector<double> &spectrum, std::vector<double> &measurements, std::vector<std::vector<double>> &nns_response, std::vector<double> &mlem_ratio) {
     std::vector<double> mlem_estimate;
 
     for(int i_meas = 0; i_meas < num_measurements; i_meas++)
     {
-        double temp_value = 0;
-        for(int i_bin = 0; i_bin < num_bins; i_bin++)
-        {
-            temp_value += nns_response[i_meas][i_bin]*spectrum[i_bin];
-        }
+        // double temp_value = 0;
+        // for(int i_bin = 0; i_bin < num_bins; i_bin++)
+        // {
+        //     temp_value += nns_response[i_meas][i_bin]*spectrum[i_bin];
+        // }
+        double temp_value = measurements[i_meas] / mlem_ratio[i_meas];
         mlem_estimate.push_back(temp_value);
     }
 

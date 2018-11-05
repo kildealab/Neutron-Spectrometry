@@ -61,7 +61,7 @@ int main(int argc, char* argv[])
     if (settings.normalize) {
         for (int i_spec=0; i_spec < num_spectra; i_spec++) {
             // Get max value
-            int max_value = 0;
+            double max_value = 0;
             for (int i_bin=0; i_bin < num_bins; i_bin++) {
                 if (spectra_array[i_spec][i_bin] > max_value) {
                     max_value = spectra_array[i_spec][i_bin];
@@ -149,7 +149,7 @@ int main(int argc, char* argv[])
             histograms[i_spec]->SetTickLength(0.015,"xy"); // Length of tick marks (default = 0.02)
 
             // Set x-axis range
-            histograms[i_spec]->GetXaxis()->SetRange(0,52); // Range according to bin number
+            histograms[i_spec]->GetXaxis()->SetRange(0,num_bins); // Range according to bin number
             // histograms[i_spec]->GetXaxis()->SetRangeUser(1e-9,10); // Range according to value (must be in range spanned by bins)
             
             // Set axis tick label size

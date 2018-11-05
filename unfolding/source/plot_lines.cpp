@@ -60,6 +60,9 @@ int main(int argc, char* argv[])
     if (settings.x_log) {
         c1->SetLogx();
     }
+    if (settings.x_log) {
+        c1->SetLogy();
+    }
     if (settings.grayscale){
         c1->GetCanvas()->SetGrayscale();
     }

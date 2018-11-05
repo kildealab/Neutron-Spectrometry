@@ -24,7 +24,7 @@ int calculateRMSD_vector(int num_samples, std::vector<double> &true_vector, std:
 double calculateRMSD(int num_samples, double true_value, std::vector<double> &sample_vector);
 double calculateSumUncertainty(int num_values, std::vector<double> &value_uncertainties);
 double calculateEnergyUncertainty(int num_bins, std::vector<double> energy_bins, std::vector<double> spectrum, std::vector<double> spectrum_uncertainty, double total_flux, double total_flux_uncertainty);
-double calculateJFactor(int num_bins, int num_measurements, std::vector<double> &spectrum, std::vector<double> &measurements, std::vector<std::vector<double>> &nns_response);
+double calculateJFactor(int num_bins, int num_measurements, std::vector<double> &spectrum, std::vector<double> &measurements, std::vector<std::vector<double>> &nns_response, std::vector<double> &mlem_ratio);
 void calculateDerivatives(std::vector<double> &derivatives, int num_points, std::vector<int> &x_data, std::vector<double> &y_data);
 std::vector<double> linearSpacedDoubleVector(double a, double b, std::size_t N);
 std::vector<int> linearSpacedIntegerVector(int a, int b, std::size_t N);

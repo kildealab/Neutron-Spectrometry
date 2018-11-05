@@ -28,6 +28,11 @@ class UnfoldingSettings {
         std::string trend_type;
         std::string auto_output_path;
         int derivatives;
+        std::string measurements_path;
+        std::string input_spectrum_path;
+        std::string energy_bins_path;
+        std::string system_response_path;
+        std::string icrp_factors_path;
         std::string ref_spectrum_path;
 
         UnfoldingSettings(); 
@@ -52,6 +57,11 @@ class UnfoldingSettings {
         void set_trend_type(std::string);
         void set_auto_output_path(std::string);
         void set_derivatives(int);
+        void set_measurements_path(std::string);
+        void set_input_spectrum_path(std::string);
+        void set_energy_bins_path(std::string);
+        void set_system_response_path(std::string);
+        void set_icrp_factors_path(std::string);
         void set_ref_spectrum_path(std::string);
 };
 
@@ -140,6 +150,7 @@ class PlotSettings {
         int x_num_divs;
         int y_num_divs;
         int x_log;
+        int y_log;
         std::vector<std::string> legend_entries;
         std::vector<std::string> color_series;
         int grayscale;
@@ -184,6 +195,7 @@ class PlotSettings {
         void set_x_res(std::string);
         void set_y_res(std::string);
         void set_x_log(std::string);
+        void set_y_log(std::string);
         void set_x_num_divs(std::string);
         void set_y_num_divs(std::string);
         void set_legend_entries(std::string);

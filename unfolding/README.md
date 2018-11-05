@@ -16,38 +16,38 @@ Please refer to dependencies.txt for dependencies
 
 * Execute your program of choice. For example, if unfolding, run the following
     $ ./unfold_spectrum.exe
-    * Several additional options may be provided at the command line for unfolding. These options and the default values are:
+    * Additional options may be provided at the command line for unfolding. These options and the default values are:
         * --configuration [mlem.cfg]
-        * --measurements [measurements.txt]
-        * --energy-bins [energy_bins.csv]
-        * --input-spectrum [spectrum_step.csv]
-        * --icrp-factors [icrp_conversions.csv]
-        * --nns-response [nns_response.csv]
 
-* ***NOTE*** You must specify the measurement data (in measurements.txt or equivalent) and necessary settings (in mlem.cfg or equivalent) before unfolding the data.
+* ***NOTE*** Various input files, including that containing measured values, must be specified in the configuration file
 
 ### Program #1 unfold_spectrum.exe ###
 * Unfolds measurements obtained with a Nested Neutron Spectrometer into a neutron fluence spectrum.
 * ***Inputs***:
-    * The measured charge data in nC aquired with NNS (as well as dose, dose rate, and measurement duration)
-        * --measurements [measurements.txt]
-    * Configuration settings for unfolding (e.g. algorithm, stopping criterion, etc.)
-        * --configuration [mlem.cfg]
-    * Energy bins at which fluence is calculated
-        * --energy-bins [energy_bins.csv]
-    * Input guess fluence spectrum
-        * --input-spectrum [spectrum_step.csv]
-    * NNS response functions
-        * --nns-response [nns_response.csv]
-    * ICRP 74 neutron fluence to neutron ambient dose equivalent conversion coefficients
-        * --icrp-factors [icrp_conversions.csv]
+    * Configuration settings (e.g. algorithm, parameter of interest, max number of iterations, minimum number of iterations, step size, etc.)
+        * --configuration [auto.cfg]
 * ***Outputs***:
     * Unfolded fluence spectrum & uncertainty are appended as CSV data to output/output_spectra.csv
     * The calculated ambient dose equivalent & uncertainty are appended to output/output_dose.csv
 * ***Details***:
-    * The program can unfold using a vanilla MLEM algorithm, or using the MAP (or OSL) algorithm with a user-specified prior (specify in map.cfg). Allowed priors are:
+    * The program can unfold using a standard MLEM algorithm, or using the MAP (or OSL) algorithm with a user-specified prior (specify in map.cfg). Allowed priors are:
         * ***quadratic*** - First prior for MAP/OSL unfolding, proposed by Green, 1990. Smooths data, no edge preservation.
         * ***mrp*** - Median Root Prior used to penalize areas that are not monotonically increasing or decreasing (preserves edges).
+* ***Allowed Settings***:
+    * mlem_cutoff= Maximum number of iterations
+    * nns_normalization= Normalization factor for the specific NNS used for measurements
+    * mlem_max_error= Threshold error in ratio between measurements and reconstructed measurements, below which MLEM is stopped
+    * f_factor= Conversion coefficient between neutron current and CPS [fA/cps]
+    * num_poisson_samples= Number of Poisson samples to be taken to generate uncertainty region
+    * meas_units= Specify the units used in the measurements files {nc,cps}
+    * beta= Beta factor to use if unfolding using the MAP-EM algorithm
+    * prior= Prior to use if unfolding using the MAP-EM algorithm {mrp,quadratic}
+    * algorithm= Specify whether to use MLEM or MAP-EM algorithm {mlem,map}
+    * measurements_path= Path and filename (relative or absolute) of the measurments file
+    * input_spectrum_path= Path and filename (relative or absolute) of the input/guess spectrum
+    * energy_bins_path= Path and filename (relative or absolute) of the energy bins of the detector
+    * system_response_path= Path and filename (relative or absolute) of the detector response functions
+    * icrp_factors_path= Path and filename (relative or absolute) of the ICRP ambient dose equivalent conversion coefficients
 
 ### Program #2 plot_spectra.exe ###
 * Plots one or more neutron spectra (and their uncertainties) on a single set of axes.
@@ -99,18 +99,8 @@ Please refer to dependencies.txt for dependencies
 ### Program #3 auto_unfold_spectrum.exe ###
 * Unfold a set of neutron measurements and output a CSV file containing values of a parameter of interest that was calculated iteratively during the unfolding process.
 * ***Inputs***:
-    * The measured charge data aquired with NNS (as well as dose, dose rate, and duration)
-        * --measurements [measurements.txt]
     * Configuration settings (e.g. algorithm, parameter of interest, max number of iterations, minimum number of iterations, step size, etc.)
         * --configuration [auto.cfg]
-    * Energy bins at which fluence is calculated
-        * --energy-bins [energy_bins.csv]
-    * Input guess fluence spectrum
-        * --input-spectrum [spectrum_step.csv]
-    * NNS response functions
-        * --nns-response [nns_response.csv]
-    * ICRP 74 neutron fluence to neutron ambient dose equivalent conversion coefficients
-        * --icrp-factors [icrp_conversions.csv]
 * ***Outputs***:
     * A CSV file containting the parameter of interest values are output to a file specified in input/auto.cfg.
         * For MLEM, POI values are calculated as a function of N (one dimension), and are appended to the output file if it previously contained data.
@@ -123,6 +113,29 @@ Please refer to dependencies.txt for dependencies
         * total_energy_correction (MAP specific)
         * max_mlem_ratio
         * avg_mlem_ratio
+* ***Allowed Settings***:
+    * nns_normalization= Normalization factor for the specific NNS used for measurements
+    * f_factor= Conversion coefficient between neutron current and CPS [fA/cps]
+    * meas_units= Specify the units used in the measurements files {nc,cps}
+    * beta= Beta factor to use if unfolding using the MAP-EM algorithm
+    * prior= Prior to use if unfolding using the MAP-EM algorithm {mrp,quadratic}
+    * min_num_iterations= First iteration at which to score the parameter of interest
+    * max_num_iterations= Last iteration at which to score the parameter of interest
+    * iteration_increment= How many iterations to increment between scoring parameter of interest
+    * min_beta= Minimum beta at which to score parameter of interest for MAP-EM
+    * max_beta= Maximum beta at which to score parameter of interest for MAP-EM
+    * parameter_of_interest= The parameter of interest to be scored if using the mlem algorithm {rms,total_fluence,total_dose,max_mlem_ratio,avg_mlem_ratio,j_factor}
+    * derivatives= 1 of 0 indicating if you want to score the derivative of the parameter of interest with respect to the iteration index
+    * auto_output_path= Path and filename (relative or absolute) of the output (results) file
+    * algorithm= Specify what algorithm to use {mlem,map,trend,correction_factors}
+    * trend_type= Use if alogirhtm = 
+    * measurements_path= Path and filename (relative or absolute) of the measurments file
+    * input_spectrum_path= Path and filename (relative or absolute) of the input/guess spectrum
+    * energy_bins_path= Path and filename (relative or absolute) of the energy bins of the detector
+    * system_response_path= Path and filename (relative or absolute) of the detector response functions
+    * icrp_factors_path= Path and filename (relative or absolute) of the ICRP ambient dose equivalent conversion coefficients
+    * ref_spectrum_path= Path and filename (relative or absolute) of the reference spectrum used with RMSE calculations
+
 
 ### Program #4 plot_lines.exe ###
 * Plots one or more data series (y as a function of x) on a single set of axes.
@@ -155,6 +168,9 @@ Please refer to dependencies.txt for dependencies
     * y_max= maximum y-axis value
     * x_num_divs= Number that specifies number of major and minor divisions (tick marks). See https://root.cern.ch/doc/master/classTAttAxis.html#ae3067b6d4218970d09418291cbd84084
     * y_num_divs= Number that specifies number of major and minor divisions (tick marks). See https://root.cern.ch/doc/master/classTAttAxis.html#ae3067b6d4218970d09418291cbd84084
+
+    * x_log= 1 or 0 indicating whether the x axis should be logarithmic
+    * y_log= 1 or 0 indicating whether the y axis should be logarithmic
 
     * plot_type= Character representing the plot type. Allowed options are l (for line plots) and p (for scatter plots)
     * color_series= Comma-delimited list of HEX color values (e.g. #000000,#FFFFFF)

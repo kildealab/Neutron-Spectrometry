@@ -41,22 +41,12 @@ int main(int argc, char* argv[])
     // corresponds to input_file_flags[0] and input_file_defaults[0])
     // Array that stores the allowed options that specify input files
     // Add new options at end of array
-    const int num_ifiles = 6;
+    const int num_ifiles = 1;
     std::string input_file_flags_arr[num_ifiles] = {
-        "--measurements",
-        "--input-spectrum",
-        "--energy-bins",
-        "--nns-response",
-        "--icrp-factors",
         "--configuration"
     };
     // Array that stores default filename for each input file
     std::string input_file_defaults_arr[num_ifiles] = {
-        "measurements.txt",
-        "spectrum_step.csv",
-        "energy_bins.csv",
-        "nns_response.csv",
-        "icrp_conversions.csv",
         "mlem.cfg"
     };
 
@@ -80,7 +70,7 @@ int main(int argc, char* argv[])
 
     // Get the name of the unfolding algorithm
     // Remove file extension and directory
-    std::string algorithm_name = input_files[5].substr(0, input_files[5].find(".", 0));
+    std::string algorithm_name = input_files[0].substr(0, input_files[0].find(".", 0));
     algorithm_name = algorithm_name.substr(algorithm_name.find("/", 0)+1);
     transform(algorithm_name.begin(), algorithm_name.end(), algorithm_name.begin(),(int (*)(int))tolower);
 
@@ -93,7 +83,7 @@ int main(int argc, char* argv[])
 
     // Apply some settings read in from a config file
     UnfoldingSettings settings;
-    setSettings(input_files[5], settings);
+    setSettings(input_files[0], settings);
 
     double f_factor_report = settings.f_factor; // original value read in
     settings.set_f_factor(settings.f_factor / 1e6); // Convert f_factor from fA/cps to nA/cps
@@ -117,7 +107,7 @@ int main(int argc, char* argv[])
 
     // Handle inputs with different units
     if (settings.meas_units == "cps") {
-        measurements = getMeasurementsCPS(input_files[0], irradiation_conditions);
+        measurements = getMeasurementsCPS(settings.measurements_path, irradiation_conditions);
         num_measurements = measurements.size();
 
         for (int index=0; index < num_measurements; index++) {
@@ -126,7 +116,7 @@ int main(int argc, char* argv[])
         std::reverse(measurements.begin(),measurements.end());
     }
     else {
-        measurements_nc = getMeasurements(input_files[0], irradiation_conditions, dose_mu, doserate_mu, duration);
+        measurements_nc = getMeasurements(settings.measurements_path, irradiation_conditions, dose_mu, doserate_mu, duration);
         num_measurements = measurements_nc.size();
 
         for (int index=0; index < num_measurements; index++) {
@@ -162,11 +152,11 @@ int main(int argc, char* argv[])
     //----------------------------------------------------------------------------------------------
     // Generate the energy bins matrix:
     //  - size = # of energy bins
-    // Input the energies from energy bins file: input_files[2]
+    // Input the energies from energy bins file
     //  - values in units of [MeV]
     //----------------------------------------------------------------------------------------------
     std::vector<double> energy_bins;
-    readInputFile1D(input_files[2],energy_bins);
+    readInputFile1D(settings.energy_bins_path,energy_bins);
 
     int num_bins = energy_bins.size();
 
@@ -175,27 +165,27 @@ int main(int argc, char* argv[])
     //  - outer size = # of measurements
     //  - inner size = # of energy bins
     // Detector response value for each # of moderators for each energy (currently 52 energies)
-    // Input the response from input_files[3]
+    // Input the response functions
     //  - values in units of [cm^2]
     //
     // The response function accounts for variable number of (n,p) reactions in He-3 for each
     // moderators, as a function of energy. Calculated by vendor using MC
     //----------------------------------------------------------------------------------------------
     std::vector<std::vector<double>> nns_response;
-    readInputFile2D(input_files[3],nns_response);
+    readInputFile2D(settings.system_response_path,nns_response);
     checkDimensions(num_measurements, "number of measurements", nns_response.size(), "NNS response");
     checkDimensions(num_bins, "number of energy bins", nns_response[0].size(), "NNS response");
 
     //----------------------------------------------------------------------------------------------
     // Generate the inital spectrum matrix to input into the unfolding algorithm:
     //  - size = # of energy bins
-    // Input from the input spectrum file (input_files[1])
+    // Input from the input spectrum file
     //  - values are neutron fluence rates [neutrons cm^-2 s^-1])
     //  - Currently (2017-08-16) input a step function (high at thermals & lower), because a flat 
     //  spectrum underestimates (does not yield any) thermal neutrons
     //----------------------------------------------------------------------------------------------
     std::vector<double> initial_spectrum;
-    readInputFile1D(input_files[1],initial_spectrum);
+    readInputFile1D(settings.input_spectrum_path,initial_spectrum);
     checkDimensions(num_bins, "number of energy bins", initial_spectrum.size(), "Input spectrum");
 
     std::vector<double> spectrum = initial_spectrum; // save the initial spectrum for report output
@@ -203,13 +193,13 @@ int main(int argc, char* argv[])
     //----------------------------------------------------------------------------------------------
     // Generate the ICRP conversion matrix (factors to convert fluence to ambient dose equivalent):
     //  - size = # of energy bins
-    // Input from input_files[4]
+    // Input from icrp factors file:
     //  - values are in units of [pSv cm^2]
     //  - H values were obtained by linearly interopolating tabulated data to match energy bins used
     // Page 200 of document (ICRP 74 - ATables.pdf)
     //----------------------------------------------------------------------------------------------
     std::vector<double> icrp_factors;
-    readInputFile1D(input_files[4],icrp_factors);
+    readInputFile1D(settings.icrp_factors_path,icrp_factors);
     checkDimensions(num_bins, "number of energy bins", icrp_factors.size(), "Number of ICRP factors");
 
     //----------------------------------------------------------------------------------------------

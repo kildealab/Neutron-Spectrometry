@@ -223,7 +223,7 @@ std::vector<double> getMeasurements(std::string input_file, std::string &irradia
     std::ifstream ifile(input_file);
     if (!ifile.is_open()) {
         //throw error
-        std::cout << "Unable to open input file: " + input_file + '\n';
+        throw std::logic_error("Unable to access open measurement file: " + input_file);
     }
 
     // Load header information from 'ifile'
