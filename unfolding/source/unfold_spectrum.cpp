@@ -110,9 +110,9 @@ int main(int argc, char* argv[])
         measurements = getMeasurementsCPS(settings.measurements_path, irradiation_conditions);
         num_measurements = measurements.size();
 
-        for (int index=0; index < num_measurements; index++) {
-            measurements[index] = measurements[index]*settings.norm;
-        }
+        // for (int index=0; index < num_measurements; index++) {
+        //     measurements[index] = measurements[index]*settings.norm;
+        // }
         std::reverse(measurements.begin(),measurements.end());
     }
     else {
@@ -212,10 +212,11 @@ int main(int argc, char* argv[])
 
     std::vector<double> mlem_ratio; // vector that stores the ratio between measured data and MLEM estimated data
     std::vector<double> mlem_correction; // vector that stores the correction factors applied in each spectral bin
+    std::vector<double> mlem_estimate;
     int num_iterations;
 
     if (algorithm_name == "mlem") {
-        num_iterations = runMLEM(settings.cutoff, settings.error, num_measurements, num_bins, measurements, spectrum, nns_response, normalized_response, mlem_ratio, mlem_correction);
+        num_iterations = runMLEM(settings.cutoff, settings.error, num_measurements, num_bins, measurements, spectrum, nns_response, normalized_response, mlem_ratio, mlem_correction, mlem_estimate);
     }
     else if (algorithm_name == "map") {
         std::vector<double> energy_correction;
@@ -244,11 +245,20 @@ int main(int argc, char* argv[])
     // spectrum) from the actual measured charge values. 
     //----------------------------------------------------------------------------------------------
     std::cout << '\n';
-    std::cout << "The ratios between measurements and unfolded measurements:" << '\n';
+    std::cout << "The reconstructed measured values (CPS):" << '\n';
+
+    for (int i_meas = 0; i_meas < num_measurements; i_meas++)
+    {
+        std::cout << mlem_estimate[i_meas] << '\n';
+    }
+
+    std::cout << '\n';
+    std::cout << "The ratios between measurements and reconstructed measurements:" << '\n';
 
     for (int i_meas = 0; i_meas < num_measurements; i_meas++)
     {
         std::cout << mlem_ratio[i_meas] << '\n';
+        // std::cout << abs(1.0 - mlem_ratio[i_meas]) << '\n';
     }
 
     //----------------------------------------------------------------------------------------------
@@ -268,6 +278,7 @@ int main(int argc, char* argv[])
         std::vector<double> sampled_measurements; // dimension: num_measurements
         std::vector<double> sampled_mlem_ratio; // dimension: num_measurements
         std::vector<double> sampled_mlem_correction; // dimension: num_measurements
+        std::vector<double> sampled_mlem_estimate; // dimension: num_measurements
         std::vector<double> sampled_spectrum = initial_spectrum; // dimension: num_bins
 
         // Create Poisson sampled measurement values (CPS)
@@ -278,7 +289,7 @@ int main(int argc, char* argv[])
 
         // Do unfolding on the initial spectrum & sampled measurement values
         if (algorithm_name == "mlem") {
-            runMLEM(settings.cutoff, settings.error, num_measurements, num_bins, sampled_measurements, sampled_spectrum, nns_response, normalized_response, sampled_mlem_ratio, sampled_mlem_correction);
+            runMLEM(settings.cutoff, settings.error, num_measurements, num_bins, sampled_measurements, sampled_spectrum, nns_response, normalized_response, sampled_mlem_ratio, sampled_mlem_correction, sampled_mlem_estimate);
         }
         else if (algorithm_name == "map") {
             std::vector<double> sampled_energy_correction;

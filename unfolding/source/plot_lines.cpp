@@ -60,7 +60,7 @@ int main(int argc, char* argv[])
     if (settings.x_log) {
         c1->SetLogx();
     }
-    if (settings.x_log) {
+    if (settings.y_log) {
         c1->SetLogy();
     }
     if (settings.grayscale){

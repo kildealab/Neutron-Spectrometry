@@ -94,9 +94,9 @@ int main(int argc, char* argv[])
         measurements = getMeasurementsCPS(settings.measurements_path, irradiation_conditions);
         num_measurements = measurements.size();
 
-        for (int index=0; index < num_measurements; index++) {
-            measurements[index] = measurements[index]*settings.norm;
-        }
+        // for (int index=0; index < num_measurements; index++) {
+        //     measurements[index] = measurements[index]*settings.norm;
+        // }
         std::reverse(measurements.begin(),measurements.end());
     }
     else {
@@ -182,6 +182,7 @@ int main(int argc, char* argv[])
 
     std::vector<double> mlem_ratio; // vector that stores the ratio between measured data and MLEM estimated data
     std::vector<double> mlem_correction; // vector that stores the ratio between measured data and MLEM estimated data
+    std::vector<double> mlem_estimate;
 
     //----------------------------------------------------------------------------------------------
     // Output correction factors (52 values applied to spectrum, NOT to measurements).
@@ -216,7 +217,7 @@ int main(int argc, char* argv[])
                 num_iterations = num_iterations_vector[i_num];
             else
                 num_iterations = num_iterations_vector[i_num]-num_iterations_vector[i_num-1];
-            runMLEM(num_iterations, settings.error, num_measurements, num_bins, measurements, current_spectrum, nns_response, normalized_response, mlem_ratio, mlem_correction);
+            runMLEM(num_iterations, settings.error, num_measurements, num_bins, measurements, current_spectrum, nns_response, normalized_response, mlem_ratio, mlem_correction, mlem_estimate);
 
             total_num_iterations += num_iterations;
 
@@ -297,7 +298,7 @@ int main(int argc, char* argv[])
                 num_iterations = num_iterations_vector[i_num];
             else
                 num_iterations = num_iterations_vector[i_num]-num_iterations_vector[i_num-1];
-            runMLEM(num_iterations, settings.error, num_measurements, num_bins, measurements, current_spectrum, nns_response, normalized_response, mlem_ratio, mlem_correction);
+            runMLEM(num_iterations, settings.error, num_measurements, num_bins, measurements, current_spectrum, nns_response, normalized_response, mlem_ratio, mlem_correction, mlem_estimate);
 
             total_num_iterations += num_iterations;
             // Add the reconstructed measured data for current number of iterations to the file
@@ -373,7 +374,7 @@ int main(int argc, char* argv[])
 
         // Used if calculating RMSD
         std::vector<double> ref_spectrum;
-        if (settings.parameter_of_interest == "rms")
+        if (settings.parameter_of_interest == "rms" || settings.parameter_of_interest == "nrmsd" || settings.parameter_of_interest == "chi_squared_g")
             readInputFile1D(settings.ref_spectrum_path,ref_spectrum);
 
         // Loop through number of iterations
@@ -386,7 +387,7 @@ int main(int argc, char* argv[])
                 num_iterations = num_iterations_vector[i_num];
             else
                 num_iterations = num_iterations_vector[i_num]-num_iterations_vector[i_num-1];
-            runMLEM(num_iterations, settings.error, num_measurements, num_bins, measurements, current_spectrum, nns_response, normalized_response, mlem_ratio, mlem_correction);
+            runMLEM(num_iterations, settings.error, num_measurements, num_bins, measurements, current_spectrum, nns_response, normalized_response, mlem_ratio, mlem_correction, mlem_estimate);
         
             // Calculate one of the following parameters of interest & save to results stream
             double poi_value = 0;
@@ -419,12 +420,31 @@ int main(int argc, char* argv[])
                     results_stream << irradiation_conditions << ",";
                 poi_value = calculateJFactor(num_bins,num_measurements,current_spectrum,measurements,nns_response,mlem_ratio);
             }
+            else if (settings.parameter_of_interest == "reduced_chi_squared") {
+                if (i_num == 0)
+                    results_stream << irradiation_conditions << ",";
+                poi_value = calculateChiSquared(i_num,num_bins,num_measurements,current_spectrum,measurements,mlem_ratio);
+            }
             else if (settings.parameter_of_interest == "rms") {
                 if (i_num == 0)
                     results_stream << irradiation_conditions << ",";
                 // std::vector<double> normalized_spectrum = normalizeVector(current_spectrum);
                 std::vector<double> normalized_spectrum = current_spectrum;
                 poi_value = calculateRMSEstimator(num_bins,ref_spectrum,normalized_spectrum);
+            }
+            else if (settings.parameter_of_interest == "nrmsd") {
+                if (i_num == 0)
+                    results_stream << irradiation_conditions << ",";
+                // std::vector<double> normalized_spectrum = normalizeVector(current_spectrum);
+                std::vector<double> normalized_spectrum = current_spectrum;
+                poi_value = calculateNRMSD(num_bins,ref_spectrum,normalized_spectrum);
+            }
+            else if (settings.parameter_of_interest == "chi_squared_g") {
+                if (i_num == 0)
+                    results_stream << irradiation_conditions << ",";
+                // std::vector<double> normalized_spectrum = normalizeVector(current_spectrum);
+                std::vector<double> normalized_spectrum = current_spectrum;
+                poi_value = calculateChiSquaredG(num_bins,ref_spectrum,normalized_spectrum);
             }
             else {
                 throw std::logic_error("Unrecognized parameter of interest: " + settings.parameter_of_interest + ". Please refer to the README for allowed parameters");
