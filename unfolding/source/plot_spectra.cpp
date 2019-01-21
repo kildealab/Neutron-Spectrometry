@@ -132,6 +132,7 @@ int main(int argc, char* argv[])
         }
         // if (i_spec == 1) {
         //     leg->AddEntry((TObject*)0, "", "");
+        //     leg->AddEntry((TObject*)0, "", "");
         // }
 
         // Title & axes manipulations. Only needs to be done for first spectrum
@@ -184,10 +185,10 @@ int main(int argc, char* argv[])
     if(settings.textbox){
         // TPaveText* pt = new TPaveText(0.15, 0.75, 0.4, 0.85, "nbNDC"); // nb specifies no border, NDC specifies method of defining coordinates
         TPaveText* pt = new TPaveText(settings.textbox_coords[0], settings.textbox_coords[1], settings.textbox_coords[2], settings.textbox_coords[3], "nbNDC"); // nb specifies no border, NDC specifies method of defining coordinates
-        pt->SetFillColorAlpha(kWhite,1);
+        pt->SetFillColorAlpha(kWhite,0);
         pt->SetTextAlign(12);
         pt->SetTextSize(0.035);
-        pt->SetTextFont(42);
+        pt->SetTextFont(62);
 
         for (int i=0; i<settings.textbox_text.size(); i++){
             pt->AddText(settings.textbox_text[i].c_str());

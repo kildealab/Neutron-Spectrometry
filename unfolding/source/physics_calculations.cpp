@@ -494,7 +494,6 @@ int runMLEM(int cutoff, double error, int num_measurements, int num_bins, std::v
 }
 
 
-
 //==================================================================================================
 // Accept a series of measurements and an estimated input spectrum and perform the MLEM algorithm
 // until the true spectrum has been unfolded. Use the provided target error (error) and the maximum
@@ -715,3 +714,76 @@ std::vector<int> linearSpacedIntegerVector(int a, int b, std::size_t N)
     }
     return xs;
 }
+
+
+//**************************************************************************************************
+// RETIRED/UNUSED functions
+//**************************************************************************************************
+// int runMLEM_include_prev_spectrum(std::vector<double> &prev_spectrum, int cutoff, double error, int num_measurements, int num_bins, std::vector<double> &measurements, std::vector<double> &spectrum, std::vector<std::vector<double>> &nns_response, std::vector<double> &normalized_response, std::vector<double> &mlem_ratio, std::vector<double> &mlem_correction, std::vector<double> &mlem_estimate) {
+//     int mlem_index; // index of MLEM iteration
+
+//     for (mlem_index = 0; mlem_index < cutoff; mlem_index++) {
+//         prev_spectrum = spectrum;
+
+//         mlem_ratio.clear(); // wipe previous ratios for each iteration
+//         mlem_correction.clear(); // wipe previous corrections for each iteration
+//         mlem_estimate.clear();
+//         // vector that stores the MLEM-estimated data to be compared with measured data
+//         // std::vector<double> mlem_estimate;
+
+//         // Apply system matrix, the nns_response, to current spectral estimate to get MLEM-estimated
+//         // data. Save results in mlem_estimate
+//         // Units: mlem_estimate [cps] = nns_response [cm^2] x spectru  [cps / cm^2]
+//         for(int i_meas = 0; i_meas < num_measurements; i_meas++)
+//         {
+//             double temp_value = 0;
+//             for(int i_bin = 0; i_bin < num_bins; i_bin++)
+//             {
+//                 temp_value += nns_response[i_meas][i_bin]*spectrum[i_bin];
+//             }
+//             mlem_estimate.push_back(temp_value);
+//         }
+
+//         // Calculate ratio between each measured data point and corresponding MLEM-estimated data point
+//         for(int i_meas = 0; i_meas < num_measurements; i_meas++)
+//         {
+//             mlem_ratio.push_back(measurements[i_meas]/mlem_estimate[i_meas]);
+//         }
+
+//         // matrix that stores the correction factor to be applied to each MLEM-estimated spectral value
+//         // std::vector<double> mlem_correction;
+
+//         // Create the correction factors to be applied to MLEM-estimated spectral values:
+//         //  - multiply transpose system matrix by ratio values
+//         for(int i_bin = 0; i_bin < num_bins; i_bin++)
+//         {
+//             double temp_value = 0;
+//             for(int i_meas = 0; i_meas < num_measurements; i_meas++)
+//             {
+//                 temp_value += nns_response[i_meas][i_bin]*mlem_ratio[i_meas]/normalized_response[i_bin];
+//             }
+//             mlem_correction.push_back(temp_value);
+//         }
+
+//         // Apply correction factors and normalization to get new spectral estimate
+//         for(int i_bin=0; i_bin < num_bins; i_bin++)
+//         {
+//             spectrum[i_bin] = (spectrum[i_bin]*mlem_correction[i_bin]);
+//         }
+
+//         // End MLEM iterations if ratio between measured and MLEM-estimated data points is within
+//         // tolerace specified by 'error'
+//         bool continue_mlem = false;
+//         for (int i_meas=0; i_meas < num_measurements; i_meas++) {
+//             if (mlem_ratio[i_meas] >= (1+error) || mlem_ratio[i_meas] <= (1-error)) {
+//                 continue_mlem = true;
+//                 break;
+//             }   
+//         }
+//         if (!continue_mlem) {
+//             break;
+//         }
+//     }
+
+//     return mlem_index;
+// }

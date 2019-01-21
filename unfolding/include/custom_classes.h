@@ -151,6 +151,8 @@ class PlotSettings {
         int y_num_divs;
         int x_log;
         int y_log;
+        int x_grid;
+        int y_grid;
         std::vector<std::string> legend_entries;
         std::vector<std::string> color_series;
         int grayscale;
@@ -196,6 +198,8 @@ class PlotSettings {
         void set_y_res(std::string);
         void set_x_log(std::string);
         void set_y_log(std::string);
+        void set_x_grid(std::string);
+        void set_y_grid(std::string);
         void set_x_num_divs(std::string);
         void set_y_num_divs(std::string);
         void set_legend_entries(std::string);

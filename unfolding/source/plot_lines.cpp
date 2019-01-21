@@ -67,6 +67,13 @@ int main(int argc, char* argv[])
         c1->GetCanvas()->SetGrayscale();
     }
 
+    if (settings.x_grid) {
+        c1->SetGridx(1);
+    }
+    if (settings.y_grid) {
+        c1->SetGridy(1);
+    }
+
     // Generate the legend
     TLegend* leg = new TLegend(settings.legend_coords[0], settings.legend_coords[1], settings.legend_coords[2], settings.legend_coords[3]); // with a text box
     leg->SetBorderSize(settings.legend_border_size);

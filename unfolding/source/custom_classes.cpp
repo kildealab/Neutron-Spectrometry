@@ -379,6 +379,8 @@ PlotSettings::PlotSettings() {
     y_res = 600;
     x_log = 0;
     y_log = 0;
+    x_grid = 0;
+    y_grid = 0;
     x_num_divs = 0;
     y_num_divs = 0;
     legend_entries = {};
@@ -386,6 +388,8 @@ PlotSettings::PlotSettings() {
     // color_series = {"#333333","#4e79a7","#59a14f","#9c755f","#f29e2b","#edc948","#bab0ac","#e15759","#b07aa1","#76b7b2","#ff9da7"};
     //               black      blue       red      green     purple    grey      teal       salmon   light gr    fuchsia
     color_series = {"#000000","#4556d2","#C63822","#55A961","#75298e","#9ba5b1","#2fb5d4","#E79A9F","#4be0b0","#cb66ed"};
+    // yellow to purple gradient:
+    // color_series = {"#ffff00","#ece13c","#d9c452","#c5a661","#b18b6c","#9b6f75","#83547c","#693a81","#481f87","#00008b"};
     grayscale = 0;
     // color_error = {"#333333","#E79A9F","#6B8EF0","#69CF77"};
     // show_error;
@@ -445,6 +449,10 @@ void PlotSettings::set_setting(std::string settings_name, std::string settings_v
         this->set_x_log(settings_value);
     else if (settings_name == "y_log")
         this->set_y_log(settings_value);
+    else if (settings_name == "x_grid")
+        this->set_x_grid(settings_value);
+    else if (settings_name == "y_grid")
+        this->set_y_grid(settings_value);
     else if (settings_name == "y_num_divs")
         this->set_y_num_divs(settings_value);
     else if (settings_name == "x_num_divs")
@@ -546,6 +554,12 @@ void PlotSettings::set_x_log(std::string x_log) {
 }
 void PlotSettings::set_y_log(std::string y_log) {
     this->y_log = stoi(y_log);
+}
+void PlotSettings::set_x_grid(std::string x_grid) {
+    this->x_grid = stoi(x_grid);
+}
+void PlotSettings::set_y_grid(std::string y_grid) {
+    this->y_grid = stoi(y_grid);
 }
 void PlotSettings::set_x_num_divs(std::string x_num_divs) {
     this->x_num_divs = stoi(x_num_divs);

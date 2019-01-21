@@ -197,7 +197,7 @@ int main(int argc, char* argv[])
 
         std::vector<double> current_spectrum = initial_spectrum; // the reconstructed spectrum
 
-        // Add the iteration numbers to the file
+        // Add the energy bins to the file
         std::ostringstream results_stream;
         results_stream << "Energy (MeV),";
         for (int i_bin = 0; i_bin < num_bins; i_bin++) {
@@ -223,7 +223,7 @@ int main(int argc, char* argv[])
 
             // Add the reconstructed measured data for current number of iterations to the file
             // Add the correction factors to the file
-            results_stream << "N = " << total_num_iterations << ",";
+            results_stream << "k = " << total_num_iterations << ",";
             for (int i_bin = 0; i_bin < num_bins; i_bin++) {
                 results_stream << mlem_correction[i_bin];
 
@@ -608,3 +608,164 @@ int main(int argc, char* argv[])
 
     return 0;
 }
+
+
+
+//**************************************************************************************************
+// RETIRED/UNUSED ALGORITHM OPTIONS
+//**************************************************************************************************
+
+//----------------------------------------------------------------------------------------------
+// For each spectral bin, determine the iteration index at which the MLEM correction factor is
+// minimized.
+// Outputs the iteration index for each spectral bin as a row
+//----------------------------------------------------------------------------------------------
+// if (settings.algorithm == "min_correction") {
+//     // Create vector of number of iterations
+//     int num_increments = ((settings.max_num_iterations - settings.min_num_iterations) / settings.iteration_increment)+1;
+//     std::vector<int> num_iterations_vector = linearSpacedIntegerVector(settings.min_num_iterations,settings.max_num_iterations,num_increments);
+//     int num_iteration_samples = num_iterations_vector.size();
+
+//     std::vector<double> current_spectrum = initial_spectrum; // the reconstructed spectrum
+
+//     // Create stream to append results. First row is number of iteration increments
+//     // determine if file exists
+//     // std::string map_filename = "output/poi_output_mlem.csv";
+//     std::ifstream rfile(settings.auto_output_path);
+//     bool file_empty = is_empty(rfile);
+//     // bool file_exists = rfile.good();
+//     rfile.close();
+
+//     // Add the energy bins to the file
+//     std::ostringstream results_stream;
+//     if (file_empty) {
+//         results_stream << "Energy (MeV),";
+//         for (int i_bin = 0; i_bin < num_bins; i_bin++) {
+//             results_stream << energy_bins[i_bin];
+//             if (i_bin != num_bins-1)
+//                 results_stream << ",";
+//         }
+//         results_stream << "\n";
+//     }
+
+//     std::vector<double> min_deviations;
+//     std::vector<int> min_indices;
+//     double deviation = 0;
+
+//     int total_num_iterations = 0;
+//     for (int i_num=0; i_num < num_iteration_samples; i_num++) {
+//         int num_iterations;
+
+//         // only do # of iterations since previous run (i.e. don't do 3000, then 4000. Do
+//         // 3000 then iteration_size more, etc.)
+//         if (i_num == 0)
+//             num_iterations = num_iterations_vector[i_num];
+//         else
+//             num_iterations = num_iterations_vector[i_num]-num_iterations_vector[i_num-1];
+//         runMLEM(num_iterations, settings.error, num_measurements, num_bins, measurements, current_spectrum, nns_response, normalized_response, mlem_ratio, mlem_correction, mlem_estimate);
+
+//         // on first iteration, save the deviations and iteration # for each bin
+//         if (total_num_iterations == 0) {
+//             for (int i_bin = 0; i_bin < num_bins; i_bin++) {
+//                 min_deviations.push_back(abs(1.0 - mlem_correction[i_bin]));
+//                 min_indices.push_back(num_iterations); 
+//             }
+//         }
+
+//         total_num_iterations += num_iterations;
+//         // on subsequent iterations, compare the current deviation with the minimum for each bin
+//         // If new value is lower, overwrite existing minimum
+//         // std::cout << "----------------------------------\n";
+//         if (total_num_iterations > 0) {
+//             for (int i_bin = 0; i_bin < num_bins; i_bin++) {
+//                 deviation = abs(1.0 - mlem_correction[i_bin]);
+//                 // std::cout << "i_bin=" << i_bin << ": dev=" << deviation << "\n";
+//                 if (deviation < min_deviations[i_bin]) {
+//                     min_deviations[i_bin] = deviation;
+//                     min_indices[i_bin] = total_num_iterations; 
+//                 }
+//             }
+//         }
+//     }
+
+//     results_stream << irradiation_conditions << ",";    
+//     for (int i_bin = 0; i_bin < num_bins; i_bin++) {
+//         results_stream << min_indices[i_bin];
+
+//         if (i_bin != num_bins-1)
+//             results_stream << ",";
+//     }
+//     results_stream << "\n";
+
+//     // Save results for parameter of interest to CSV file
+//     std::ofstream output_file;
+//     std::string output_filename = settings.auto_output_path;
+//     output_file.open(output_filename, std::ios_base::app);
+//     std::string results_string = results_stream.str();
+//     output_file << results_string;
+//     output_file.close();
+
+//     std::cout << "Saved indices of minimum deviations in correction factor to " << output_filename << "\n";
+// }
+
+
+
+//----------------------------------------------------------------------------------------------
+// Output the absolute difference between spectra obtained from subsequent iterations of
+// unfolding (i.e. rows are num_bins elements long).
+// Do this at specified iteration steps (i.e. one row for each sampled iteration step)
+//----------------------------------------------------------------------------------------------
+// if (settings.algorithm == "evolution") {
+//     // Create vector of number of iterations
+//     int num_increments = ((settings.max_num_iterations - settings.min_num_iterations) / settings.iteration_increment)+1;
+//     std::vector<int> num_iterations_vector = linearSpacedIntegerVector(settings.min_num_iterations,settings.max_num_iterations,num_increments);
+//     int num_iteration_samples = num_iterations_vector.size();
+
+//     std::vector<double> current_spectrum = initial_spectrum; // the reconstructed spectrum
+//     std::vector<double> prev_spectrum;
+
+//     // Add the energy bins to the file
+//     std::ostringstream results_stream;
+//     results_stream << "Energy (MeV),";
+//     for (int i_bin = 0; i_bin < num_bins; i_bin++) {
+//         results_stream << energy_bins[i_bin];
+//         if (i_bin != num_bins-1)
+//             results_stream << ",";
+//     }
+//     results_stream << "\n";
+
+//     int total_num_iterations = 0;
+//     for (int i_num=0; i_num < num_iteration_samples; i_num++) {
+//         int num_iterations;
+
+//         // only do # of iterations since previous run (i.e. don't do 3000, then 4000. Do
+//         // 3000 then iteration_size more, etc.)
+//         if (i_num == 0)
+//             num_iterations = num_iterations_vector[i_num];
+//         else
+//             num_iterations = num_iterations_vector[i_num]-num_iterations_vector[i_num-1];
+//         runMLEM_include_prev_spectrum(prev_spectrum,num_iterations, settings.error, num_measurements, num_bins, measurements, current_spectrum, nns_response, normalized_response, mlem_ratio, mlem_correction, mlem_estimate);
+
+//         total_num_iterations += num_iterations;
+
+//         // Add the differences to the file
+//         results_stream << "k = " << total_num_iterations << ",";
+//         for (int i_bin = 0; i_bin < num_bins; i_bin++) {
+//             results_stream << current_spectrum[i_bin] - prev_spectrum[i_bin];
+
+//             if (i_bin != num_bins-1)
+//                 results_stream << ",";
+//         }
+//         results_stream << "\n";
+//     }        
+
+//     // Save results for parameter of interest to CSV file
+//     std::ofstream output_file;
+//     std::string output_filename = settings.auto_output_path;
+//     output_file.open(output_filename, std::ios_base::out);
+//     std::string results_string = results_stream.str();
+//     output_file << results_string;
+//     output_file.close();
+
+//     std::cout << "Saved spectral changes to " << output_filename << "\n";
+// }

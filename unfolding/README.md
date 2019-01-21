@@ -172,6 +172,9 @@ Please refer to dependencies.txt for dependencies
     * x_log= 1 or 0 indicating whether the x axis should be logarithmic
     * y_log= 1 or 0 indicating whether the y axis should be logarithmic
 
+    * x_grid= 1 or 0 indicating whether there should be grid lines oriented parallel to the x axis
+    * y_grid= 1 or 0 indicating whether there should be grid lines oriented parallel to the y axis
+
     * plot_type= Character representing the plot type. Allowed options are l (for line plots) and p (for scatter plots)
     * color_series= Comma-delimited list of HEX color values (e.g. #000000,#FFFFFF)
     * grayscale= 1 or 0 indicating whether figure should be output in grayscale
