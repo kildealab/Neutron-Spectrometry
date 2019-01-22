@@ -1,7 +1,7 @@
 # **Instructions** #
 README.md
 
-Authors: Georges Al Makdessi, John Kildea, Robert Maglieri, Logan Montgomery
+Authors: Logan Montgomery, Georges Al Makdessi, Robert Maglieri, John Kildea
 
 This file explains:
 1) General instructions for compiling and executing a program
@@ -27,8 +27,7 @@ Please refer to dependencies.txt for dependencies
     * Configuration settings (e.g. algorithm, parameter of interest, max number of iterations, minimum number of iterations, step size, etc.)
         * --configuration [auto.cfg]
 * ***Outputs***:
-    * Unfolded fluence spectrum & uncertainty are appended as CSV data to output/output_spectra.csv
-    * The calculated ambient dose equivalent & uncertainty are appended to output/output_dose.csv
+    * Unfolded fluence spectrum & Poisson uncertainty are appended as CSV data to a user-specified output file.
 * ***Details***:
     * The program can unfold using a standard MLEM algorithm, or using the MAP (or OSL) algorithm with a user-specified prior (specify in map.cfg). Allowed priors are:
         * ***quadratic*** - First prior for MAP/OSL unfolding, proposed by Green, 1990. Smooths data, no edge preservation.
@@ -43,6 +42,11 @@ Please refer to dependencies.txt for dependencies
     * beta= Beta factor to use if unfolding using the MAP-EM algorithm
     * prior= Prior to use if unfolding using the MAP-EM algorithm {mrp,quadratic}
     * algorithm= Specify whether to use MLEM or MAP-EM algorithm {mlem,map}
+    * generate_report= 1 or 0 to indicate whether a report should be generated for the unfolding process
+    * generate_figure= 1 or 0 to indicate whether the unfolded spectrum should be plotted
+    * path_output_spectra = Path and filename (relative or absolute) of the file for unfolded spectra
+    * path_report = Path and filename (relative or absolute) of the file for the unfolding report
+    * path_figure = Path and filename (relative or absolute) of the file for the plotted spectrum
     * measurements_path= Path and filename (relative or absolute) of the measurments file
     * input_spectrum_path= Path and filename (relative or absolute) of the input/guess spectrum
     * energy_bins_path= Path and filename (relative or absolute) of the energy bins of the detector

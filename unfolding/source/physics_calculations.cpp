@@ -154,7 +154,9 @@ double calculateRMSD(int num_samples, double true_value, std::vector<double> &sa
 //==================================================================================================
 // Calculate the root-mean-square deviation of sampled vectors from a "true" vector.
 //==================================================================================================
-int calculateRMSD_vector(int num_samples, std::vector<double> &true_vector, std::vector<std::vector<double>> &sampled_vectors, std::vector<double> &rms_differences) {
+int calculateRMSD_vector(int num_samples, std::vector<double> &true_vector, 
+    std::vector<std::vector<double>> &sampled_vectors, std::vector<double> &rms_differences)
+{
     int true_vector_size = true_vector.size();
 
     // Loop over each element in the true vector
@@ -300,7 +302,9 @@ double calculateSumUncertainty(int num_values, std::vector<double> &value_uncert
 // Calculate the uncertainty on the average energy
 // Implements standard uncertainty propagation rules for products & sums.
 //==================================================================================================
-double calculateEnergyUncertainty(int num_bins, std::vector<double> energy_bins, std::vector<double> spectrum, std::vector<double> spectrum_uncertainty, double total_flux, double total_flux_uncertainty) {
+double calculateEnergyUncertainty(int num_bins, std::vector<double> energy_bins, std::vector<double> spectrum, 
+    std::vector<double> spectrum_uncertainty, double total_flux, double total_flux_uncertainty) 
+{
     double energy_uncertainty = 0;
 
     for (int i_bin = 0; i_bin < num_bins; i_bin++) {
@@ -360,7 +364,9 @@ double calculateSourceStrength(int num_bins, std::vector<double> &spectrum, int 
 // Calculate the indicator function, labeled as J, proposed in Bouallegue 2013 paper. This parameter
 // is used in the MLEM-STOP approach as a stopping criterion when J=1.
 //==================================================================================================
-double calculateJFactor(int num_bins, int num_measurements, std::vector<double> &spectrum, std::vector<double> &measurements, std::vector<std::vector<double>> &nns_response, std::vector<double> &mlem_ratio) {
+double calculateJFactor(int num_bins, int num_measurements, std::vector<double> &spectrum, 
+    std::vector<double> &measurements, std::vector<std::vector<double>> &nns_response, std::vector<double> &mlem_ratio) 
+{
     std::vector<double> mlem_estimate;
 
     for(int i_meas = 0; i_meas < num_measurements; i_meas++)
@@ -383,7 +389,9 @@ double calculateJFactor(int num_bins, int num_measurements, std::vector<double> 
 //==================================================================================================
 // Calculate the reduced Chi-squared parameter, promulgated by T. D. Jackson in his 2015 PhD thesis.
 //==================================================================================================
-double calculateChiSquared(int i_num, int num_bins, int num_measurements, std::vector<double> &spectrum, std::vector<double> &measurements, std::vector<double> &mlem_ratio) {
+double calculateChiSquared(int i_num, int num_bins, int num_measurements, std::vector<double> &spectrum, 
+    std::vector<double> &measurements, std::vector<double> &mlem_ratio) 
+{
     std::vector<double> mlem_estimate;
 
     for(int i_meas = 0; i_meas < num_measurements; i_meas++)
@@ -403,7 +411,9 @@ double calculateChiSquared(int i_num, int num_bins, int num_measurements, std::v
     return running_sum / (num_measurements-1);
 }
 
-void calculateDerivatives(std::vector<double> &derivatives, int num_points, std::vector<int> &x_data, std::vector<double> &y_data) {
+void calculateDerivatives(std::vector<double> &derivatives, int num_points, std::vector<int> &x_data, 
+    std::vector<double> &y_data) 
+{
     derivatives.clear();
 
     // first data point
@@ -426,7 +436,10 @@ void calculateDerivatives(std::vector<double> &derivatives, int num_points, std:
 // that spectrum is updated as the algorithm progresses (passed by reference). Similarly for 
 // mlem_ratio
 //==================================================================================================
-int runMLEM(int cutoff, double error, int num_measurements, int num_bins, std::vector<double> &measurements, std::vector<double> &spectrum, std::vector<std::vector<double>> &nns_response, std::vector<double> &normalized_response, std::vector<double> &mlem_ratio, std::vector<double> &mlem_correction, std::vector<double> &mlem_estimate) {
+int runMLEM(int cutoff, double error, int num_measurements, int num_bins, std::vector<double> &measurements, 
+    std::vector<double> &spectrum, std::vector<std::vector<double>> &nns_response, std::vector<double> &normalized_response, 
+    std::vector<double> &mlem_ratio, std::vector<double> &mlem_correction, std::vector<double> &mlem_estimate) 
+{
     int mlem_index; // index of MLEM iteration
 
     for (mlem_index = 0; mlem_index < cutoff; mlem_index++) {
@@ -501,7 +514,10 @@ int runMLEM(int cutoff, double error, int num_measurements, int num_bins, std::v
 // that spectrum is updated as the algorithm progresses (passed by reference). Similarly for 
 // mlem_ratio
 //==================================================================================================
-int runMAP(std::vector<double> &energy_correction, double beta, std::string prior, int cutoff, double error, int num_measurements, int num_bins, std::vector<double> &measurements, std::vector<double> &spectrum, std::vector<std::vector<double>> &nns_response, std::vector<double> &normalized_response, std::vector<double> &mlem_ratio) {
+int runMAP(std::vector<double> &energy_correction, double beta, std::string prior, int cutoff, double error, 
+    int num_measurements, int num_bins, std::vector<double> &measurements, std::vector<double> &spectrum, 
+    std::vector<std::vector<double>> &nns_response, std::vector<double> &normalized_response, std::vector<double> &mlem_ratio) 
+{
     int mlem_index; // index of MLEM iteration
 
     for (mlem_index = 0; mlem_index < cutoff; mlem_index++) {
@@ -566,7 +582,9 @@ int runMAP(std::vector<double> &energy_correction, double beta, std::string prio
             for (int i_bin=1; i_bin < num_bins-1; i_bin++)
             {
                 double temp_value = 0;
-                temp_value = beta * sqrt(pow(spectrum[i_bin]-spectrum[i_bin-1],2)+pow(spectrum[i_bin]-spectrum[i_bin+1],2))/(2*spectrum[i_bin]);          
+                temp_value = beta * 
+                    sqrt(pow(spectrum[i_bin]-spectrum[i_bin-1],2)+pow(spectrum[i_bin]-spectrum[i_bin+1],2))
+                    / (2*spectrum[i_bin]);          
                 energy_correction.push_back(temp_value);
             }
             energy_correction.push_back(beta*sqrt(pow(spectrum[num_bins-1]-spectrum[num_bins-2],2))/spectrum[num_bins-1]);
@@ -719,7 +737,11 @@ std::vector<int> linearSpacedIntegerVector(int a, int b, std::size_t N)
 //**************************************************************************************************
 // RETIRED/UNUSED functions
 //**************************************************************************************************
-// int runMLEM_include_prev_spectrum(std::vector<double> &prev_spectrum, int cutoff, double error, int num_measurements, int num_bins, std::vector<double> &measurements, std::vector<double> &spectrum, std::vector<std::vector<double>> &nns_response, std::vector<double> &normalized_response, std::vector<double> &mlem_ratio, std::vector<double> &mlem_correction, std::vector<double> &mlem_estimate) {
+// int runMLEM_include_prev_spectrum(std::vector<double> &prev_spectrum, int cutoff, double error, 
+//     int num_measurements, int num_bins, std::vector<double> &measurements, std::vector<double> &spectrum, 
+//     std::vector<std::vector<double>> &nns_response, std::vector<double> &normalized_response, 
+//     std::vector<double> &mlem_ratio, std::vector<double> &mlem_correction, std::vector<double> &mlem_estimate) 
+// {
 //     int mlem_index; // index of MLEM iteration
 
 //     for (mlem_index = 0; mlem_index < cutoff; mlem_index++) {

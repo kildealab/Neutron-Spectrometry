@@ -219,7 +219,9 @@ bool checkStringMap(std::string test_key, std::map<std::string, std::string>& te
 //  - data_vector holds measurement values in nC. It is ordered from index:0 storing the value for 7
 //      moderators to index:7 storing the value for 0 moderators
 //==================================================================================================
-std::vector<double> getMeasurements(std::string input_file, std::string &irradiation_conditions, double &dose_mu, double &doserate_mu, int &duration) {
+std::vector<double> getMeasurements(std::string input_file, std::string &irradiation_conditions, 
+    double &dose_mu, double &doserate_mu, int &duration) 
+{
     std::ifstream ifile(input_file);
     if (!ifile.is_open()) {
         //throw error
@@ -229,7 +231,8 @@ std::vector<double> getMeasurements(std::string input_file, std::string &irradia
     // Load header information from 'ifile'
     getline(ifile,irradiation_conditions);
     // removes: carriage return '\r' from the string (which causes weird string overwriting)
-    irradiation_conditions.erase( std::remove(irradiation_conditions.begin(), irradiation_conditions.end(), '\r'), irradiation_conditions.end() );
+    irradiation_conditions.erase( std::remove(irradiation_conditions.begin(), 
+        irradiation_conditions.end(), '\r'), irradiation_conditions.end() );
 
     // Extract dose & measurement duration
     std::string dose_string;
@@ -287,7 +290,8 @@ std::vector<double> getMeasurementsCPS(std::string input_file, std::string &irra
     // Load header information from 'ifile'
     getline(ifile,irradiation_conditions);
     // removes: carriage return '\r' from the string (which causes weird string overwriting)
-    irradiation_conditions.erase( std::remove(irradiation_conditions.begin(), irradiation_conditions.end(), '\r'), irradiation_conditions.end() );
+    irradiation_conditions.erase( std::remove(irradiation_conditions.begin(), 
+        irradiation_conditions.end(), '\r'), irradiation_conditions.end() );
 
     // Loop through file, get measurement data
     std::string line;
@@ -314,43 +318,6 @@ std::vector<double> getMeasurementsCPS(std::string input_file, std::string &irra
 
 
 //==================================================================================================
-// Save calculated dose (and its error) to file (append to existing data in the file)
-// Args:
-//  - dose_file: filename to which results are saved
-//  - irradiation_conditions: string that specifies measurement conditions
-//  - dose: the calculated ambient dose equivalent rate
-//  - dose_uncertainty: the uncertainty in the ambient dose equivalent rate
-//==================================================================================================
-int saveDose(std::string dose_file, std::string irradiation_conditions, double dose, double dose_uncertainty) {
-    // determine if file exists
-    std::ifstream checkfile(dose_file);
-    bool file_empty = is_empty(checkfile);
-    checkfile.close();
-
-    // If file does not exist, create it. If file exists, open it
-    std::ofstream dfile;
-    dfile.open(dose_file, std::ios_base::app);
-
-    // Add header line to start of file, if file was empty
-    if (file_empty) {
-        std::ostringstream header_stream;
-        header_stream << DOSE_HEADERS[0] << "," << DOSE_HEADERS[1] << "," << DOSE_HEADERS[2] << "\n";
-        std::string header = header_stream.str();
-        dfile << header; 
-    }
-
-    // Append new line of data
-    std::ostringstream new_data_stream;
-    new_data_stream << irradiation_conditions << "," << dose << "," << dose_uncertainty << "\n";
-    std::string new_data = new_data_stream.str();
-    dfile << new_data; 
-
-    dfile.close();
-    return 1;
-}
-
-
-//==================================================================================================
 // Save calculated spectrum (and uncertainty spectrum) to file (append to existing data in the file)
 // Subsequent entries are appended as new rows (facilitate processing using ROOT)
 //
@@ -362,7 +329,9 @@ int saveDose(std::string dose_file, std::string irradiation_conditions, double d
 //  - spectrum_uncertainty: the uncertainty spectrum for the neutron flux
 //  - energy_bins: the energy bins corresponding to spectral values
 //==================================================================================================
-int saveSpectrumAsRow(std::string spectrum_file, int num_bins, std::string irradiation_conditions, std::vector<double>& spectrum, std::vector<double> &spectrum_uncertainty, std::vector<double>& energy_bins) {
+int saveSpectrumAsRow(std::string spectrum_file, int num_bins, std::string irradiation_conditions, 
+    std::vector<double>& spectrum, std::vector<double> &spectrum_uncertainty, std::vector<double>& energy_bins) 
+{
     // determine if file exists
     std::ifstream rfile(spectrum_file);
     bool file_empty = is_empty(rfile);
@@ -418,7 +387,9 @@ int saveSpectrumAsRow(std::string spectrum_file, int num_bins, std::string irrad
 //  - spectrum_uncertainty: the uncertainty spectrum for the neutron flux
 //  - energy_bins: the energy bins corresponding to spectral values
 //==================================================================================================
-int saveSpectrumAsColumn(std::string spectrum_file, std::string irradiation_conditions, std::vector<double>& spectrum, std::vector<double> &spectrum_uncertainty, std::vector<double>& energy_bins) {
+int saveSpectrumAsColumn(std::string spectrum_file, std::string irradiation_conditions, std::vector<double>& spectrum, 
+    std::vector<double> &spectrum_uncertainty, std::vector<double>& energy_bins) 
+{
     // determine if file exists
     std::ifstream sfile(spectrum_file);
     bool file_empty = is_empty(sfile);
@@ -552,7 +523,10 @@ int readInputFile2D(std::string file_name, std::vector<std::vector<double>>& inp
 //  - spectra_vector: the vector that will be assigned spectra values from the input file
 //  - error_vector: the vector that will be assigned uncertainties from the input file
 //==================================================================================================
-int readSpectra(std::string file_name, std::vector<std::string>& header_vector, std::vector<double>& energy_bins, std::vector<std::vector<double>>& spectra_vector, std::vector<std::vector<double>>& error_vector, bool plot_per_mu, std::vector<int>& number_mu, std::vector<int>& duration) {
+int readSpectra(std::string file_name, std::vector<std::string>& header_vector, std::vector<double>& energy_bins, 
+    std::vector<std::vector<double>>& spectra_vector, std::vector<std::vector<double>>& error_vector, 
+    bool plot_per_mu, std::vector<int>& number_mu, std::vector<int>& duration) 
+{
     std::ifstream ifile(file_name);
     std::string iline;
 
@@ -585,7 +559,9 @@ int readSpectra(std::string file_name, std::vector<std::string>& header_vector, 
                     //1st row is the energies
                     if (i_row !=0) {
 
-                        new_row.push_back(atof(stoken.c_str())*duration[i_pair%duration.size()]/number_mu[i_pair%number_mu.size()]);
+                        new_row.push_back(
+                            atof(stoken.c_str())*duration[i_pair%duration.size()]/number_mu[i_pair%number_mu.size()]
+                        );
                     }
                     else {
                         new_row.push_back(atof(stoken.c_str()));
@@ -632,158 +608,13 @@ int readSpectra(std::string file_name, std::vector<std::string>& header_vector, 
 int checkDimensions(int reference_size, std::string reference_string, int test_size, std::string test_string) {
     std::ostringstream error_message;
     if (reference_size != test_size) {
-        error_message << "File dimensions mismatch: " << test_string << " (" << test_size << ") does not match " << reference_string << " (" << reference_size << ")";
+        error_message << "File dimensions mismatch: " << test_string << " (" << test_size << ") does not match " 
+            << reference_string << " (" << reference_size << ")";
         throw std::logic_error(error_message.str());   
     }
     return 1;
 }
 
-
-//==================================================================================================
-// Generate a textfile report of pertinent information from execution of this program. The contents
-// of this function are separated by headers indicating the type of information printed to the
-// report in the the corresponding section.
-//==================================================================================================
-int prepareReport(std::string report_file, std::string irradiation_conditions, std::vector<std::string> &input_files, std::vector<std::string> &input_file_flags, std::string algorithm_name, int cutoff, double error, double norm, double f_factor, double beta, int num_measurements, int num_bins, int num_poisson_samples, std::vector<double>& measurements_report, double dose_mu, double doserate_mu, int duration, std::vector<double>& energy_bins, std::vector<double>& initial_spectrum, std::vector<std::vector<double>>& nns_response, int num_iterations, std::vector<double>& mlem_ratio, double dose, double s_dose, double total_flux, double total_flux_uncertainty, double avg_energy, double avg_energy_uncertainty, std::vector<double>& spectrum, std::vector<double>& spectrum_uncertainty, std::vector<double>& icrp_factors, std::string git_commit, std::string meas_units) {
-    std::string HEADER_DIVIDE = "************************************************************************************************************************\n";
-    std::string SECTION_DIVIDE = "\n========================================================================================================================\n\n";
-    std::string COLSTRING = "--------------------";
-    int sw = 30; // settings column width
-    int cw = 20; // data column width
-    int rw = 9; // NNS response column width
-
-    std::ofstream rfile(report_file);
-
-    //----------------------------------------------------------------------------------------------
-    // Header
-    //----------------------------------------------------------------------------------------------
-    rfile << HEADER_DIVIDE;
-    rfile << "Neutron Spectrometry Report\n\n";
-    rfile << std::left << std::setw(sw) << "Irradiation Specs: " << irradiation_conditions << "\n";
-    auto t = std::time(nullptr);
-    auto tm = *std::localtime(&t);
-    rfile << std::left << std::setw(sw) << "Date report was generated: " << std::put_time(&tm, "%Y-%m-%d %H:%M:%S") << "\n";
-    rfile << std::left << std::setw(sw) << "Git commit number: " << git_commit << "\n";
-    rfile << "Input arguments (files) used:\n";
-    for (int i=0; i<input_files.size(); i++) {
-        std::string tempstring = "    " + input_file_flags[i];
-        rfile << std::left <<std::setw(sw) << tempstring << input_files[i] << "\n";
-    }
-    rfile << HEADER_DIVIDE << "\n";
-
-    //----------------------------------------------------------------------------------------------
-    // Settings
-    //----------------------------------------------------------------------------------------------
-    rfile << "Settings\n\n";
-    rfile << std::left << std::setw(sw) << "MLEM max # of iterations:" << cutoff << "\n";
-    rfile << std::left << std::setw(sw) << "MLEM target ratio:" << error << "\n";
-    rfile << std::left << std::setw(sw) << "NNS normalization factor:" << norm << "\n";
-    rfile << std::left << std::setw(sw) << "NNS calibration factor:" << f_factor << " fA/cps\n";
-    rfile << std::left << std::setw(sw) << "Number of poisson samples:" << num_poisson_samples << "\n";
-    rfile << SECTION_DIVIDE;
-
-    //----------------------------------------------------------------------------------------------
-    // Measurement
-    //----------------------------------------------------------------------------------------------
-    std::string units_string;
-    if (meas_units == "cps")
-        units_string = "CPS";
-    else
-        units_string = "Charge (nC)";
-    
-    rfile << "Measurement\n\n";
-    rfile << std::left << std::setw(sw) << "Delivered dose:" << dose_mu << " MU\n";
-    rfile << std::left << std::setw(sw) << "Delivered doserate:" << doserate_mu << " MU/min\n";
-    rfile << std::left << std::setw(sw) << "Measurement duration:" << duration << " s\n\n";
-    // rfile << "Measured Data (measurement duration: " << duration << "s)\n\n";
-    rfile << std::left << std::setw(cw) << "# of moderators" << units_string << "\n";
-    rfile << std::left << std::setw(cw) << COLSTRING << COLSTRING << "\n";
-    for (int i=0; i<num_measurements; i++) {
-        rfile << std::left << std::setw(cw) << num_measurements-1-i << measurements_report[i] << "\n";
-    }
-    rfile << SECTION_DIVIDE;
-
-    //----------------------------------------------------------------------------------------------
-    // Inputs
-    //----------------------------------------------------------------------------------------------
-    rfile << "Inputs (Number of energy bins: " << num_bins << ")\n\n";
-    rfile << std::left << std::setw(cw) << "Energy bins" << std::setw(cw) << "Input spectrum" << "| NNS Response by # of moderators (cm^2)\n";
-    rfile << std::left << std::setw(cw) << "(MeV)" << std::setw(cw) << "(n cm^-2 s^-1)" << "| ";
-    for (int j=0; j<num_measurements; j++) {
-        rfile << std::left << std::setw(rw) << j;
-    }
-    rfile << "\n";
-    rfile << std::left << std::setw(cw) << COLSTRING << std::setw(cw) << COLSTRING << "--";
-    for (int j=0; j<num_measurements; j++) {
-        rfile << "---------";
-    }
-    rfile << "\n";
-
-    for (int i=0; i<num_bins; i++) {
-        rfile << std::left << std::setw(cw) << energy_bins[i] << std::setw(cw) << initial_spectrum[i] << "| ";
-        for (int j=0; j<num_measurements; j++) {
-            rfile << std::left << std::setw(rw) << nns_response[j][i];
-        }
-        rfile << "\n";
-    }
-    rfile << SECTION_DIVIDE;
-
-    //----------------------------------------------------------------------------------------------
-    // MLEM Processing
-    //----------------------------------------------------------------------------------------------
-    rfile << "Unfolding information\n\n";
-    rfile << std::left << std::setw(sw) << "Algorithm: " << algorithm_name << "\n";
-    if (algorithm_name == "map") {
-        rfile << std::left << std::setw(sw) << "MAP beta value: " << beta << "\n";
-    }
-    rfile << std::left << std::setw(sw) << "# of iterations: " << num_iterations << "/" << cutoff << "\n\n";
-    rfile << "Final unfolding ratio = measured charge / estimated charge:\n";
-    int thw = 13; // NNS response column width
-    //row 1
-    rfile << std::left << std::setw(thw) << "# moderators" << "| ";
-    for (int j=0; j<num_measurements; j++) {
-        rfile << std::left << std::setw(rw) << j;
-    }
-    rfile << "\n";
-    // row 2
-    rfile << std::left << std::setw(thw) << "-------------|-";
-    for (int j=0; j<num_measurements; j++) {
-        rfile << "---------";
-    }
-    rfile << "\n";
-    // row thw
-    rfile << std::left << std::setw(thw) << "ratio" << "| ";
-    for (int j=0; j<num_measurements; j++) {
-        rfile << std::left << std::setw(rw) << mlem_ratio[j];
-    }
-    rfile << "\n";
-    rfile << SECTION_DIVIDE;
-
-    //----------------------------------------------------------------------------------------------
-    // Results
-    //----------------------------------------------------------------------------------------------
-    rfile << "Results\n\n";
-    rfile << std::left << std::setw(sw) << "Ambient dose equivalent:" << dose << " mSv/hr\n";
-    rfile << std::left << std::setw(sw) << "Uncertainty:" << s_dose << " mSv\n\n";
-    // rfile << std::left << std::setw(sw) << "Total measured charge:" << total_charge << " nC\n\n";
-    rfile << std::left << std::setw(sw) << "Integrated neutron flux:" << total_flux << " n cm^-2 s^-1\n";
-    rfile << std::left << std::setw(sw) << "Uncertainty:" << total_flux_uncertainty << " n cm^-2 s^-1\n\n";
-    rfile << std::left << std::setw(sw) << "Average neutron energy:" << avg_energy << " MeV\n";
-    rfile << std::left << std::setw(sw) << "Uncertainty:" << avg_energy_uncertainty << " MeV\n\n";
-
-    rfile << std::left << std::setw(cw) << "Energy bins" << std::setw(cw) << "Unfolded spectrum" << std::setw(cw) << "Uncertainty" << std::setw(cw) << "| ICRP H factor" << "Ambient Dose Equiv.\n";
-    rfile << std::left << std::setw(cw) << "(MeV)" << std::setw(cw) << "(n cm^-2 s^-1)" << std::setw(cw) << "(n cm^-2 s^-1)" << std::setw(cw) << "| (pSv/cm^2)" << "(mSv/hr)\n";;
-    rfile << std::left << std::setw(cw) << COLSTRING << std::setw(cw) << COLSTRING << std::setw(cw) << COLSTRING << std::setw(cw) << COLSTRING << COLSTRING << "\n";
-    for (int i=0; i<num_bins; i++) {
-        std::ostringstream icrp_string;
-        icrp_string << "| " <<icrp_factors[i];
-        double subdose = spectrum[i]*icrp_factors[i]*3600*(1e-9);
-        rfile << std::left << std::setw(cw) << energy_bins[i] << std::setw(cw) << spectrum[i] << std::setw(cw) << spectrum_uncertainty[i] << std::setw(26) << icrp_string.str() << subdose << "\n";
-    }
-
-    rfile.close();
-    return 1;
-}
 
 //==================================================================================================
 // Convert a comma-delimited string into a vector of strings.
@@ -851,7 +682,9 @@ void stringToDVector(std::string test_string, std::vector<float>& result_vector)
 //  - x_data: the 1D vector that will store the x data (first row)
 //  - y_data: the 2D vector that will store the y data (subsequent rows)
 //==================================================================================================
-int readXYYCSV(std::string file_name, std::vector<std::string>& header_vector, std::vector<double>& x_data, std::vector<std::vector<double>>& y_data) {
+int readXYYCSV(std::string file_name, std::vector<std::string>& header_vector, std::vector<double>& x_data, 
+    std::vector<std::vector<double>>& y_data) 
+{
     std::ifstream ifile(file_name);
     std::string iline;
 

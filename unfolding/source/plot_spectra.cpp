@@ -52,7 +52,8 @@ int main(int argc, char* argv[])
     std::vector<double> energy_bins;
     std::vector<std::vector<double>> spectra_array;
     std::vector<std::vector<double>> error_array;
-    readSpectra(input_file, headers, energy_bins, spectra_array, error_array, settings.plot_per_mu, settings.number_mu, settings.duration);
+    readSpectra(input_file, headers, energy_bins, spectra_array, error_array, settings.plot_per_mu, 
+        settings.number_mu, settings.duration);
 
     int num_spectra = spectra_array.size();
     int num_bins = energy_bins.size() - 1;
@@ -82,7 +83,9 @@ int main(int argc, char* argv[])
     }
 
     // Generate the legend
-    TLegend* leg = new TLegend(settings.legend_coords[0], settings.legend_coords[1], settings.legend_coords[2], settings.legend_coords[3]); // with a text box
+    TLegend* leg = new TLegend(
+        settings.legend_coords[0], settings.legend_coords[1], settings.legend_coords[2], settings.legend_coords[3]
+    ); // with a text box
     leg->SetBorderSize(0);
     leg->SetTextSize(0.035);
 
@@ -93,8 +96,8 @@ int main(int argc, char* argv[])
         bins_arr[i_bin] = energy_bins[i_bin];
     }
 
-    int setting_size; // normalize all settings by the number of entries in that setting (e.g. if have 10 colors set, the 11th plot series should reuse the 1st color)
-
+    int setting_size; // normalize all settings by the number of entries in that setting 
+                      // (e.g. if have 10 colors set, the 11th plot series should reuse the 1st color)
 
     // Create histograms
     std::vector<TH1F*> histograms;
@@ -150,8 +153,10 @@ int main(int argc, char* argv[])
             histograms[i_spec]->SetTickLength(0.015,"xy"); // Length of tick marks (default = 0.02)
 
             // Set x-axis range
-            histograms[i_spec]->GetXaxis()->SetRange(0,num_bins); // Range according to bin number
-            // histograms[i_spec]->GetXaxis()->SetRangeUser(1e-9,10); // Range according to value (must be in range spanned by bins)
+            // Range according to bin number:
+            histograms[i_spec]->GetXaxis()->SetRange(0,num_bins); 
+            // Range according to value (must be in range spanned by bins):
+            // histograms[i_spec]->GetXaxis()->SetRangeUser(1e-9,10); 
             
             // Set axis tick label size
             histograms[i_spec]->GetYaxis()->SetLabelSize(0.03);
@@ -183,8 +188,11 @@ int main(int argc, char* argv[])
 
     // Optionally add a text box. Must draw the text box later in script as well, if necessary
     if(settings.textbox){
-        // TPaveText* pt = new TPaveText(0.15, 0.75, 0.4, 0.85, "nbNDC"); // nb specifies no border, NDC specifies method of defining coordinates
-        TPaveText* pt = new TPaveText(settings.textbox_coords[0], settings.textbox_coords[1], settings.textbox_coords[2], settings.textbox_coords[3], "nbNDC"); // nb specifies no border, NDC specifies method of defining coordinates
+        // TPaveText* pt = new TPaveText(0.15, 0.75, 0.4, 0.85, "nbNDC"); 
+        // nb specifies no border, NDC specifies method of defining coordinates
+        TPaveText* pt = new TPaveText(settings.textbox_coords[0], settings.textbox_coords[1], 
+            settings.textbox_coords[2], settings.textbox_coords[3], "nbNDC"
+        );
         pt->SetFillColorAlpha(kWhite,0);
         pt->SetTextAlign(12);
         pt->SetTextSize(0.035);
@@ -207,7 +215,9 @@ int main(int argc, char* argv[])
 
     // Plot the uncertainties
     for (int i_spec = 0; i_spec < num_spectra; i_spec++) {
-        TGraphErrors *ge = new TGraphErrors(num_bins, &(bins_avg[0]), &(spectra_array[i_spec][0]), 0, &(error_array[i_spec][0]));
+        TGraphErrors *ge = new TGraphErrors(
+            num_bins, &(bins_avg[0]), &(spectra_array[i_spec][0]), 0, &(error_array[i_spec][0])
+        );
         setting_size = settings.color_error.size();
         ge->SetFillColor(TColor::GetColor(settings.color_error[i_spec%setting_size].c_str()));
 

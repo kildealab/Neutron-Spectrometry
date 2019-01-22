@@ -75,10 +75,7 @@ int main(int argc, char* argv[])
     transform(algorithm_name.begin(), algorithm_name.end(), algorithm_name.begin(),(int (*)(int))tolower);
 
     // Output filenames
-    std::string dose_file = output_dir + "output_dose.csv";
-    std::string o_spectrum_file = output_dir + "output_spectra.csv"; // result (unfolded) spectrum
-    std::string report_file_pre = output_dir + "report_";
-    std::string report_file_suf = ".txt";
+    
     std::string figure_file_pre = output_dir + "figure_";
 
     // Apply some settings read in from a config file
@@ -125,20 +122,9 @@ int main(int argc, char* argv[])
         }
     }
 
-    // std::vector<double> measurements_nc = getMeasurements(input_files[0], irradiation_conditions, dose_mu, doserate_mu, duration);
-    // int num_measurements = measurements_nc.size();
-
-    // // Convert measured charge in nC to counts per second
-    // // Re-order measurments from (7 moderators to 0) to (0 moderators to 7)
-    // std::vector<double> measurements;
-    // for (int index=0; index < num_measurements; index++) {
-    //     double measurement_cps = measurements_nc[num_measurements-index-1]*settings.norm/settings.f_factor/duration;
-    //     measurements.push_back(measurement_cps);
-    // }
-
     //----------------------------------------------------------------------------------------------
     // Print out the processed measured data matrix
-    //----------------------------------------------------------------------------------------------ls
+    //----------------------------------------------------------------------------------------------
     std::cout << '\n';
     std::cout << "The measurements in CPS are:" << '\n'; // newline
 
@@ -216,12 +202,17 @@ int main(int argc, char* argv[])
     int num_iterations;
 
     if (algorithm_name == "mlem") {
-        num_iterations = runMLEM(settings.cutoff, settings.error, num_measurements, num_bins, measurements, spectrum, nns_response, normalized_response, mlem_ratio, mlem_correction, mlem_estimate);
+        num_iterations = runMLEM(settings.cutoff, settings.error, num_measurements, num_bins,
+            measurements, spectrum, nns_response, normalized_response, mlem_ratio, mlem_correction, 
+            mlem_estimate
+        );
     }
     else if (algorithm_name == "map") {
         std::vector<double> energy_correction;
-        num_iterations = runMAP(energy_correction, settings.beta, settings.prior, settings.cutoff, settings.error, num_measurements, num_bins, measurements, spectrum, nns_response, normalized_response, mlem_ratio);
-        // return 1;
+        num_iterations = runMAP(energy_correction, settings.beta, settings.prior, settings.cutoff, 
+            settings.error, num_measurements, num_bins, measurements, spectrum, nns_response, 
+            normalized_response, mlem_ratio
+        );
     }
     else {
         //throw error
@@ -289,11 +280,17 @@ int main(int argc, char* argv[])
 
         // Do unfolding on the initial spectrum & sampled measurement values
         if (algorithm_name == "mlem") {
-            runMLEM(settings.cutoff, settings.error, num_measurements, num_bins, sampled_measurements, sampled_spectrum, nns_response, normalized_response, sampled_mlem_ratio, sampled_mlem_correction, sampled_mlem_estimate);
+            runMLEM(settings.cutoff, settings.error, num_measurements, num_bins, sampled_measurements, 
+                sampled_spectrum, nns_response, normalized_response, sampled_mlem_ratio, 
+                sampled_mlem_correction, sampled_mlem_estimate
+            );
         }
         else if (algorithm_name == "map") {
             std::vector<double> sampled_energy_correction;
-            runMAP(sampled_energy_correction, settings.beta, settings.prior, settings.cutoff, settings.error, num_measurements, num_bins, sampled_measurements, sampled_spectrum, nns_response, normalized_response, sampled_mlem_ratio);
+            runMAP(sampled_energy_correction, settings.beta, settings.prior, settings.cutoff, 
+                settings.error, num_measurements, num_bins, sampled_measurements, sampled_spectrum, 
+                nns_response, normalized_response, sampled_mlem_ratio
+            );
         }
         else {
             //throw error
@@ -337,7 +334,9 @@ int main(int argc, char* argv[])
     double total_flux_uncertainty = calculateSumUncertainty(num_bins,spectrum_uncertainty);
 
     double avg_energy = calculateAverageEnergy(num_bins,spectrum,energy_bins);
-    double avg_energy_uncertainty = calculateEnergyUncertainty(num_bins,energy_bins,spectrum,spectrum_uncertainty,total_flux,total_flux_uncertainty);
+    double avg_energy_uncertainty = calculateEnergyUncertainty(num_bins,energy_bins,spectrum,
+        spectrum_uncertainty,total_flux,total_flux_uncertainty
+    );
 
     // double source_strength = calculateSourceStrength(num_bins,spectrum,duration,dose_mu);
 
@@ -365,28 +364,77 @@ int main(int argc, char* argv[])
 
 
     //----------------------------------------------------------------------------------------------
-    // Save results to file
+    // Save spectrum to file
     //----------------------------------------------------------------------------------------------
-    saveDose(dose_file, irradiation_conditions, ambient_dose_eq, ambient_dose_eq_uncertainty);
-    std::cout << "Saved calculated dose to " << dose_file << "\n";
-    saveSpectrumAsRow(o_spectrum_file, num_bins, irradiation_conditions, spectrum, spectrum_uncertainty, energy_bins);
-    std::cout << "Saved unfolded spectrum to " << o_spectrum_file << "\n";
+    saveSpectrumAsRow(settings.path_output_spectra, num_bins, irradiation_conditions, spectrum, 
+        spectrum_uncertainty, energy_bins
+    );
+    std::cout << "Saved unfolded spectrum to " << settings.path_output_spectra << "\n";
 
-    std::vector<double> measurements_report;
-    if (settings.meas_units == "cps") {
-        measurements_report = measurements;
-        std::reverse(measurements_report.begin(),measurements_report.end());
+    //----------------------------------------------------------------------------------------------
+    // Generate report
+    //----------------------------------------------------------------------------------------------
+    if (settings.generate_report) {
+        std::vector<double> measurements_report;
+        if (settings.meas_units == "cps") {
+            measurements_report = measurements;
+            std::reverse(measurements_report.begin(),measurements_report.end());
+        }
+        else
+            measurements_report = measurements_nc;
+
+        UnfoldingReport myreport;
+
+        if (settings.path_report.empty()) {
+            settings.path_report = "output/report_" + irradiation_conditions + ".txt";
+        }
+
+        myreport.set_path(settings.path_report);
+        myreport.set_irradiation_conditions(irradiation_conditions);
+        myreport.set_input_files(input_files);
+        myreport.set_input_file_flags(input_file_flags);
+        myreport.set_cutoff(settings.cutoff);
+        myreport.set_error(settings.error);
+        myreport.set_norm(settings.norm);
+        myreport.set_f_factor(f_factor_report);
+        myreport.set_num_measurements(num_measurements);
+        myreport.set_num_bins(num_bins);
+        myreport.set_num_poisson_samples(settings.num_poisson_samples);
+        myreport.set_git_commit(GIT_COMMIT);
+        myreport.set_measurements(measurements_report);
+        myreport.set_dose_mu(dose_mu);
+        myreport.set_doserate_mu(doserate_mu);
+        myreport.set_duration(duration);
+        myreport.set_meas_units(settings.meas_units);
+        myreport.set_initial_spectrum(initial_spectrum);
+        myreport.set_energy_bins(energy_bins);
+        myreport.set_nns_response(nns_response);
+        myreport.set_icrp_factors(icrp_factors);
+        myreport.set_spectrum(spectrum);
+        myreport.set_spectrum_uncertainty(spectrum_uncertainty);
+        myreport.set_num_iterations(num_iterations);
+        myreport.set_mlem_ratio(mlem_ratio);
+        myreport.set_dose(ambient_dose_eq);
+        myreport.set_s_dose(ambient_dose_eq_uncertainty);
+        myreport.set_total_flux(total_flux);
+        myreport.set_total_flux_uncertainty(total_flux_uncertainty);
+        myreport.set_avg_energy(avg_energy);
+        myreport.set_avg_energy_uncertainty(avg_energy_uncertainty);
+        myreport.prepare_report();
+
+        std::cout << "Generated summary report: " << settings.path_report << "\n\n";
     }
-    else
-        measurements_report = measurements_nc;
-    std::string report_file = report_file_pre + irradiation_conditions + report_file_suf;
-    prepareReport(report_file, irradiation_conditions, input_files, input_file_flags, algorithm_name, settings.cutoff, settings.error, settings.norm, f_factor_report, settings.beta, num_measurements, num_bins, settings.num_poisson_samples, measurements_report, dose_mu, doserate_mu, duration, energy_bins, initial_spectrum, nns_response, num_iterations, mlem_ratio, ambient_dose_eq, ambient_dose_eq_uncertainty, total_flux, total_flux_uncertainty, avg_energy, avg_energy_uncertainty, spectrum, spectrum_uncertainty, icrp_factors, GIT_COMMIT, settings.meas_units);
-    std::cout << "Generated summary report: " << report_file << "\n\n";
 
     //----------------------------------------------------------------------------------------------
     // Plot the spectrum
     //----------------------------------------------------------------------------------------------
-    plotSpectrum(figure_file_pre, figure_file_suf, irradiation_conditions, num_measurements, num_bins, energy_bins, spectrum, spectrum_uncertainty);
+    if (settings.generate_figure) {
+        std::cout << "Plotting spectrum: \n";
+        plotSpectrum(figure_file_pre, figure_file_suf, irradiation_conditions, num_measurements, 
+            num_bins, energy_bins, spectrum, spectrum_uncertainty
+        );
+        std::cout << "\n";
+    }
 
     return 0;
 }

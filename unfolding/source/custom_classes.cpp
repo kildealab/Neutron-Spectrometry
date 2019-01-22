@@ -4,6 +4,11 @@
 #include <stdlib.h>
 #include <string>
 #include <iostream>
+#include <iomanip>
+#include <fstream>
+#include <sstream>
+#include <vector>
+#include <algorithm>
 
 //--------------------------------------------------------------------------------------------------
 // Default constructor for UnfoldingSettings
@@ -27,6 +32,11 @@ UnfoldingSettings::UnfoldingSettings() {
     parameter_of_interest = "fluence";
     algorithm = "mlem";
     trend_type = "ratio";
+    path_output_spectra = "output/output_spectra.csv";
+    generate_report = 1;
+    path_report = "";
+    generate_figure = 0;
+    path_figure = "";
     auto_output_path = "output/auto.csv";
     derivatives = 0;
     measurements_path = "input/measurements.txt";
@@ -74,6 +84,16 @@ void UnfoldingSettings::set_setting(std::string settings_name, std::string setti
         this->set_algorithm(settings_value);
     else if (settings_name == "trend_type")
         this->set_trend_type(settings_value);
+    else if (settings_name == "path_output_spectra")
+        this->set_path_output_spectra(settings_value);
+    else if (settings_name == "generate_report")
+        this->set_generate_report(atoi(settings_value.c_str()));
+    else if (settings_name == "path_report")
+        this->set_path_report(settings_value);
+    else if (settings_name == "generate_figure")
+        this->set_generate_figure(atoi(settings_value.c_str()));
+    else if (settings_name == "path_figure")
+        this->set_path_figure(settings_value);
     else if (settings_name == "auto_output_path")
         this->set_auto_output_path(settings_value);
     else if (settings_name == "derivatives")
@@ -91,7 +111,8 @@ void UnfoldingSettings::set_setting(std::string settings_name, std::string setti
     else if (settings_name == "ref_spectrum_path")
         this->set_ref_spectrum_path(settings_value);
     else
-        throw std::logic_error("Unrecognized setting: " + settings_name + ". Please refer to the README for allowed settings");
+        throw std::logic_error("Unrecognized setting: " + settings_name 
+            + ". Please refer to the README for allowed settings");
 
 }
 
@@ -144,6 +165,21 @@ void UnfoldingSettings::set_algorithm(std::string algorithm) {
 void UnfoldingSettings::set_trend_type(std::string trend_type) {
     this->trend_type = trend_type;
 }
+void UnfoldingSettings::set_path_output_spectra(std::string path_output_spectra) {
+    this->path_output_spectra = path_output_spectra;
+}
+void UnfoldingSettings::set_generate_report(int generate_report) {
+    this->generate_report = generate_report;
+}
+void UnfoldingSettings::set_path_report(std::string path_report) {
+    this->path_report = path_report;
+}
+void UnfoldingSettings::set_generate_figure(int generate_figure) {
+    this->generate_figure = generate_figure;
+}
+void UnfoldingSettings::set_path_figure(std::string path_figure) {
+    this->path_figure = path_figure;
+}
 void UnfoldingSettings::set_auto_output_path(std::string auto_output_path) {
     this->auto_output_path = auto_output_path;
 }
@@ -167,6 +203,269 @@ void UnfoldingSettings::set_icrp_factors_path(std::string icrp_factors_path) {
 }
 void UnfoldingSettings::set_ref_spectrum_path(std::string ref_spectrum_path) {
     this->ref_spectrum_path = ref_spectrum_path;
+}
+
+
+//--------------------------------------------------------------------------------------------------
+// Default constructor for UnfoldingSettings
+//--------------------------------------------------------------------------------------------------
+UnfoldingReport::UnfoldingReport() {
+    path = "output/report.txt";
+}
+
+void UnfoldingReport::set_path(std::string path) {
+    this->path = path;
+}
+void UnfoldingReport::set_irradiation_conditions(std::string irradiation_conditions) {
+    this->irradiation_conditions = irradiation_conditions;
+}
+void UnfoldingReport::set_input_files(std::vector<std::string>& input_files) {
+    this->input_files = input_files;
+}
+void UnfoldingReport::set_input_file_flags(std::vector<std::string>& input_file_flags) {
+    this->input_file_flags = input_file_flags;
+}
+void UnfoldingReport::set_cutoff(int cutoff) {
+    this->cutoff = cutoff;
+}
+void UnfoldingReport::set_error(double error) {
+    this->error = error;
+}
+void UnfoldingReport::set_norm(double norm) {
+    this->norm = norm;
+}
+void UnfoldingReport::set_f_factor(double f_factor) {
+    this->f_factor = f_factor;
+}
+void UnfoldingReport::set_num_measurements(int num_measurements) {
+    this->num_measurements = num_measurements;
+}
+void UnfoldingReport::set_num_bins(int num_bins) {
+    this->num_bins = num_bins;
+}
+void UnfoldingReport::set_num_poisson_samples(int num_poisson_samples) {
+    this->num_poisson_samples = num_poisson_samples;
+}
+void UnfoldingReport::set_git_commit(std::string git_commit) {
+    this->git_commit = git_commit;
+}
+void UnfoldingReport::set_measurements(std::vector<double>& measurements) {
+    this->measurements = measurements;
+}
+void UnfoldingReport::set_dose_mu(double dose_mu) {
+    this->dose_mu = dose_mu;
+}
+void UnfoldingReport::set_doserate_mu(double doserate_mu) {
+    this->doserate_mu = doserate_mu;
+}
+void UnfoldingReport::set_duration(int duration) {
+    this->duration = duration;
+}
+void UnfoldingReport::set_meas_units(std::string meas_units) {
+    this->meas_units = meas_units;
+}
+void UnfoldingReport::set_initial_spectrum(std::vector<double>& initial_spectrum) {
+    this->initial_spectrum = initial_spectrum;
+}
+void UnfoldingReport::set_energy_bins(std::vector<double>& energy_bins) {
+    this->energy_bins = energy_bins;
+}
+void UnfoldingReport::set_nns_response(std::vector<std::vector<double>>& nns_response) {
+    this->nns_response = nns_response;
+}
+void UnfoldingReport::set_icrp_factors(std::vector<double>& icrp_factors) {
+    this->icrp_factors = icrp_factors;
+}
+void UnfoldingReport::set_spectrum(std::vector<double>& spectrum) {
+    this->spectrum = spectrum;
+}
+void UnfoldingReport::set_spectrum_uncertainty(std::vector<double>& spectrum_uncertainty) {
+    this->spectrum_uncertainty = spectrum_uncertainty;
+}
+void UnfoldingReport::set_num_iterations(int num_iterations) {
+    this->num_iterations = num_iterations;
+}
+void UnfoldingReport::set_mlem_ratio(std::vector<double>& mlem_ratio) {
+    this->mlem_ratio = mlem_ratio;
+}
+void UnfoldingReport::set_dose(double dose) {
+    this->dose = dose;
+}
+void UnfoldingReport::set_s_dose(double s_dose) {
+    this->s_dose = s_dose;
+}
+void UnfoldingReport::set_total_flux(double total_flux) {
+    this->total_flux = total_flux;
+}
+void UnfoldingReport::set_total_flux_uncertainty(double total_flux_uncertainty) {
+    this->total_flux_uncertainty = total_flux_uncertainty;
+}
+void UnfoldingReport::set_avg_energy(double avg_energy) {
+    this->avg_energy = avg_energy;
+}
+void UnfoldingReport::set_avg_energy_uncertainty(double avg_energy_uncertainty) {
+    this->avg_energy_uncertainty = avg_energy_uncertainty;
+}
+
+//----------------------------------------------------------------------------------------------
+// Prepare summary report of unfolding
+//----------------------------------------------------------------------------------------------
+void UnfoldingReport::prepare_report() {
+    std::ofstream rfile(path);
+
+    report_header(rfile);
+    report_settings(rfile);
+    report_measurement_info(rfile);
+    report_inputs(rfile);
+    report_mlem_info(rfile);
+    report_results(rfile);
+
+    rfile.close();
+}
+
+//----------------------------------------------------------------------------------------------
+// Header
+//----------------------------------------------------------------------------------------------
+void UnfoldingReport::report_header(std::ofstream& rfile) {
+    rfile << HEADER_DIVIDE;
+    rfile << "Neutron Spectrometry Report\n\n";
+    rfile << std::left << std::setw(sw) << "Irradiation Specs: " << irradiation_conditions << "\n";
+    auto t = std::time(nullptr);
+    auto tm = *std::localtime(&t);
+    rfile << std::left << std::setw(sw) << "Date report was generated: " 
+        << std::put_time(&tm, "%Y-%m-%d %H:%M:%S") << "\n";
+    rfile << std::left << std::setw(sw) << "Git commit number: " << git_commit << "\n";
+    rfile << "Input arguments (files) used:\n";
+    for (int i=0; i<input_files.size(); i++) {
+        std::string tempstring = "    " + input_file_flags[i];
+        rfile << std::left <<std::setw(sw) << tempstring << input_files[i] << "\n";
+    }
+    rfile << HEADER_DIVIDE << "\n";
+}
+
+//----------------------------------------------------------------------------------------------
+// Settings
+//----------------------------------------------------------------------------------------------
+void UnfoldingReport::report_settings(std::ofstream& rfile) {
+    rfile << "Settings\n\n";
+    rfile << std::left << std::setw(sw) << "MLEM max # of iterations:" << cutoff << "\n";
+    rfile << std::left << std::setw(sw) << "MLEM target ratio:" << error << "\n";
+    rfile << std::left << std::setw(sw) << "NNS normalization factor:" << norm << "\n";
+    rfile << std::left << std::setw(sw) << "NNS calibration factor:" << f_factor << " fA/cps\n";
+    rfile << std::left << std::setw(sw) << "Number of poisson samples:" << num_poisson_samples << "\n";
+    rfile << SECTION_DIVIDE;
+}
+
+//----------------------------------------------------------------------------------------------
+// Measurement info
+//----------------------------------------------------------------------------------------------
+void UnfoldingReport::report_measurement_info(std::ofstream& rfile) {
+    std::string units_string;
+    if (meas_units == "cps")
+        units_string = "CPS";
+    else
+        units_string = "Charge (nC)";
+    
+    rfile << "Measurement\n\n";
+    rfile << std::left << std::setw(sw) << "Delivered dose:" << dose_mu << " MU\n";
+    rfile << std::left << std::setw(sw) << "Delivered doserate:" << doserate_mu << " MU/min\n";
+    rfile << std::left << std::setw(sw) << "Measurement duration:" << duration << " s\n\n";
+    // rfile << "Measured Data (measurement duration: " << duration << "s)\n\n";
+    rfile << std::left << std::setw(cw) << "# of moderators" << units_string << "\n";
+    rfile << std::left << std::setw(cw) << COLSTRING << COLSTRING << "\n";
+    for (int i=0; i<num_measurements; i++) {
+        rfile << std::left << std::setw(cw) << num_measurements-1-i << measurements[i] << "\n";
+    }
+    rfile << SECTION_DIVIDE;
+}
+
+//----------------------------------------------------------------------------------------------
+// Inputs
+//----------------------------------------------------------------------------------------------
+void UnfoldingReport::report_inputs(std::ofstream& rfile) {
+    rfile << "Inputs (Number of energy bins: " << num_bins << ")\n\n";
+    rfile << std::left << std::setw(cw) << "Energy bins" << std::setw(cw) << "Input spectrum" 
+        << "| NNS Response by # of moderators (cm^2)\n";
+    rfile << std::left << std::setw(cw) << "(MeV)" << std::setw(cw) << "(n cm^-2 s^-1)" << "| ";
+    for (int j=0; j<num_measurements; j++) {
+        rfile << std::left << std::setw(rw) << j;
+    }
+    rfile << "\n";
+    rfile << std::left << std::setw(cw) << COLSTRING << std::setw(cw) << COLSTRING << "--";
+    for (int j=0; j<num_measurements; j++) {
+        rfile << "---------";
+    }
+    rfile << "\n";
+
+    for (int i=0; i<num_bins; i++) {
+        rfile << std::left << std::setw(cw) << energy_bins[i] << std::setw(cw) << initial_spectrum[i] << "| ";
+        for (int j=0; j<num_measurements; j++) {
+            rfile << std::left << std::setw(rw) << nns_response[j][i];
+        }
+        rfile << "\n";
+    }
+    rfile << SECTION_DIVIDE;
+}
+
+//----------------------------------------------------------------------------------------------
+// MLEM Processing
+//----------------------------------------------------------------------------------------------
+void UnfoldingReport::report_mlem_info(std::ofstream& rfile) {
+    rfile << "Unfolding information\n\n";
+    rfile << std::left << std::setw(sw) << "Algorithm: " << algorithm_name << "\n";
+    if (algorithm_name == "map") {
+        rfile << std::left << std::setw(sw) << "MAP beta value: " << beta << "\n";
+    }
+    rfile << std::left << std::setw(sw) << "# of iterations: " << num_iterations << "/" << cutoff << "\n\n";
+    rfile << "Final unfolding ratio = measured charge / estimated charge:\n";
+    int thw = 13; // NNS response column width
+    //row 1
+    rfile << std::left << std::setw(thw) << "# moderators" << "| ";
+    for (int j=0; j<num_measurements; j++) {
+        rfile << std::left << std::setw(rw) << j;
+    }
+    rfile << "\n";
+    // row 2
+    rfile << std::left << std::setw(thw) << "-------------|-";
+    for (int j=0; j<num_measurements; j++) {
+        rfile << "---------";
+    }
+    rfile << "\n";
+    // row thw
+    rfile << std::left << std::setw(thw) << "ratio" << "| ";
+    for (int j=0; j<num_measurements; j++) {
+        rfile << std::left << std::setw(rw) << mlem_ratio[j];
+    }
+    rfile << "\n";
+    rfile << SECTION_DIVIDE;
+}
+
+//----------------------------------------------------------------------------------------------
+// Results
+//----------------------------------------------------------------------------------------------
+void UnfoldingReport::report_results(std::ofstream& rfile) {
+    rfile << "Results\n\n";
+    rfile << std::left << std::setw(sw) << "Ambient dose equivalent:" << dose << " mSv/hr\n";
+    rfile << std::left << std::setw(sw) << "Uncertainty:" << s_dose << " mSv\n\n";
+    // rfile << std::left << std::setw(sw) << "Total measured charge:" << total_charge << " nC\n\n";
+    rfile << std::left << std::setw(sw) << "Integrated neutron flux:" << total_flux << " n cm^-2 s^-1\n";
+    rfile << std::left << std::setw(sw) << "Uncertainty:" << total_flux_uncertainty << " n cm^-2 s^-1\n\n";
+    rfile << std::left << std::setw(sw) << "Average neutron energy:" << avg_energy << " MeV\n";
+    rfile << std::left << std::setw(sw) << "Uncertainty:" << avg_energy_uncertainty << " MeV\n\n";
+
+    rfile << std::left << std::setw(cw) << "Energy bins" << std::setw(cw) << "Unfolded spectrum" << std::setw(cw) 
+        << "Uncertainty" << std::setw(cw) << "| ICRP H factor" << "Ambient Dose Equiv.\n";
+    rfile << std::left << std::setw(cw) << "(MeV)" << std::setw(cw) << "(n cm^-2 s^-1)" << std::setw(cw) 
+        << "(n cm^-2 s^-1)" << std::setw(cw) << "| (pSv/cm^2)" << "(mSv/hr)\n";;
+    rfile << std::left << std::setw(cw) << COLSTRING << std::setw(cw) << COLSTRING << std::setw(cw) 
+        << COLSTRING << std::setw(cw) << COLSTRING << COLSTRING << "\n";
+    for (int i=0; i<num_bins; i++) {
+        std::ostringstream icrp_string;
+        icrp_string << "| " <<icrp_factors[i];
+        double subdose = spectrum[i]*icrp_factors[i]*3600*(1e-9);
+        rfile << std::left << std::setw(cw) << energy_bins[i] << std::setw(cw) << spectrum[i] << std::setw(cw) 
+            << spectrum_uncertainty[i] << std::setw(26) << icrp_string.str() << subdose << "\n";
+    }
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -268,7 +567,8 @@ void SpectraSettings::set_setting(std::string settings_name, std::string setting
     else if (settings_name == "normalize")
         this->set_normalize(settings_value);
     // else
-    //     throw std::logic_error("Unrecognized setting: " + settings_name + ". Please refer to the README for allowed settings");
+    //     throw std::logic_error("Unrecognized setting: " + settings_name 
+    //      + ". Please refer to the README for allowed settings");
 }
 
 void SpectraSettings::set_input_filename(std::string input_filename) {
@@ -385,7 +685,6 @@ PlotSettings::PlotSettings() {
     y_num_divs = 0;
     legend_entries = {};
     // color_series = {"#000000","#C63822","#607FD5","#55A961"};
-    // color_series = {"#333333","#4e79a7","#59a14f","#9c755f","#f29e2b","#edc948","#bab0ac","#e15759","#b07aa1","#76b7b2","#ff9da7"};
     //               black      blue       red      green     purple    grey      teal       salmon   light gr    fuchsia
     color_series = {"#000000","#4556d2","#C63822","#55A961","#75298e","#9ba5b1","#2fb5d4","#E79A9F","#4be0b0","#cb66ed"};
     // yellow to purple gradient:
@@ -506,7 +805,8 @@ void PlotSettings::set_setting(std::string settings_name, std::string settings_v
     else if (settings_name == "y_label_offset")
         this->set_y_label_offset(settings_value);
     else
-        throw std::logic_error("Unrecognized setting: " + settings_name + ". Please refer to the README for allowed settings");
+        throw std::logic_error("Unrecognized setting: " + settings_name 
+            + ". Please refer to the README for allowed settings");
 }
 
 // Setter functions
@@ -717,7 +1017,8 @@ void SurfaceSettings::set_setting(std::string settings_name, std::string setting
         this->set_border_width(settings_value);
 
     else
-        throw std::logic_error("Unrecognized setting: " + settings_name + ". Please refer to the README for allowed settings");
+        throw std::logic_error("Unrecognized setting: " + settings_name 
+            + ". Please refer to the README for allowed settings");
 }
 
 // Setter functions

@@ -5,17 +5,18 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <iostream>
 
 class UnfoldingSettings {
     public:
-        double norm; // vendor specfied normalization factor for the NNS used
-        double error; // The target error on ratio between the experimental data points and the estimated data points from unfolding (e.g. 0.1 means the values must be within 10% of each other before the algorithm will terminate)
-        double f_factor; // factor that converts measured charge (in fC) to counts per second [fA/cps]
-        int cutoff; // maximum # of iterations in the unfolding algorithm
-        int num_poisson_samples; // # of samples from Poisson distribution for uncertainty estimation
-        std::string meas_units; // string representing the units of the measured data
+        double norm; 
+        double error; 
+        double f_factor; 
+        int cutoff; 
+        int num_poisson_samples; 
+        std::string meas_units; 
         // MAP specific
-        double beta; // factor that affects damping of high noise spectral component in MAP method
+        double beta; 
         std::string prior;
         // Optimize specific
         int min_num_iterations;
@@ -26,6 +27,11 @@ class UnfoldingSettings {
         std::string parameter_of_interest;
         std::string algorithm;
         std::string trend_type;
+        std::string path_output_spectra;
+        int generate_report;
+        std::string path_report;
+        int generate_figure;
+        std::string path_figure;
         std::string auto_output_path;
         int derivatives;
         std::string measurements_path;
@@ -55,6 +61,11 @@ class UnfoldingSettings {
         void set_parameter_of_interest(std::string);
         void set_algorithm(std::string);
         void set_trend_type(std::string);
+        void set_path_output_spectra(std::string);
+        void set_generate_report(int);
+        void set_path_report(std::string);
+        void set_generate_figure(int);
+        void set_path_figure(std::string);
         void set_auto_output_path(std::string);
         void set_derivatives(int);
         void set_measurements_path(std::string);
@@ -64,6 +75,108 @@ class UnfoldingSettings {
         void set_icrp_factors_path(std::string);
         void set_ref_spectrum_path(std::string);
 };
+
+
+class UnfoldingReport {
+    public:
+        const std::string HEADER_DIVIDE = 
+            "************************************************************************************************************************\n";
+        const std::string SECTION_DIVIDE = 
+            "\n========================================================================================================================\n\n";
+        const std::string COLSTRING = 
+            "--------------------";
+
+        const int sw = 30; // settings column width
+        const int cw = 20; // data column width
+        const int rw = 9; // NNS response column width
+
+        std::string path;
+        std::string irradiation_conditions;
+        std::vector<std::string> input_files;
+        std::vector<std::string> input_file_flags;
+
+        int cutoff;
+        double error;
+        double norm;
+        double f_factor;
+        int num_measurements;
+        int num_bins;
+        int num_poisson_samples;
+        std::string git_commit;
+
+        std::vector<double> measurements; // measurements_report
+        double dose_mu;
+        double doserate_mu;
+        int duration;
+        std::string meas_units;
+
+        std::vector<double> initial_spectrum;
+        std::vector<double> energy_bins;
+        std::vector<std::vector<double>> nns_response;
+        std::vector<double> icrp_factors;
+
+        std::vector<double> spectrum;
+        std::vector<double> spectrum_uncertainty;
+        int num_iterations;
+        std::vector<double> mlem_ratio;
+        double dose;
+        double s_dose;
+        double total_flux;
+        double total_flux_uncertainty;
+        double avg_energy;
+        double avg_energy_uncertainty;
+
+        //MAP
+        double beta;
+        std::string algorithm_name;
+
+        UnfoldingReport(); 
+
+        void prepare_report();
+        void report_header(std::ofstream&);
+        void report_settings(std::ofstream&);
+        void report_measurement_info(std::ofstream&);
+        void report_inputs(std::ofstream&);
+        void report_mlem_info(std::ofstream&);
+        void report_results(std::ofstream&);
+
+        void set_path(std::string);
+        void set_irradiation_conditions(std::string);
+        void set_input_files(std::vector<std::string>&);
+        void set_input_file_flags(std::vector<std::string>&);
+
+        void set_cutoff(int);
+        void set_error(double);
+        void set_norm(double);
+        void set_f_factor(double);
+        void set_num_measurements(int);
+        void set_num_bins(int);
+        void set_num_poisson_samples(int);
+        void set_git_commit(std::string);
+
+        void set_measurements(std::vector<double>&);
+        void set_dose_mu(double);
+        void set_doserate_mu(double);
+        void set_duration(int);
+        void set_meas_units(std::string);
+
+        void set_initial_spectrum(std::vector<double>&);
+        void set_energy_bins(std::vector<double>&);
+        void set_nns_response(std::vector<std::vector<double>>&);
+        void set_icrp_factors(std::vector<double>&);
+
+        void set_spectrum(std::vector<double>&);
+        void set_spectrum_uncertainty(std::vector<double>&);
+        void set_num_iterations(int);
+        void set_mlem_ratio(std::vector<double>&);
+        void set_dose(double);
+        void set_s_dose(double);
+        void set_total_flux(double);
+        void set_total_flux_uncertainty(double);
+        void set_avg_energy(double);
+        void set_avg_energy_uncertainty(double);
+};
+
 
 class SpectraSettings {
     public:

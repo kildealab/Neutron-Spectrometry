@@ -24,7 +24,9 @@
 //  - filename: The variable (passed by reference) that will be assigned a value, representing the
 //      the filename to be used
 //==================================================================================================
-int setfile(std::vector<std::string> &arg_vector, std::string directory, std::string arg_string, std::string default_filename, std::string &filename) {
+int setfile(std::vector<std::string> &arg_vector, std::string directory, std::string arg_string, 
+    std::string default_filename, std::string &filename) 
+{
     // Place an iterator at an index of the vector, where the matching arg_string was found
     std::vector<std::string>::iterator iter_args = std::find(arg_vector.begin(), arg_vector.end(), arg_string);
 
@@ -61,7 +63,8 @@ void checkUnknownParameters(std::vector<std::string> &arg_vector, std::vector<st
     // Loop through all arguments
     for (int i=0; i<arg_vector.size(); i++) {
         // iterate through input_file_flags vector to see if any items match the current argument
-        std::vector<std::string>::iterator iter_args = std::find(input_file_flags.begin(), input_file_flags.end(), arg_vector[i]);
+        std::vector<std::string>::iterator iter_args = std::find(input_file_flags.begin(), 
+            input_file_flags.end(), arg_vector[i]);
         
         // If not match was found, notify user
         if(iter_args == input_file_flags.end()) {

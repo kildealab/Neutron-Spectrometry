@@ -75,7 +75,8 @@ int main(int argc, char* argv[])
     }
 
     // Generate the legend
-    TLegend* leg = new TLegend(settings.legend_coords[0], settings.legend_coords[1], settings.legend_coords[2], settings.legend_coords[3]); // with a text box
+    TLegend* leg = new TLegend(settings.legend_coords[0], settings.legend_coords[1], settings.legend_coords[2], 
+        settings.legend_coords[3]); // with a text box
     leg->SetBorderSize(settings.legend_border_size);
     leg->SetTextSize(settings.legend_text_size);
     leg->SetFillStyle(0);
@@ -88,7 +89,9 @@ int main(int argc, char* argv[])
         TVectorD ytv(num_points, &y_data[i_y][0]); // need to use TVectorD when creating TGraph
         TGraph* gr = new TGraph(xtv,ytv);
 
-        int setting_size; // normalize all settings by the number of entries in that setting (e.g. if have 10 colors set, the 11th plot series should reuse the 1st color)
+        // normalize all settings by the number of entries in that setting 
+        // (e.g. if have 10 colors set, the 11th plot series should reuse the 1st color)
+        int setting_size;
 
         // Styling
         setting_size = settings.plot_type.size();
@@ -169,8 +172,10 @@ int main(int argc, char* argv[])
 
     // Optionally add a text box
     if(settings.textbox){
-        // TPaveText* pt = new TPaveText(0.15, 0.75, 0.4, 0.85, "nbNDC"); // nb specifies no border, NDC specifies method of defining coordinates
-        TPaveText* pt = new TPaveText(settings.textbox_coords[0], settings.textbox_coords[1], settings.textbox_coords[2], settings.textbox_coords[3], "nbNDC"); // nb specifies no border, NDC specifies method of defining coordinates
+        // TPaveText* pt = new TPaveText(0.15, 0.75, 0.4, 0.85, "nbNDC"); 
+        // nb specifies no border, NDC specifies method of defining coordinates
+        TPaveText* pt = new TPaveText(settings.textbox_coords[0], settings.textbox_coords[1], 
+            settings.textbox_coords[2], settings.textbox_coords[3], "nbNDC"); 
         pt->SetFillColorAlpha(kWhite,1);
         pt->SetTextAlign(12);
         pt->SetTextSize(0.035);

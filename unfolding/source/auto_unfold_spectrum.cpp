@@ -109,7 +109,8 @@ int main(int argc, char* argv[])
         }
     }
 
-    // std::vector<double> measurements_nc = getMeasurements(input_files[0], irradiation_conditions, dose_mu, doserate_mu, duration);
+    // std::vector<double> measurements_nc = getMeasurements(input_files[0], irradiation_conditions, 
+    //    dose_mu, doserate_mu, duration);
     // int num_measurements = measurements_nc.size();
 
     // // Convert measured charge in nC to counts per second
@@ -192,7 +193,9 @@ int main(int argc, char* argv[])
     if (settings.algorithm == "correction_factors") {
         // Create vector of number of iterations
         int num_increments = ((settings.max_num_iterations - settings.min_num_iterations) / settings.iteration_increment)+1;
-        std::vector<int> num_iterations_vector = linearSpacedIntegerVector(settings.min_num_iterations,settings.max_num_iterations,num_increments);
+        std::vector<int> num_iterations_vector = linearSpacedIntegerVector(
+            settings.min_num_iterations,settings.max_num_iterations,num_increments
+        );
         int num_iteration_samples = num_iterations_vector.size();
 
         std::vector<double> current_spectrum = initial_spectrum; // the reconstructed spectrum
@@ -217,7 +220,9 @@ int main(int argc, char* argv[])
                 num_iterations = num_iterations_vector[i_num];
             else
                 num_iterations = num_iterations_vector[i_num]-num_iterations_vector[i_num-1];
-            runMLEM(num_iterations, settings.error, num_measurements, num_bins, measurements, current_spectrum, nns_response, normalized_response, mlem_ratio, mlem_correction, mlem_estimate);
+            runMLEM(num_iterations, settings.error, num_measurements, num_bins, measurements, 
+                current_spectrum, nns_response, normalized_response, mlem_ratio, mlem_correction, mlem_estimate
+            );
 
             total_num_iterations += num_iterations;
 
@@ -255,7 +260,9 @@ int main(int argc, char* argv[])
     if (settings.algorithm == "trend") {
         // Create vector of number of iterations
         int num_increments = ((settings.max_num_iterations - settings.min_num_iterations) / settings.iteration_increment)+1;
-        std::vector<int> num_iterations_vector = linearSpacedIntegerVector(settings.min_num_iterations,settings.max_num_iterations,num_increments);
+        std::vector<int> num_iterations_vector = linearSpacedIntegerVector(
+            settings.min_num_iterations,settings.max_num_iterations,num_increments
+        );
         int num_iteration_samples = num_iterations_vector.size();
 
         std::vector<double> current_spectrum = initial_spectrum; // the reconstructed spectrum
@@ -298,7 +305,9 @@ int main(int argc, char* argv[])
                 num_iterations = num_iterations_vector[i_num];
             else
                 num_iterations = num_iterations_vector[i_num]-num_iterations_vector[i_num-1];
-            runMLEM(num_iterations, settings.error, num_measurements, num_bins, measurements, current_spectrum, nns_response, normalized_response, mlem_ratio, mlem_correction, mlem_estimate);
+            runMLEM(num_iterations, settings.error, num_measurements, num_bins, measurements, 
+                current_spectrum, nns_response, normalized_response, mlem_ratio, mlem_correction, mlem_estimate
+            );
 
             total_num_iterations += num_iterations;
             // Add the reconstructed measured data for current number of iterations to the file
@@ -345,7 +354,9 @@ int main(int argc, char* argv[])
     if (settings.algorithm == "mlem") {
         // Create vector of number of iterations
         int num_increments = ((settings.max_num_iterations - settings.min_num_iterations) / settings.iteration_increment)+1;
-        std::vector<int> num_iterations_vector = linearSpacedIntegerVector(settings.min_num_iterations,settings.max_num_iterations,num_increments);
+        std::vector<int> num_iterations_vector = linearSpacedIntegerVector(
+            settings.min_num_iterations,settings.max_num_iterations,num_increments
+        );
         int num_iteration_samples = num_iterations_vector.size();
 
         std::vector<double> current_spectrum = initial_spectrum; // the reconstructed spectrum
@@ -374,8 +385,11 @@ int main(int argc, char* argv[])
 
         // Used if calculating RMSD
         std::vector<double> ref_spectrum;
-        if (settings.parameter_of_interest == "rms" || settings.parameter_of_interest == "nrmsd" || settings.parameter_of_interest == "chi_squared_g")
+        if (settings.parameter_of_interest == "rms" || settings.parameter_of_interest == "nrmsd" 
+            || settings.parameter_of_interest == "chi_squared_g") 
+        {
             readInputFile1D(settings.ref_spectrum_path,ref_spectrum);
+        }
 
         // Loop through number of iterations
         for (int i_num=0; i_num < num_iteration_samples; i_num++) {
@@ -387,7 +401,9 @@ int main(int argc, char* argv[])
                 num_iterations = num_iterations_vector[i_num];
             else
                 num_iterations = num_iterations_vector[i_num]-num_iterations_vector[i_num-1];
-            runMLEM(num_iterations, settings.error, num_measurements, num_bins, measurements, current_spectrum, nns_response, normalized_response, mlem_ratio, mlem_correction, mlem_estimate);
+            runMLEM(num_iterations, settings.error, num_measurements, num_bins, measurements, current_spectrum, 
+                nns_response, normalized_response, mlem_ratio, mlem_correction, mlem_estimate
+            );
         
             // Calculate one of the following parameters of interest & save to results stream
             double poi_value = 0;
@@ -447,7 +463,10 @@ int main(int argc, char* argv[])
                 poi_value = calculateChiSquaredG(num_bins,ref_spectrum,normalized_spectrum);
             }
             else {
-                throw std::logic_error("Unrecognized parameter of interest: " + settings.parameter_of_interest + ". Please refer to the README for allowed parameters");
+                throw std::logic_error("Unrecognized parameter of interest: " 
+                    + settings.parameter_of_interest 
+                    + ". Please refer to the README for allowed parameters"
+                );
             }
 
             if (!settings.derivatives) {
@@ -485,11 +504,13 @@ int main(int argc, char* argv[])
 
         if (!settings.derivatives) {
             std::cout << "not derivatives\n";
-            std::cout << "Saved 2D matrix of " << settings.parameter_of_interest << " values to " << settings.auto_output_path << "\n";
+            std::cout << "Saved 2D matrix of " << settings.parameter_of_interest << " values to " 
+                << settings.auto_output_path << "\n";
         }
         else {
             std::cout << "yes derivatives\n";
-            std::cout << "Saved 2D matrix of derivatives of " << settings.parameter_of_interest << " values to " << settings.auto_output_path << "\n";
+            std::cout << "Saved 2D matrix of derivatives of " << settings.parameter_of_interest 
+                << " values to " << settings.auto_output_path << "\n";
         }
 
         // // Save results for parameter of interest to CSV file
@@ -527,7 +548,9 @@ int main(int argc, char* argv[])
 
         // Create vector of number of iterations
         int num_increments = ((settings.max_num_iterations - settings.min_num_iterations) / settings.iteration_increment)+1;
-        std::vector<int> num_iterations_vector = linearSpacedIntegerVector(settings.min_num_iterations,settings.max_num_iterations,num_increments);
+        std::vector<int> num_iterations_vector = linearSpacedIntegerVector(
+            settings.min_num_iterations,settings.max_num_iterations,num_increments
+        );
         
         // Create needed variables
         int num_beta_samples = beta_vector.size();
@@ -561,7 +584,10 @@ int main(int argc, char* argv[])
                     num_iterations = num_iterations_vector[i_num];
                 else
                     num_iterations = num_iterations_vector[i_num]-num_iterations_vector[i_num-1];
-                runMAP(energy_correction, beta_vector[i_beta], settings.prior, num_iterations, settings.error, num_measurements, num_bins, measurements, current_spectrum, nns_response, normalized_response, mlem_ratio);
+                runMAP(energy_correction, beta_vector[i_beta], settings.prior, num_iterations, 
+                    settings.error, num_measurements, num_bins, measurements, current_spectrum, 
+                    nns_response, normalized_response, mlem_ratio
+                );
             
                 // Calculate one of the following parameters of interest & save to results stream
                 double poi_value = 0;
@@ -584,7 +610,10 @@ int main(int argc, char* argv[])
                     poi_value = calculateAvgRatio(num_measurements,mlem_ratio);
                 }
                 else {
-                    throw std::logic_error("Unrecognized parameter of interest: " + settings.parameter_of_interest + ". Please refer to the README for allowed parameters");
+                    throw std::logic_error("Unrecognized parameter of interest: " 
+                        + settings.parameter_of_interest 
+                        + ". Please refer to the README for allowed parameters"
+                    );
                 }
 
                 results_stream << poi_value;
@@ -603,7 +632,8 @@ int main(int argc, char* argv[])
         output_file << results_string;
         output_file.close();
 
-        std::cout << "Saved 2D matrix of " << settings.parameter_of_interest << " values to " << settings.auto_output_path << "\n";
+        std::cout << "Saved 2D matrix of " << settings.parameter_of_interest << " values to " 
+            << settings.auto_output_path << "\n";
     }
 
     return 0;
@@ -623,7 +653,8 @@ int main(int argc, char* argv[])
 // if (settings.algorithm == "min_correction") {
 //     // Create vector of number of iterations
 //     int num_increments = ((settings.max_num_iterations - settings.min_num_iterations) / settings.iteration_increment)+1;
-//     std::vector<int> num_iterations_vector = linearSpacedIntegerVector(settings.min_num_iterations,settings.max_num_iterations,num_increments);
+//     std::vector<int> num_iterations_vector = linearSpacedIntegerVector(
+//        settings.min_num_iterations,settings.max_num_iterations,num_increments);
 //     int num_iteration_samples = num_iterations_vector.size();
 
 //     std::vector<double> current_spectrum = initial_spectrum; // the reconstructed spectrum
@@ -662,7 +693,9 @@ int main(int argc, char* argv[])
 //             num_iterations = num_iterations_vector[i_num];
 //         else
 //             num_iterations = num_iterations_vector[i_num]-num_iterations_vector[i_num-1];
-//         runMLEM(num_iterations, settings.error, num_measurements, num_bins, measurements, current_spectrum, nns_response, normalized_response, mlem_ratio, mlem_correction, mlem_estimate);
+        // runMLEM(num_iterations, settings.error, num_measurements, num_bins, measurements, 
+        //     current_spectrum, nns_response, normalized_response, mlem_ratio, mlem_correction, mlem_estimate
+        // );
 
 //         // on first iteration, save the deviations and iteration # for each bin
 //         if (total_num_iterations == 0) {
@@ -718,7 +751,8 @@ int main(int argc, char* argv[])
 // if (settings.algorithm == "evolution") {
 //     // Create vector of number of iterations
 //     int num_increments = ((settings.max_num_iterations - settings.min_num_iterations) / settings.iteration_increment)+1;
-//     std::vector<int> num_iterations_vector = linearSpacedIntegerVector(settings.min_num_iterations,settings.max_num_iterations,num_increments);
+//     std::vector<int> num_iterations_vector = linearSpacedIntegerVector(
+//        settings.min_num_iterations,settings.max_num_iterations,num_increments);
 //     int num_iteration_samples = num_iterations_vector.size();
 
 //     std::vector<double> current_spectrum = initial_spectrum; // the reconstructed spectrum
@@ -744,7 +778,10 @@ int main(int argc, char* argv[])
 //             num_iterations = num_iterations_vector[i_num];
 //         else
 //             num_iterations = num_iterations_vector[i_num]-num_iterations_vector[i_num-1];
-//         runMLEM_include_prev_spectrum(prev_spectrum,num_iterations, settings.error, num_measurements, num_bins, measurements, current_spectrum, nns_response, normalized_response, mlem_ratio, mlem_correction, mlem_estimate);
+//         runMLEM_include_prev_spectrum(prev_spectrum,num_iterations, settings.error, 
+        //     num_measurements, num_bins, measurements, current_spectrum, nns_response, normalized_response, 
+        //     mlem_ratio, mlem_correction, mlem_estimate
+        // );
 
 //         total_num_iterations += num_iterations;
 

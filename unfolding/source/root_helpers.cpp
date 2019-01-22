@@ -34,7 +34,10 @@
 // Plot a single flux spectrum (and its uncertainty) as a function of energy. Output the generated
 // plot to a file using arguments passed to the function.
 //==================================================================================================
-int plotSpectrum(std::string figure_file_pre, std::string figure_file_suf, std::string irradiation_conditions, int num_measurements, int num_bins, std::vector<double> &energy_bins, std::vector<double> &spectrum, std::vector<double> &spectrum_uncertainty) {
+int plotSpectrum(std::string figure_file_pre, std::string figure_file_suf, std::string irradiation_conditions, 
+    int num_measurements, int num_bins, std::vector<double> &energy_bins, std::vector<double> &spectrum, 
+    std::vector<double> &spectrum_uncertainty) 
+{
 
     // Convert vectors to arrays for input into ROOT functions
     double ini_line[num_bins];
@@ -63,15 +66,15 @@ int plotSpectrum(std::string figure_file_pre, std::string figure_file_suf, std::
     h1->SetLineColor(kBlack);
     h1->SetLineWidth(1);
     std::ostringstream plot_title_stream;
-    plot_title_stream << "Neutron flux: " << irradiation_conditions;
+    plot_title_stream << "Neutron fluence spectrum: " << irradiation_conditions;
     std::string plot_title = plot_title_stream.str();
     h1->SetTitle(plot_title.c_str());
     h1->GetXaxis()->SetTitleOffset(1.4);
     h1->GetXaxis()->CenterTitle();
-    h1->SetXTitle("Energy [MeV]");
+    h1->SetXTitle("Energy (MeV)");
     h1->GetYaxis()->SetTitleOffset(1.4);
     h1->GetYaxis()->CenterTitle();
-    h1->SetYTitle("Fluence Rate [ncm^(-2)s^(-1)]");
+    h1->SetYTitle("Fluence (n #upoint cm^{-2} s^{-1})");
     h1->Draw("HIST");  // Draw the histogram without the error bars;
 
     // Uncertainty plotting:
@@ -107,6 +110,5 @@ int plotSpectrum(std::string figure_file_pre, std::string figure_file_suf, std::
     figure_file << figure_file_pre << irradiation_conditions << figure_file_suf;
     const char *cstr_figure_file = figure_file.str().c_str();
     c1->Print(cstr_figure_file);
-
-    return 1;
+    return 0;
 }
