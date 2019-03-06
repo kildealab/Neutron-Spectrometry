@@ -68,14 +68,7 @@ int main(int argc, char* argv[])
     // Notify user if unknown parameters were received
     checkUnknownParameters(arg_vector, input_file_flags);
 
-    // Get the name of the unfolding algorithm
-    // Remove file extension and directory
-    std::string algorithm_name = input_files[0].substr(0, input_files[0].find(".", 0));
-    algorithm_name = algorithm_name.substr(algorithm_name.find("/", 0)+1);
-    transform(algorithm_name.begin(), algorithm_name.end(), algorithm_name.begin(),(int (*)(int))tolower);
-
-    // Output filenames
-    
+    // Output filenames    
     std::string figure_file_pre = output_dir + "figure_";
 
     // Apply some settings read in from a config file
@@ -129,7 +122,7 @@ int main(int argc, char* argv[])
     std::cout << "The measurements in CPS are:" << '\n'; // newline
 
     //Loop over the data matrix, display each value
-    for (int i = 0; i < 8; ++i)
+    for (int i = 0; i < num_measurements; ++i)
     {
         std::cout << measurements[i] << '\n';
     }
@@ -198,16 +191,28 @@ int main(int argc, char* argv[])
 
     std::vector<double> mlem_ratio; // vector that stores the ratio between measured data and MLEM estimated data
     std::vector<double> mlem_correction; // vector that stores the correction factors applied in each spectral bin
-    std::vector<double> mlem_estimate;
+    std::vector<double> mlem_estimate; // vector that stores the MLEM estimated data
     int num_iterations;
 
-    if (algorithm_name == "mlem") {
+    // MLEM-STOP parameters
+    double j_factor = 0;
+    double j_threshold = 0;
+
+    if (settings.algorithm == "mlem") {
         num_iterations = runMLEM(settings.cutoff, settings.error, num_measurements, num_bins,
             measurements, spectrum, nns_response, normalized_response, mlem_ratio, mlem_correction, 
             mlem_estimate
         );
     }
-    else if (algorithm_name == "map") {
+    else if (settings.algorithm == "mlemstop") {
+        j_threshold = determineJThreshold(num_measurements,measurements,settings.cps_crossover);
+
+        num_iterations = runMLEMSTOP(settings.cutoff, num_measurements, num_bins, measurements,
+            spectrum, nns_response, normalized_response, mlem_ratio, mlem_correction, mlem_estimate,
+            j_threshold, j_factor
+        );
+    }
+    else if (settings.algorithm == "map") {
         std::vector<double> energy_correction;
         num_iterations = runMAP(energy_correction, settings.beta, settings.prior, settings.cutoff, 
             settings.error, num_measurements, num_bins, measurements, spectrum, nns_response, 
@@ -216,7 +221,7 @@ int main(int argc, char* argv[])
     }
     else {
         //throw error
-        std::cout << "No unfolding algorithm found for: " + algorithm_name + '\n';
+        std::cout << "No unfolding algorithm found for: " + settings.algorithm + '\n';
     }
 
     //----------------------------------------------------------------------------------------------
@@ -279,13 +284,13 @@ int main(int argc, char* argv[])
         }
 
         // Do unfolding on the initial spectrum & sampled measurement values
-        if (algorithm_name == "mlem") {
-            runMLEM(settings.cutoff, settings.error, num_measurements, num_bins, sampled_measurements, 
+        if (settings.algorithm == "mlem" || settings.algorithm == "mlemstop") {
+            runMLEM(num_iterations, settings.error, num_measurements, num_bins, sampled_measurements, 
                 sampled_spectrum, nns_response, normalized_response, sampled_mlem_ratio, 
                 sampled_mlem_correction, sampled_mlem_estimate
             );
         }
-        else if (algorithm_name == "map") {
+        else if (settings.algorithm == "map") {
             std::vector<double> sampled_energy_correction;
             runMAP(sampled_energy_correction, settings.beta, settings.prior, settings.cutoff, 
                 settings.error, num_measurements, num_bins, sampled_measurements, sampled_spectrum, 
@@ -294,7 +299,7 @@ int main(int argc, char* argv[])
         }
         else {
             //throw error
-            std::cout << "No unfolding algorithm found for: " + algorithm_name + '\n';
+            std::cout << "No unfolding algorithm found for: " + settings.algorithm + '\n';
         }        
 
         sampled_spectra.push_back(sampled_spectrum); // add to growing array of sampled spectra
@@ -389,6 +394,7 @@ int main(int argc, char* argv[])
             settings.path_report = "output/report_" + irradiation_conditions + ".txt";
         }
 
+        myreport.set_algorithm(settings.algorithm);
         myreport.set_path(settings.path_report);
         myreport.set_irradiation_conditions(irradiation_conditions);
         myreport.set_input_files(input_files);
@@ -420,6 +426,11 @@ int main(int argc, char* argv[])
         myreport.set_total_flux_uncertainty(total_flux_uncertainty);
         myreport.set_avg_energy(avg_energy);
         myreport.set_avg_energy_uncertainty(avg_energy_uncertainty);
+        if (settings.algorithm == "mlemstop") {
+            myreport.set_cps_crossover(settings.cps_crossover);
+            myreport.set_j_threshold(j_threshold);
+            myreport.set_j_final(j_factor);
+        }
         myreport.prepare_report();
 
         std::cout << "Generated summary report: " << settings.path_report << "\n\n";

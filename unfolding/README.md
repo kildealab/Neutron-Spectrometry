@@ -39,9 +39,10 @@ Please refer to dependencies.txt for dependencies
     * f_factor= Conversion coefficient between neutron current and CPS [fA/cps]
     * num_poisson_samples= Number of Poisson samples to be taken to generate uncertainty region
     * meas_units= Specify the units used in the measurements files {nc,cps}
+    * algorithm= Specify which algorithm to use {e.g. mlem, map, or mlemstop}
     * beta= Beta factor to use if unfolding using the MAP-EM algorithm
     * prior= Prior to use if unfolding using the MAP-EM algorithm {mrp,quadratic}
-    * algorithm= Specify whether to use MLEM or MAP-EM algorithm {mlem,map}
+    * cps_crossover= Crossover CPS value to use in calculating J_threshold for MLEM-STOP
     * generate_report= 1 or 0 to indicate whether a report should be generated for the unfolding process
     * generate_figure= 1 or 0 to indicate whether the unfolded spectrum should be plotted
     * path_output_spectra = Path and filename (relative or absolute) of the file for unfolded spectra

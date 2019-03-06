@@ -18,6 +18,15 @@ int runMLEM(int cutoff, double error, int num_measurements, int num_bins, std::v
     std::vector<double> &mlem_correction, std::vector<double> &mlem_estimate
 );
 
+int runMLEMSTOP(int cutoff, int num_measurements, int num_bins, std::vector<double> &measurements, 
+    std::vector<double> &spectrum, std::vector<std::vector<double>>& nns_response, 
+    std::vector<double> &normalized_response, std::vector<double> &mlem_ratio, 
+    std::vector<double> &mlem_correction, std::vector<double> &mlem_estimate, double j_threshold,
+    double& j_factor
+);
+
+double determineJThreshold(int num_measurements, std::vector<double>& measurements, double cps_crossover);
+
 int runMAP(std::vector<double> &energy_correction, double beta, std::string prior, int cutoff, 
     double error, int num_measurements, int num_bins, std::vector<double> &measurements, 
     std::vector<double> &spectrum, std::vector<std::vector<double>>& nns_response, 
@@ -58,10 +67,11 @@ double calculateEnergyUncertainty(int num_bins, std::vector<double> energy_bins,
     std::vector<double> spectrum_uncertainty, double total_flux, double total_flux_uncertainty
 );
 
-double calculateJFactor(int num_bins, int num_measurements, std::vector<double> &spectrum, 
-    std::vector<double> &measurements, std::vector<std::vector<double>> &nns_response, 
-    std::vector<double> &mlem_ratio
-);
+double calculateJFactor(int num_measurements, std::vector<double> &measurements,
+    std::vector<double> &mlem_estimate
+); 
+
+double calculateNoise(int start_bin, int end_bin, std::vector<double>& spectrum);
 
 double calculateChiSquared(int i_num, int num_bins, int num_measurements, std::vector<double> &spectrum, 
     std::vector<double> &measurements, std::vector<double> &mlem_ratio

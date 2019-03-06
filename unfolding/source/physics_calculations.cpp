@@ -364,17 +364,9 @@ double calculateSourceStrength(int num_bins, std::vector<double> &spectrum, int 
 // Calculate the indicator function, labeled as J, proposed in Bouallegue 2013 paper. This parameter
 // is used in the MLEM-STOP approach as a stopping criterion when J=1.
 //==================================================================================================
-double calculateJFactor(int num_bins, int num_measurements, std::vector<double> &spectrum, 
-    std::vector<double> &measurements, std::vector<std::vector<double>> &nns_response, std::vector<double> &mlem_ratio) 
+double calculateJFactor(int num_measurements, std::vector<double> &measurements,
+    std::vector<double> &mlem_estimate) 
 {
-    std::vector<double> mlem_estimate;
-
-    for(int i_meas = 0; i_meas < num_measurements; i_meas++)
-    {
-        double temp_value = measurements[i_meas] / mlem_ratio[i_meas];
-        mlem_estimate.push_back(temp_value);
-    }
-
     double numerator = 0;
     double denominator = 0;
     for(int i_meas = 0; i_meas < num_measurements; i_meas++)
@@ -384,6 +376,28 @@ double calculateJFactor(int num_bins, int num_measurements, std::vector<double> 
     }
 
     return numerator/denominator;
+}
+
+
+//==================================================================================================
+// Calculate the noise figure of merit in a spectrum. The noise is taken to be the relative
+// standard deviation of spectral values in a region defined by the start and end energy bins
+//==================================================================================================
+double calculateNoise(int start_bin, int end_bin, std::vector<double>& spectrum) {
+    double mean = 0.0;
+    for (int i_bin=start_bin; i_bin<=end_bin; i_bin++) {
+        mean += spectrum[i_bin];
+    }
+    mean = mean / (end_bin-start_bin+1);
+
+    double std_dev = 0;
+    for (int i_bin=start_bin; i_bin<=end_bin; i_bin++) {
+        std_dev += pow((spectrum[i_bin]-mean),2);
+    }
+    std_dev /= (end_bin-start_bin+1);
+    std_dev = sqrt(std_dev);
+
+    return std_dev/mean;
 }
 
 //==================================================================================================
@@ -505,6 +519,94 @@ int runMLEM(int cutoff, double error, int num_measurements, int num_bins, std::v
 
     return mlem_index;
 }
+
+
+//==================================================================================================
+// 
+//==================================================================================================
+int runMLEMSTOP(int cutoff, int num_measurements, int num_bins, std::vector<double> &measurements, 
+    std::vector<double> &spectrum, std::vector<std::vector<double>> &nns_response, std::vector<double> &normalized_response, 
+    std::vector<double> &mlem_ratio, std::vector<double> &mlem_correction, std::vector<double> &mlem_estimate,
+    double j_threshold, double& j_factor) 
+{
+    int mlem_index; // index of MLEM iteration
+
+    for (mlem_index = 0; mlem_index < cutoff; mlem_index++) {
+        mlem_ratio.clear(); // wipe previous ratios for each iteration
+        mlem_correction.clear(); // wipe previous corrections for each iteration
+        mlem_estimate.clear();
+        // vector that stores the MLEM-estimated data to be compared with measured data
+        // std::vector<double> mlem_estimate;
+
+        // Apply system matrix, the nns_response, to current spectral estimate to get MLEM-estimated
+        // data. Save results in mlem_estimate
+        // Units: mlem_estimate [cps] = nns_response [cm^2] x spectru  [cps / cm^2]
+        for(int i_meas = 0; i_meas < num_measurements; i_meas++)
+        {
+            double temp_value = 0;
+            for(int i_bin = 0; i_bin < num_bins; i_bin++)
+            {
+                temp_value += nns_response[i_meas][i_bin]*spectrum[i_bin];
+            }
+            mlem_estimate.push_back(temp_value);
+        }
+
+        // Calculate ratio between each measured data point and corresponding MLEM-estimated data point
+        for(int i_meas = 0; i_meas < num_measurements; i_meas++)
+        {
+            mlem_ratio.push_back(measurements[i_meas]/mlem_estimate[i_meas]);
+        }
+
+        // matrix that stores the correction factor to be applied to each MLEM-estimated spectral value
+        // std::vector<double> mlem_correction;
+
+        // Create the correction factors to be applied to MLEM-estimated spectral values:
+        //  - multiply transpose system matrix by ratio values
+        for(int i_bin = 0; i_bin < num_bins; i_bin++)
+        {
+            double temp_value = 0;
+            for(int i_meas = 0; i_meas < num_measurements; i_meas++)
+            {
+                temp_value += nns_response[i_meas][i_bin]*mlem_ratio[i_meas]/normalized_response[i_bin];
+            }
+            mlem_correction.push_back(temp_value);
+        }
+
+        // Apply correction factors and normalization to get new spectral estimate
+        for(int i_bin=0; i_bin < num_bins; i_bin++)
+        {
+            spectrum[i_bin] = (spectrum[i_bin]*mlem_correction[i_bin]);
+        }
+
+        // End MLEM iterations if ratio between measured and MLEM-estimated data points is within
+        // tolerace specified by 'error'
+        bool continue_mlem = true;
+        j_factor = calculateJFactor(num_measurements,measurements,mlem_estimate);
+        if (j_factor <= j_threshold) {
+            continue_mlem = false;
+        }
+
+        if (!continue_mlem) {
+            break;
+        }
+    }
+
+    return mlem_index;
+}
+
+double determineJThreshold(int num_measurements, std::vector<double>& measurements, double cps_crossover) {
+    double cps_avg = 0;
+    for (int i_meas=0; i_meas < num_measurements; i_meas++) {
+        cps_avg += measurements[i_meas];
+    }
+    cps_avg = cps_avg/num_measurements;
+
+    double j_threshold = cps_avg/cps_crossover;
+
+    return j_threshold;
+}
+
+
 
 
 //==================================================================================================

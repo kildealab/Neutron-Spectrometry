@@ -23,6 +23,8 @@ UnfoldingSettings::UnfoldingSettings() {
     // MAP specific
     beta = 0.0;
     prior = "mrp";
+    // MLEM-STOP specific
+    cps_crossover = 40000;
     // Optimize specific
     min_num_iterations = 500;
     max_num_iterations = 10000;
@@ -68,6 +70,8 @@ void UnfoldingSettings::set_setting(std::string settings_name, std::string setti
         this->set_beta(atof(settings_value.c_str()));
     else if (settings_name == "prior")
         this->set_prior(settings_value);
+    else if (settings_name == "cps_crossover")
+        this->set_cps_crossover(atoi(settings_value.c_str()));
     else if (settings_name == "min_num_iterations")
         this->set_min_num_iterations(atoi(settings_value.c_str()));
     else if (settings_name == "max_num_iterations")
@@ -140,6 +144,9 @@ void UnfoldingSettings::set_beta(double beta) {
 }
 void UnfoldingSettings::set_prior(std::string prior) {
     this->prior = prior;
+}
+void UnfoldingSettings::set_cps_crossover(int cps_crossover) {
+    this->cps_crossover = cps_crossover;
 }
 void UnfoldingSettings::set_min_num_iterations(int min_num_iterations) {
     this->min_num_iterations = min_num_iterations;
@@ -306,6 +313,18 @@ void UnfoldingReport::set_avg_energy(double avg_energy) {
 void UnfoldingReport::set_avg_energy_uncertainty(double avg_energy_uncertainty) {
     this->avg_energy_uncertainty = avg_energy_uncertainty;
 }
+void UnfoldingReport::set_algorithm(std::string algorithm) {
+    this->algorithm = algorithm;
+}
+void UnfoldingReport::set_cps_crossover(int cps_crossover) {
+    this->cps_crossover = cps_crossover;
+}
+void UnfoldingReport::set_j_threshold(double j_threshold) {
+    this->j_threshold = j_threshold;
+}
+void UnfoldingReport::set_j_final(double j_final) {
+    this->j_final = j_final;
+}
 
 //----------------------------------------------------------------------------------------------
 // Prepare summary report of unfolding
@@ -353,6 +372,10 @@ void UnfoldingReport::report_settings(std::ofstream& rfile) {
     rfile << std::left << std::setw(sw) << "NNS normalization factor:" << norm << "\n";
     rfile << std::left << std::setw(sw) << "NNS calibration factor:" << f_factor << " fA/cps\n";
     rfile << std::left << std::setw(sw) << "Number of poisson samples:" << num_poisson_samples << "\n";
+    if (algorithm == "mlemstop") {
+        rfile << std::left << std::setw(sw) << "Crossover CPS value:" << cps_crossover << "\n";
+        rfile << std::left << std::setw(sw) << "J threshold:" << j_threshold << "\n";
+    }
     rfile << SECTION_DIVIDE;
 }
 
@@ -412,11 +435,14 @@ void UnfoldingReport::report_inputs(std::ofstream& rfile) {
 //----------------------------------------------------------------------------------------------
 void UnfoldingReport::report_mlem_info(std::ofstream& rfile) {
     rfile << "Unfolding information\n\n";
-    rfile << std::left << std::setw(sw) << "Algorithm: " << algorithm_name << "\n";
-    if (algorithm_name == "map") {
+    rfile << std::left << std::setw(sw) << "Algorithm: " << algorithm << "\n";
+    if (algorithm == "map") {
         rfile << std::left << std::setw(sw) << "MAP beta value: " << beta << "\n";
     }
     rfile << std::left << std::setw(sw) << "# of iterations: " << num_iterations << "/" << cutoff << "\n\n";
+    if (algorithm == "mlemstop") {
+        rfile << std::left << std::setw(sw) << "final J value: " << j_final << "/" << j_threshold << "\n\n";
+    }
     rfile << "Final unfolding ratio = measured charge / estimated charge:\n";
     int thw = 13; // NNS response column width
     //row 1

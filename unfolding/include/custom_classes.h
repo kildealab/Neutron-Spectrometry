@@ -18,6 +18,8 @@ class UnfoldingSettings {
         // MAP specific
         double beta; 
         std::string prior;
+        //MLEM-STOP specific
+        int cps_crossover;
         // Optimize specific
         int min_num_iterations;
         int max_num_iterations;
@@ -53,6 +55,7 @@ class UnfoldingSettings {
         void set_meas_units(std::string);
         void set_beta(double);
         void set_prior(std::string);
+        void set_cps_crossover(int);
         void set_min_num_iterations(int);
         void set_max_num_iterations(int);
         void set_iteration_increment(int);
@@ -128,7 +131,12 @@ class UnfoldingReport {
 
         //MAP
         double beta;
-        std::string algorithm_name;
+        std::string algorithm;
+
+        // MLEM-STOP
+        int cps_crossover;
+        double j_threshold;
+        double j_final;
 
         UnfoldingReport(); 
 
@@ -175,6 +183,12 @@ class UnfoldingReport {
         void set_total_flux_uncertainty(double);
         void set_avg_energy(double);
         void set_avg_energy_uncertainty(double);
+
+        void set_algorithm(std::string);
+
+        void set_cps_crossover(int);
+        void set_j_threshold(double);
+        void set_j_final(double);
 };
 
 

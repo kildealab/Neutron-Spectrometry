@@ -382,7 +382,6 @@ int main(int argc, char* argv[])
             }
             results_stream << "\n";
         }
-
         // Used if calculating RMSD
         std::vector<double> ref_spectrum;
         if (settings.parameter_of_interest == "rms" || settings.parameter_of_interest == "nrmsd" 
@@ -434,7 +433,12 @@ int main(int argc, char* argv[])
             else if (settings.parameter_of_interest == "j_factor") {
                 if (i_num == 0)
                     results_stream << irradiation_conditions << ",";
-                poi_value = calculateJFactor(num_bins,num_measurements,current_spectrum,measurements,nns_response,mlem_ratio);
+                poi_value = calculateJFactor(num_measurements,measurements,mlem_estimate);
+            }
+            else if (settings.parameter_of_interest == "noise") {
+                if (i_num == 0)
+                    results_stream << irradiation_conditions << ",";
+                poi_value = calculateNoise(15,30,current_spectrum);
             }
             else if (settings.parameter_of_interest == "reduced_chi_squared") {
                 if (i_num == 0)

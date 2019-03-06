@@ -266,7 +266,7 @@ std::vector<double> getMeasurements(std::string input_file, std::string &irradia
     }
 
     ifile.close();
-    std::cout << "Data successfully retrieved from " + input_file + '\n';
+    std::cout << "Measurements successfully retrieved from " + input_file + '\n';
     return data_vector;
 }
 
@@ -284,7 +284,7 @@ std::vector<double> getMeasurementsCPS(std::string input_file, std::string &irra
     std::ifstream ifile(input_file);
     if (!ifile.is_open()) {
         //throw error
-        std::cout << "Unable to open input file: " + input_file + '\n';
+        std::cout << "Unable to open measurement file: " + input_file + '\n';
     }
 
     // Load header information from 'ifile'
@@ -312,7 +312,7 @@ std::vector<double> getMeasurementsCPS(std::string input_file, std::string &irra
     }
 
     ifile.close();
-    std::cout << "Data successfully retrieved from " + input_file + '\n';
+    std::cout << "Measurements successfully retrieved from " + input_file + '\n';
     return data_vector;
 }
 
