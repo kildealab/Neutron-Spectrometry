@@ -326,12 +326,17 @@ std::vector<double> getMeasurementsCPS(std::string input_file, std::string &irra
 //  - num_bins: The number of energy bins
 //  - irradiation_conditions: string that specifies measurement conditions
 //  - spectrum: the unfolded neutron flux spectrum
-//  - spectrum_uncertainty: the uncertainty spectrum for the neutron flux
+//  - error_lower: the lower uncertainty spectrum for the neutron flux
+//  - error_upper: the upper uncertainty spectrum for the neutron flux
 //  - energy_bins: the energy bins corresponding to spectral values
 //==================================================================================================
 int saveSpectrumAsRow(std::string spectrum_file, int num_bins, std::string irradiation_conditions, 
-    std::vector<double>& spectrum, std::vector<double> &spectrum_uncertainty, std::vector<double>& energy_bins) 
+    std::vector<double>& spectrum, std::vector<double> &error_lower, std::vector<double> &error_upper,
+    std::vector<double>& energy_bins) 
 {
+    std::string error_lower_label = "Lower uncertainty";
+    std::string error_upper_label = "Upper uncertainty";
+
     // determine if file exists
     std::ifstream rfile(spectrum_file);
     bool file_empty = is_empty(rfile);
@@ -356,22 +361,27 @@ int saveSpectrumAsRow(std::string spectrum_file, int num_bins, std::string irrad
     
     // Append lines for the unfolded spectrum & its uncertainty
     std::ostringstream spectrum_stream;
-    std::ostringstream error_stream;
+    std::ostringstream error_lower_stream;
+    std::ostringstream error_upper_stream;
 
     spectrum_stream << irradiation_conditions << ",";
-    error_stream << irradiation_conditions << UNCERTAINTY_SUFFIX << ",";
+    error_lower_stream << error_lower_label << ",";
+    error_upper_stream << error_upper_label << ",";
 
     for (int i_bin = 0; i_bin < num_bins; i_bin++) {
         spectrum_stream << spectrum[i_bin];
-        error_stream << spectrum_uncertainty[i_bin];
+        error_lower_stream << error_lower[i_bin];
+        error_upper_stream << error_upper[i_bin];
         if (i_bin < num_bins-1) {
             spectrum_stream << ",";
-            error_stream << ",";
+            error_lower_stream << ",";
+            error_upper_stream << ",";
         }
     }
 
     sfile << "\r\n" << spectrum_stream.str();
-    sfile << "\r\n" << error_stream.str();    
+    sfile << "\r\n" << error_lower_stream.str();   
+    sfile << "\r\n" << error_upper_stream.str();    
 
     return 1;
 }
@@ -524,20 +534,21 @@ int readInputFile2D(std::string file_name, std::vector<std::vector<double>>& inp
 //  - error_vector: the vector that will be assigned uncertainties from the input file
 //==================================================================================================
 int readSpectra(std::string file_name, std::vector<std::string>& header_vector, std::vector<double>& energy_bins, 
-    std::vector<std::vector<double>>& spectra_vector, std::vector<std::vector<double>>& error_vector, 
-    bool plot_per_mu, std::vector<int>& number_mu, std::vector<int>& duration) 
+    std::vector<std::vector<double>>& spectra_vector, std::vector<std::vector<double>>& error_lower_vector, 
+    std::vector<std::vector<double>>& error_upper_vector, bool plot_per_mu, std::vector<int>& number_mu, 
+    std::vector<int>& duration, int rows_per_spectrum) 
 {
     std::ifstream ifile(file_name);
     std::string iline;
 
     if (!ifile.is_open()) {
         //throw error
-        throw std::logic_error("Unable to open input file: " + file_name);
+        throw std::logic_error("Unable to open spectrum file: " + file_name);
     }
 
     // Loop through each line in the file
     int i_row = 0;
-    int i_pair = 0; // index that is incremented after each spectrum-error pair
+    int i_group = 0; // index that is incremented after processing each spectrum & its uncertainties
     while (getline(ifile,iline)) {
         std::vector<double> new_row;
         std::istringstream line_stream(iline);
@@ -548,7 +559,7 @@ int readSpectra(std::string file_name, std::vector<std::string>& header_vector, 
         while (getline(line_stream, stoken, ',')) {
             // The first token is the header
             if (i_col == 0) {
-                if (i_row % 2 == 1) {
+                if (i_row % rows_per_spectrum == 1) {
                     header_vector.push_back(stoken);
                 }
             }
@@ -558,9 +569,8 @@ int readSpectra(std::string file_name, std::vector<std::string>& header_vector, 
                 if (plot_per_mu){
                     //1st row is the energies
                     if (i_row !=0) {
-
                         new_row.push_back(
-                            atof(stoken.c_str())*duration[i_pair%duration.size()]/number_mu[i_pair%number_mu.size()]
+                            atof(stoken.c_str())*duration[i_group%duration.size()]/number_mu[i_group%number_mu.size()]
                         );
                     }
                     else {
@@ -575,17 +585,41 @@ int readSpectra(std::string file_name, std::vector<std::string>& header_vector, 
             i_col += 1;
         }
 
-        // The first row contains the energy bins
-        if (i_row == 0) {
-            energy_bins = new_row;
+        //
+        if (rows_per_spectrum == 3) {
+            // The first row contains the energy bins
+            if (i_row == 0) {
+                energy_bins = new_row;
+            }
+            // Remaining rows alternate between a spectrum and upper & lower uncertainties
+            else if (i_row % rows_per_spectrum == 1) {
+                spectra_vector.push_back(new_row);
+            }
+            else if (i_row % rows_per_spectrum == 2) {
+                error_upper_vector.push_back(new_row);
+                i_group += 1;
+            }
+            else {
+                error_lower_vector.push_back(new_row);
+            }
         }
-        // Remaining rows alternate between a spectrum and an uncertainty spectrum
-        else if (i_row % 2 == 1) {
-            spectra_vector.push_back(new_row);
+        else if (rows_per_spectrum == 2) {
+            // The first row contains the energy bins
+            if (i_row == 0) {
+                energy_bins = new_row;
+            }
+            // Remaining rows alternate between a spectrum and the uncertainty
+            else if (i_row % rows_per_spectrum == 1) {
+                spectra_vector.push_back(new_row);
+            }
+            else {
+                error_upper_vector.push_back(new_row);
+                error_lower_vector.push_back(new_row);
+                i_group += 1;
+            }
         }
         else {
-            error_vector.push_back(new_row);
-            i_pair += 1;
+            throw std::logic_error("Incompatible number for rows_per_spectrum: " + std::to_string(rows_per_spectrum));
         }
         i_row += 1;
     }

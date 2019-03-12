@@ -211,6 +211,8 @@ class SpectraSettings {
         std::vector<std::string> color_error;
         int grayscale;
         std::vector<int> show_error;
+        std::string error_style;
+        int rows_per_spectrum;
         std::vector<int> line_style;
         std::vector<int> line_width;
         int border_width;
@@ -245,6 +247,8 @@ class SpectraSettings {
         void set_color_error(std::string);
         void set_grayscale(std::string);
         void set_show_error(std::string);
+        void set_error_style(std::string);
+        void set_rows_per_spectrum(std::string);
         void set_line_style(std::string);
         void set_line_width(std::string);
         void set_border_width(std::string);

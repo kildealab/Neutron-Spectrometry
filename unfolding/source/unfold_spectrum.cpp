@@ -372,7 +372,7 @@ int main(int argc, char* argv[])
     // Save spectrum to file
     //----------------------------------------------------------------------------------------------
     saveSpectrumAsRow(settings.path_output_spectra, num_bins, irradiation_conditions, spectrum, 
-        spectrum_uncertainty, energy_bins
+        spectrum_uncertainty, spectrum_uncertainty, energy_bins
     );
     std::cout << "Saved unfolded spectrum to " << settings.path_output_spectra << "\n";
 

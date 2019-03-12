@@ -29,7 +29,8 @@ std::vector<double> getMeasurements(std::string input_file, std::string &irradia
 std::vector<double> getMeasurementsCPS(std::string input_file, std::string &irradiation_conditions);
 
 int saveSpectrumAsRow(std::string spectrum_file, int num_bins, std::string irradiation_conditions, 
-    std::vector<double>& spectrum, std::vector<double>& spectrum_uncertainty, std::vector<double>& energy_bins
+    std::vector<double>& spectrum, std::vector<double> &error_lower, std::vector<double> &error_upper,
+    std::vector<double>& energy_bins
 );
 
 int saveSpectrumAsColumn(std::string spectrum_file, std::string irradiation_conditions, 
@@ -41,9 +42,10 @@ int readInputFile1D(std::string file_name, std::vector<double>& input_vector);
 int readInputFile2D(std::string file_name, std::vector<std::vector<double>>& input_vector);
 
 int readSpectra(std::string file_name, std::vector<std::string>& header_vector, std::vector<double>& energy_bins, 
-    std::vector<std::vector<double>>& spectra_vector, std::vector<std::vector<double>>& error_vector, 
-    bool plot_per_mu, std::vector<int>& number_mu, std::vector<int>& duration
-);
+    std::vector<std::vector<double>>& spectra_vector, std::vector<std::vector<double>>& error_lower_vector, 
+    std::vector<std::vector<double>>& error_upper_vector, bool plot_per_mu, std::vector<int>& number_mu, 
+    std::vector<int>& duration, int rows_per_spectrum
+); 
 
 int checkDimensions(int reference_size, std::string reference_string, int test_size, std::string test_string);
 

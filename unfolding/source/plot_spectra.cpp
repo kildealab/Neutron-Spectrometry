@@ -24,6 +24,7 @@
 #include "TFrame.h"
 #include "TGaxis.h"
 #include "TGraphErrors.h"
+#include "TGraphAsymmErrors.h"
 #include "TH1F.h"
 #include "TLatex.h"
 #include "TLine.h"
@@ -51,9 +52,10 @@ int main(int argc, char* argv[])
     std::vector<std::string> headers;
     std::vector<double> energy_bins;
     std::vector<std::vector<double>> spectra_array;
-    std::vector<std::vector<double>> error_array;
-    readSpectra(input_file, headers, energy_bins, spectra_array, error_array, settings.plot_per_mu, 
-        settings.number_mu, settings.duration);
+    std::vector<std::vector<double>> error_upper_array;
+    std::vector<std::vector<double>> error_lower_array;
+    readSpectra(input_file, headers, energy_bins, spectra_array, error_lower_array, error_upper_array,
+        settings.plot_per_mu, settings.number_mu, settings.duration, settings.rows_per_spectrum);
 
     int num_spectra = spectra_array.size();
     int num_bins = energy_bins.size() - 1;
@@ -71,7 +73,8 @@ int main(int argc, char* argv[])
             // Normalize
             for (int i_bin=0; i_bin < num_bins; i_bin++) {
                 spectra_array[i_spec][i_bin] = spectra_array[i_spec][i_bin] / max_value;
-                error_array[i_spec][i_bin] = error_array[i_spec][i_bin] / max_value;
+                error_lower_array[i_spec][i_bin] = error_lower_array[i_spec][i_bin] / max_value;
+                error_upper_array[i_spec][i_bin] = error_upper_array[i_spec][i_bin] / max_value;
             }
         }
     }
@@ -208,16 +211,28 @@ int main(int argc, char* argv[])
     // Prepare the Uncertainties
     // Need middle energy bin values at which the uncertainties are plotted 
     std::vector<double> bins_avg;
+    std::vector<double> bins_log_avg;
+    std::vector<double> xerror_lower_array;
+    std::vector<double> xerror_upper_array;
     for (int i_bin = 0; i_bin < num_bins; i_bin++)
     {
         bins_avg.push_back((energy_bins[i_bin] + energy_bins[i_bin+1])/2);
+        double log_avg = sqrt(energy_bins[i_bin]*energy_bins[i_bin+1]);
+        bins_log_avg.push_back(log_avg);
+        xerror_lower_array.push_back(log_avg - energy_bins[i_bin]);
+        xerror_upper_array.push_back(energy_bins[i_bin+1] - log_avg);
     }
 
     // Plot the uncertainties
     for (int i_spec = 0; i_spec < num_spectra; i_spec++) {
-        TGraphErrors *ge = new TGraphErrors(
-            num_bins, &(bins_avg[0]), &(spectra_array[i_spec][0]), 0, &(error_array[i_spec][0])
+        // TGraphErrors *ge = new TGraphErrors(
+        //     num_bins, &(bins_avg[0]), &(spectra_array[i_spec][0]), 0, &(error_array[i_spec][0])
+        // );
+        TGraphAsymmErrors *ge = new TGraphAsymmErrors(
+            num_bins, &(bins_log_avg[0]), &(spectra_array[i_spec][0]), &(xerror_lower_array[0]), &(xerror_upper_array[0]), 
+            &(error_lower_array[i_spec][0]), &(error_upper_array[i_spec][0])
         );
+
         setting_size = settings.color_error.size();
         ge->SetFillColor(TColor::GetColor(settings.color_error[i_spec%setting_size].c_str()));
 
@@ -226,7 +241,13 @@ int main(int argc, char* argv[])
         // Add the uncertainty to the canvas if set as such
         setting_size = settings.show_error.size();
         if (settings.show_error[i_spec%setting_size])
-            ge->Draw("P3");
+            ge->Draw(settings.error_style.c_str());
+    }
+
+    // Draw spectra after the uncertainties so that spectrum colours are not washed out by
+    // uncertainty shading
+    for (int i_spec = 0; i_spec < num_spectra; i_spec++) {
+        histograms[i_spec]->Draw("HIST SAME");
     }
 
     // Prepare the canvas for output

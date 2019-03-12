@@ -515,6 +515,8 @@ SpectraSettings::SpectraSettings() {
     color_error = {"#333333","#E79A9F","#6B8EF0","#69CF77","#ad4ace","#e2a56f","#69c6db"};
     grayscale = 0;
     show_error = {1};
+    error_style = "E2";
+    rows_per_spectrum = 3;
     line_style = {1};
     line_width = {1};
     border_width = 1;
@@ -568,6 +570,10 @@ void SpectraSettings::set_setting(std::string settings_name, std::string setting
         this->set_grayscale(settings_value);
     else if (settings_name == "show_error")
         this->set_show_error(settings_value);
+    else if (settings_name == "error_style")
+        this->set_error_style(settings_value);
+    else if (settings_name == "rows_per_spectrum")
+        this->set_rows_per_spectrum(settings_value);
     else if (settings_name == "line_style")
         this->set_line_style(settings_value);
     else if (settings_name == "line_width")
@@ -647,6 +653,12 @@ void SpectraSettings::set_grayscale(std::string grayscale) {
 } 
 void SpectraSettings::set_show_error(std::string show_error) {
     stringToIVector(show_error,this->show_error);
+}
+void SpectraSettings::set_error_style(std::string error_style) {
+    this->error_style = error_style;
+}
+void SpectraSettings::set_rows_per_spectrum(std::string rows_per_spectrum) {
+    this->rows_per_spectrum = stoi(rows_per_spectrum);
 }
 void SpectraSettings::set_line_style(std::string line_style) {
     stringToIVector(line_style,this->line_style);

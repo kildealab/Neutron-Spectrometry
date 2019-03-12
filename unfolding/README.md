@@ -87,6 +87,10 @@ Please refer to dependencies.txt for dependencies
     * line_width= Commad-delimited list of numeric line widths. See https://root.cern.ch/doc/master/classTAttLine.html
     * border_width= Numeric width for the border (axes) of the graph
 
+    * show_error= Comma-delimited list of 1 or 0 indicating whether uncertainty should be displayed for each spectrum
+    * error_style= The visual style with which uncertainties are displayed. See https://root.cern.ch/doc/master/classTHistPainter.html#HP01b
+    * rows_per_spectrum= The number of rows in the input file dedicated to each spectrum (default is 3: 1 for the spectrum, 1 for upper uncertainty, and 1 for lower uncertainty)
+
     * legend= 1 or 0 indicating whether to include the legend
     * legend_entries= Comma-delimited list of text entries to put in the legend
     * legend_coords= 4 comma-delimited double values representing coordinates of the legend. Startx, Starty, Endx, Endy.
