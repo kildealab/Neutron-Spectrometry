@@ -7,19 +7,36 @@
 #include <algorithm>
 #include <iostream>
 
+#include "physics_calculations.h"
+
 class UnfoldingSettings {
     public:
         double norm; 
         double error; 
         double f_factor; 
         int cutoff; 
+        std::string uncertainty_type;
         int num_poisson_samples; 
         std::string meas_units; 
+
+        std::string measurements_path;
+        std::string input_spectrum_path;
+        std::string energy_bins_path;
+        std::string system_response_path;
+        std::string icrp_factors_path;
+
+        std::string path_output_spectra;
+        int generate_report;
+        std::string path_report;
+        int generate_figure;
+        std::string path_figure;
+
         // MAP specific
         double beta; 
         std::string prior;
         //MLEM-STOP specific
         int cps_crossover;
+        double sigma_j;
         // Optimize specific
         int min_num_iterations;
         int max_num_iterations;
@@ -29,18 +46,8 @@ class UnfoldingSettings {
         std::string parameter_of_interest;
         std::string algorithm;
         std::string trend_type;
-        std::string path_output_spectra;
-        int generate_report;
-        std::string path_report;
-        int generate_figure;
-        std::string path_figure;
-        std::string auto_output_path;
         int derivatives;
-        std::string measurements_path;
-        std::string input_spectrum_path;
-        std::string energy_bins_path;
-        std::string system_response_path;
-        std::string icrp_factors_path;
+        std::string auto_output_path;
         std::string ref_spectrum_path;
 
         UnfoldingSettings(); 
@@ -51,11 +58,13 @@ class UnfoldingSettings {
         void set_error(double);
         void set_f_factor(double);
         void set_cutoff(int);
+        void set_uncertainty_type(std::string);
         void set_num_poisson_samples(int);
         void set_meas_units(std::string);
         void set_beta(double);
         void set_prior(std::string);
         void set_cps_crossover(int);
+        void set_sigma_j(double);
         void set_min_num_iterations(int);
         void set_max_num_iterations(int);
         void set_iteration_increment(int);
@@ -77,6 +86,36 @@ class UnfoldingSettings {
         void set_system_response_path(std::string);
         void set_icrp_factors_path(std::string);
         void set_ref_spectrum_path(std::string);
+};
+
+
+//--------------------------------------------------------------------------------------------------
+// This class is designed to handle a single upper or lower uncertainty of a neutron fluence
+// spectrum and the corresponding ambient dose equivalent. Implemented in a class instead of 
+// directly in the unfolding method to allow access to variables later, for example when generating
+// the report.
+// This specific uncertainty manager class (J) is designed to calculate uncertainties using
+// upper & lower boundaries on J, as established via a user-defined sigma value on J.
+//--------------------------------------------------------------------------------------------------
+class UncertaintyManagerJ {
+    public:
+        double j_threshold;
+        double j_factor;
+        int num_iterations;
+        double dose_uncertainty;
+        std::vector<double> bound_spectrum;
+        std::vector<double> spectrum_uncertainty;
+
+        UncertaintyManagerJ();
+        UncertaintyManagerJ(double original_j_threshold, double sigma_j);
+
+        void determineSpectrumUncertainty(std::vector<double> &mlemstop_spectrum, 
+            int cutoff, int num_measurements, int num_bins, std::vector<double> &measurements, 
+            std::vector<std::vector<double>> &nns_response, std::vector<double> &normalized_response,
+            std::vector<double> &initial_spectrum);
+
+        void determineDoseUncertainty(double dose, std::vector<double> &mlemstop_spectrum, int num_bins, 
+            std::vector<double> &icrp_factors);
 };
 
 
@@ -119,15 +158,19 @@ class UnfoldingReport {
         std::vector<double> icrp_factors;
 
         std::vector<double> spectrum;
-        std::vector<double> spectrum_uncertainty;
+        std::vector<double> spectrum_uncertainty_upper;
+        std::vector<double> spectrum_uncertainty_lower;
         int num_iterations;
         std::vector<double> mlem_ratio;
         double dose;
-        double s_dose;
+        double dose_uncertainty_upper;
+        double dose_uncertainty_lower;
         double total_flux;
-        double total_flux_uncertainty;
+        double total_flux_uncertainty_upper;
+        double total_flux_uncertainty_lower;
         double avg_energy;
-        double avg_energy_uncertainty;
+        double avg_energy_uncertainty_upper;
+        double avg_energy_uncertainty_lower;
 
         //MAP
         double beta;
@@ -137,6 +180,8 @@ class UnfoldingReport {
         int cps_crossover;
         double j_threshold;
         double j_final;
+        UncertaintyManagerJ j_manager_low;
+        UncertaintyManagerJ j_manager_high;
 
         UnfoldingReport(); 
 
@@ -174,23 +219,28 @@ class UnfoldingReport {
         void set_icrp_factors(std::vector<double>&);
 
         void set_spectrum(std::vector<double>&);
-        void set_spectrum_uncertainty(std::vector<double>&);
+        void set_spectrum_uncertainty_upper(std::vector<double>&);
+        void set_spectrum_uncertainty_lower(std::vector<double>&);
         void set_num_iterations(int);
         void set_mlem_ratio(std::vector<double>&);
         void set_dose(double);
-        void set_s_dose(double);
+        void set_dose_uncertainty_upper(double);
+        void set_dose_uncertainty_lower(double);
         void set_total_flux(double);
-        void set_total_flux_uncertainty(double);
+        void set_total_flux_uncertainty_upper(double);
+        void set_total_flux_uncertainty_lower(double);
         void set_avg_energy(double);
-        void set_avg_energy_uncertainty(double);
+        void set_avg_energy_uncertainty_upper(double);
+        void set_avg_energy_uncertainty_lower(double);
 
         void set_algorithm(std::string);
 
         void set_cps_crossover(int);
         void set_j_threshold(double);
         void set_j_final(double);
+        void set_j_manager_low(UncertaintyManagerJ);
+        void set_j_manager_high(UncertaintyManagerJ);
 };
-
 
 class SpectraSettings {
     public:

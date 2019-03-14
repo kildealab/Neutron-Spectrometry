@@ -36,10 +36,10 @@ CFLAGS = -o $@ -Wall -O -g -std=c++11 $(GIT_CFLAG) -I$(INC_DIR) -I$(SRC_DIR)
 LFLAGS = -Wall -O -g $(ROOTCFLAGS) 
 
 OBJS = $(OBJ_DIR)/unfold_spectrum.o $(OBJ_DIR)/fileio.o $(OBJ_DIR)/handle_args.o $(OBJ_DIR)/root_helpers.o $(OBJ_DIR)/physics_calculations.o $(OBJ_DIR)/custom_classes.o
-OBJS_PLOT = $(OBJ_DIR)/plot_spectra.o $(OBJ_DIR)/fileio.o $(OBJ_DIR)/root_helpers.o $(OBJ_DIR)/custom_classes.o
+OBJS_PLOT = $(OBJ_DIR)/plot_spectra.o $(OBJ_DIR)/fileio.o $(OBJ_DIR)/root_helpers.o $(OBJ_DIR)/physics_calculations.o $(OBJ_DIR)/custom_classes.o
 OBJS_AUTO = $(OBJ_DIR)/auto_unfold_spectrum.o $(OBJ_DIR)/fileio.o $(OBJ_DIR)/handle_args.o $(OBJ_DIR)/root_helpers.o $(OBJ_DIR)/physics_calculations.o $(OBJ_DIR)/custom_classes.o
-OBJS_LINE = $(OBJ_DIR)/plot_lines.o $(OBJ_DIR)/fileio.o $(OBJ_DIR)/root_helpers.o $(OBJ_DIR)/custom_classes.o
-OBJS_SURF = $(OBJ_DIR)/plot_surface.o $(OBJ_DIR)/fileio.o $(OBJ_DIR)/root_helpers.o $(OBJ_DIR)/custom_classes.o
+OBJS_LINE = $(OBJ_DIR)/plot_lines.o $(OBJ_DIR)/fileio.o $(OBJ_DIR)/root_helpers.o $(OBJ_DIR)/physics_calculations.o $(OBJ_DIR)/custom_classes.o
+OBJS_SURF = $(OBJ_DIR)/plot_surface.o $(OBJ_DIR)/fileio.o $(OBJ_DIR)/root_helpers.o $(OBJ_DIR)/physics_calculations.o $(OBJ_DIR)/custom_classes.o
 
 #===================================================================================================
 # Targets

@@ -33,9 +33,8 @@ int main(int argc, char* argv[])
         arg_vector.push_back(argv[i]);
     }
 
-    // Names of input and output directories
+    // Name of input directory
     std::string input_dir = "input/";
-    std::string output_dir = "output/";
 
     // NOTE: Indices are linked between the following arrays and vectors (i.e. input_files[0]
     // corresponds to input_file_flags[0] and input_file_defaults[0])
@@ -68,22 +67,12 @@ int main(int argc, char* argv[])
     // Notify user if unknown parameters were received
     checkUnknownParameters(arg_vector, input_file_flags);
 
-    // Output filenames    
-    std::string figure_file_pre = output_dir + "figure_";
-
     // Apply some settings read in from a config file
     UnfoldingSettings settings;
     setSettings(input_files[0], settings);
 
     double f_factor_report = settings.f_factor; // original value read in
     settings.set_f_factor(settings.f_factor / 1e6); // Convert f_factor from fA/cps to nA/cps
-
-    // Standard figure file suffix (file extension)
-    std::string figure_file_suf = ".png";
-    // Include algorithm name and cutoff # of iterations in the figure file suffix
-    // std::ostringstream temp_stream;
-    // temp_stream << algorithm_name << settings.cutoff << ".png";
-    // std::string figure_file_suf = temp_stream.str();
 
     // Read measured data from input file
     std::string irradiation_conditions;
@@ -105,6 +94,7 @@ int main(int argc, char* argv[])
         // }
         std::reverse(measurements.begin(),measurements.end());
     }
+    // nC
     else {
         measurements_nc = getMeasurements(settings.measurements_path, irradiation_conditions, dose_mu, doserate_mu, duration);
         num_measurements = measurements_nc.size();
@@ -194,10 +184,11 @@ int main(int argc, char* argv[])
     std::vector<double> mlem_estimate; // vector that stores the MLEM estimated data
     int num_iterations;
 
-    // MLEM-STOP parameters
+    // MLEM-STOP specific parameters, initialized here for use later
     double j_factor = 0;
     double j_threshold = 0;
 
+    // Unfold spectrum according to user-specified algorithm
     if (settings.algorithm == "mlem") {
         num_iterations = runMLEM(settings.cutoff, settings.error, num_measurements, num_bins,
             measurements, spectrum, nns_response, normalized_response, mlem_ratio, mlem_correction, 
@@ -264,104 +255,145 @@ int main(int argc, char* argv[])
     std::cout << "The final number of unfolding iterations: " << num_iterations << std::endl;
 
     //----------------------------------------------------------------------------------------------
-    // Repeat unfolding algorithm on Poisson-sampled dataset for num_poisson_samples iterations.
-    // Save the sampled doses and spectra in arrays for subsequent RMSD uncertainty calcualtions.
-    //----------------------------------------------------------------------------------------------
-    std::vector<std::vector<double>> sampled_spectra; // dimensions: num_poisson_samples x num_bins
-    std::vector<double> sampled_dose; // dimension: num_poisson_samples
-
-    for (int i_poiss = 0; i_poiss < settings.num_poisson_samples; i_poiss++) {
-        std::vector<double> sampled_measurements; // dimension: num_measurements
-        std::vector<double> sampled_mlem_ratio; // dimension: num_measurements
-        std::vector<double> sampled_mlem_correction; // dimension: num_measurements
-        std::vector<double> sampled_mlem_estimate; // dimension: num_measurements
-        std::vector<double> sampled_spectrum = initial_spectrum; // dimension: num_bins
-
-        // Create Poisson sampled measurement values (CPS)
-        for (int i_meas = 0; i_meas < num_measurements; i_meas++) {
-            double sampled_value = poisson(measurements[i_meas]);
-            sampled_measurements.push_back(sampled_value);
-        }
-
-        // Do unfolding on the initial spectrum & sampled measurement values
-        if (settings.algorithm == "mlem" || settings.algorithm == "mlemstop") {
-            runMLEM(num_iterations, settings.error, num_measurements, num_bins, sampled_measurements, 
-                sampled_spectrum, nns_response, normalized_response, sampled_mlem_ratio, 
-                sampled_mlem_correction, sampled_mlem_estimate
-            );
-        }
-        else if (settings.algorithm == "map") {
-            std::vector<double> sampled_energy_correction;
-            runMAP(sampled_energy_correction, settings.beta, settings.prior, settings.cutoff, 
-                settings.error, num_measurements, num_bins, sampled_measurements, sampled_spectrum, 
-                nns_response, normalized_response, sampled_mlem_ratio
-            );
-        }
-        else {
-            //throw error
-            std::cout << "No unfolding algorithm found for: " + settings.algorithm + '\n';
-        }        
-
-        sampled_spectra.push_back(sampled_spectrum); // add to growing array of sampled spectra
-
-        // Calculate the ambient dose equivalent associated with the sampled spectrum
-        double sdose = calculateDose(num_bins, sampled_spectrum, icrp_factors);
-
-        sampled_dose.push_back(sdose);
-    }
-
-    //----------------------------------------------------------------------------------------------
-    // Calculate RMSD between sampled spectra and the unfolded spectrum
-    //----------------------------------------------------------------------------------------------
-    std::vector<double> spectrum_uncertainty;
-    calculateRMSD_vector(settings.num_poisson_samples, spectrum, sampled_spectra, spectrum_uncertainty);
-
-    //----------------------------------------------------------------------------------------------
-    // Print the uncertainty spectrum
-    //----------------------------------------------------------------------------------------------
-    // std::cout << '\n'; // newline
-    // std::cout << "The uncertainy in the measured spectrum:" << '\n'; // newline
-
-    // for (int i = 0; i < 52; i++)
-    // {
-    //     std::cout << spectrum_uncertainty[i] << '\n';
-    // }
-
-    //----------------------------------------------------------------------------------------------
     // Calculate quantities of interest (e.g. dose & its uncertainty)
     //----------------------------------------------------------------------------------------------
     double ambient_dose_eq = calculateDose(num_bins, spectrum, icrp_factors);
-    double ambient_dose_eq_uncertainty = calculateRMSD(settings.num_poisson_samples, ambient_dose_eq, sampled_dose);
-
     // double total_charge = calculateTotalCharge(num_measurements,measurements_nc);
-
     double total_flux = calculateTotalFlux(num_bins,spectrum);
-    double total_flux_uncertainty = calculateSumUncertainty(num_bins,spectrum_uncertainty);
-
     double avg_energy = calculateAverageEnergy(num_bins,spectrum,energy_bins);
-    double avg_energy_uncertainty = calculateEnergyUncertainty(num_bins,energy_bins,spectrum,
-        spectrum_uncertainty,total_flux,total_flux_uncertainty
-    );
-
     // double source_strength = calculateSourceStrength(num_bins,spectrum,duration,dose_mu);
+
+    //----------------------------------------------------------------------------------------------
+    // Determine the uncertainty in the unfolded spectrum using one of the available methods
+    //----------------------------------------------------------------------------------------------
+    std::vector<double> spectrum_uncertainty;
+    std::vector<double> spectrum_uncertainty_lower;
+    std::vector<double> spectrum_uncertainty_upper;
+    double ambient_dose_eq_uncertainty_upper = 0;
+    double ambient_dose_eq_uncertainty_lower = 0;
+
+    // MLEM-STOP specific parameters, initialized here for use later
+    UncertaintyManagerJ j_manager_low(j_threshold,1+settings.sigma_j);
+    UncertaintyManagerJ j_manager_high(j_threshold,1-settings.sigma_j);
+
+    // This approach generates a series of poisson sampled measurements (using original measurements
+    // as the means). Unfolding is performed for each of these spectra. The uncertainty in the unfolded
+    // spectrum is taken to be the Root-Mean-Square-Deviation between the unfolded spectrum and each
+    // Poisson-sampled spectrum. The number of samples is set by the user via num_poisson_samples
+    if (settings.uncertainty_type == "poisson") {
+        std::vector<std::vector<double>> sampled_spectra; // dimensions: num_poisson_samples x num_bins
+        std::vector<double> sampled_dose; // dimension: num_poisson_samples
+
+        for (int i_poiss = 0; i_poiss < settings.num_poisson_samples; i_poiss++) {
+            std::vector<double> sampled_measurements; // dimension: num_measurements
+            std::vector<double> sampled_mlem_ratio; // dimension: num_measurements
+            std::vector<double> sampled_mlem_correction; // dimension: num_measurements
+            std::vector<double> sampled_mlem_estimate; // dimension: num_measurements
+            std::vector<double> sampled_spectrum = initial_spectrum; // dimension: num_bins
+
+            // Create Poisson sampled measurement values (CPS)
+            for (int i_meas = 0; i_meas < num_measurements; i_meas++) {
+                double sampled_value = poisson(measurements[i_meas]);
+                sampled_measurements.push_back(sampled_value);
+            }
+
+            // Do unfolding on the initial spectrum & sampled measurement values
+            if (settings.algorithm == "mlem" || settings.algorithm == "mlemstop") {
+                runMLEM(num_iterations, settings.error, num_measurements, num_bins, sampled_measurements, 
+                    sampled_spectrum, nns_response, normalized_response, sampled_mlem_ratio, 
+                    sampled_mlem_correction, sampled_mlem_estimate
+                );
+            }
+            else if (settings.algorithm == "map") {
+                std::vector<double> sampled_energy_correction;
+                runMAP(sampled_energy_correction, settings.beta, settings.prior, settings.cutoff, 
+                    settings.error, num_measurements, num_bins, sampled_measurements, sampled_spectrum, 
+                    nns_response, normalized_response, sampled_mlem_ratio
+                );
+            }
+            else {
+                //throw error
+                std::cout << "No unfolding algorithm found for: " + settings.algorithm + '\n';
+            }        
+
+            sampled_spectra.push_back(sampled_spectrum); // add to growing array of sampled spectra
+
+            // Calculate the ambient dose equivalent associated with the sampled spectrum
+            double sdose = calculateDose(num_bins, sampled_spectrum, icrp_factors);
+
+            sampled_dose.push_back(sdose);
+        }
+
+        // Calculate the spectrum uncertainty (same upper & lower)
+        calculateRMSD_vector(settings.num_poisson_samples, spectrum, sampled_spectra, spectrum_uncertainty_lower);
+        spectrum_uncertainty_upper = spectrum_uncertainty_lower;
+
+        // Calculate the dose uncertainty (same upper & lower)
+        ambient_dose_eq_uncertainty_upper = calculateRMSD(settings.num_poisson_samples, ambient_dose_eq, sampled_dose);
+        ambient_dose_eq_uncertainty_lower = ambient_dose_eq_uncertainty_upper;
+    }
+
+    // This approach uses a known uncertainty around J=1, specified by sigma_j. An "upper" and "lower"
+    // spectrum estimate are generated using the user-defined sigma_j parameter. A unique j_threshold
+    // is determined for both upper and lower, and MLEM-STOP is performed using both thresholds. The
+    // upper uncertainty is then the difference betwen the "upper" spectrum and the MLEM-STOP estimated 
+    // spectrum. Similarly for the lower uncertainty. This is all handled in the UncertaintyManagerJ
+    // class.
+    else if (settings.uncertainty_type == "j_bounds") {
+        j_manager_low.determineSpectrumUncertainty(spectrum,settings.cutoff,num_measurements,
+            num_bins,measurements,nns_response,normalized_response,initial_spectrum
+        );
+        spectrum_uncertainty_lower = j_manager_low.spectrum_uncertainty;
+
+        j_manager_high.determineSpectrumUncertainty(spectrum,settings.cutoff,num_measurements,
+            num_bins,measurements,nns_response,normalized_response,initial_spectrum
+        );
+        spectrum_uncertainty_upper = j_manager_high.spectrum_uncertainty;
+
+        j_manager_low.determineDoseUncertainty(ambient_dose_eq,spectrum,num_bins,icrp_factors);
+        ambient_dose_eq_uncertainty_lower = j_manager_low.dose_uncertainty;
+
+        j_manager_high.determineDoseUncertainty(ambient_dose_eq,spectrum,num_bins,icrp_factors);
+        ambient_dose_eq_uncertainty_upper = j_manager_high.dose_uncertainty;
+    }
+    else {
+        throw std::logic_error("Unrecognized uncertainty type: " + settings.uncertainty_type);
+    }
+
+    //----------------------------------------------------------------------------------------------
+    // Calculate uncertainties in quantities of interest
+    //----------------------------------------------------------------------------------------------
+    double total_flux_uncertainty_upper = calculateSumUncertainty(num_bins,spectrum_uncertainty_upper);
+    double total_flux_uncertainty_lower = calculateSumUncertainty(num_bins,spectrum_uncertainty_lower);
+
+    double avg_energy_uncertainty_upper = calculateEnergyUncertainty(num_bins,energy_bins,spectrum,
+        spectrum_uncertainty_upper,total_flux,total_flux_uncertainty_upper
+    );
+    double avg_energy_uncertainty_lower = calculateEnergyUncertainty(num_bins,energy_bins,spectrum,
+        spectrum_uncertainty_lower,total_flux,total_flux_uncertainty_lower
+    );
 
     //----------------------------------------------------------------------------------------------
     // Display calculated quantities
     //----------------------------------------------------------------------------------------------
     std::cout << '\n';
     std::cout << "The equivalent dose is: " << ambient_dose_eq << " mSv/h" << std::endl;
-    std::cout << "The uncertainty on the equivalent dose is: " << ambient_dose_eq_uncertainty << " mSv/h" << std::endl;
+    std::cout << "Upper uncertainty: " << ambient_dose_eq_uncertainty_upper << " mSv/h" << std::endl;
+    std::cout << "Lower uncertainty: " << ambient_dose_eq_uncertainty_lower << " mSv/h" << std::endl;
     std::cout << '\n';
 
     // std::cout << "The total measured charge is: " << total_charge << " nC" << std::endl;
     // std::cout << '\n';
 
     std::cout << "The total neutron flux is: " << total_flux << " n cm^-2 s^-1" << std::endl;
-    std::cout << "The uncertainty on the total flux is: " << total_flux_uncertainty << " n cm^-2 s^-1" << std::endl;
+    std::cout << "Upper uncertainty: " << total_flux_uncertainty_upper << " n cm^-2 s^-1" << std::endl;
+    std::cout << "Lower uncertainty: " << total_flux_uncertainty_lower << " n cm^-2 s^-1" << std::endl;
     std::cout << '\n';
 
     std::cout << "The average neutron energy is: " << avg_energy << " MeV" << std::endl;
-    std::cout << "The uncertainty on the average energy is: " << avg_energy_uncertainty << " MeV" << std::endl;
+    std::cout << "Upper uncertainty: " << avg_energy_uncertainty_upper << " MeV" << std::endl;
+    std::cout << "Lower uncertainty: " << avg_energy_uncertainty_lower << " MeV" << std::endl;
+
     std::cout << '\n';
 
     // std::cout << "The neutron source strength is: " << source_strength << " n Gy^-1" << std::endl;
@@ -372,7 +404,7 @@ int main(int argc, char* argv[])
     // Save spectrum to file
     //----------------------------------------------------------------------------------------------
     saveSpectrumAsRow(settings.path_output_spectra, num_bins, irradiation_conditions, spectrum, 
-        spectrum_uncertainty, spectrum_uncertainty, energy_bins
+        spectrum_uncertainty_upper, spectrum_uncertainty_lower, energy_bins
     );
     std::cout << "Saved unfolded spectrum to " << settings.path_output_spectra << "\n";
 
@@ -417,19 +449,25 @@ int main(int argc, char* argv[])
         myreport.set_nns_response(nns_response);
         myreport.set_icrp_factors(icrp_factors);
         myreport.set_spectrum(spectrum);
-        myreport.set_spectrum_uncertainty(spectrum_uncertainty);
+        myreport.set_spectrum_uncertainty_upper(spectrum_uncertainty_upper);
+        myreport.set_spectrum_uncertainty_lower(spectrum_uncertainty_lower);
         myreport.set_num_iterations(num_iterations);
         myreport.set_mlem_ratio(mlem_ratio);
         myreport.set_dose(ambient_dose_eq);
-        myreport.set_s_dose(ambient_dose_eq_uncertainty);
+        myreport.set_dose_uncertainty_upper(ambient_dose_eq_uncertainty_upper);
+        myreport.set_dose_uncertainty_lower(ambient_dose_eq_uncertainty_lower);
         myreport.set_total_flux(total_flux);
-        myreport.set_total_flux_uncertainty(total_flux_uncertainty);
+        myreport.set_total_flux_uncertainty_upper(total_flux_uncertainty_upper);
+        myreport.set_total_flux_uncertainty_lower(total_flux_uncertainty_lower);
         myreport.set_avg_energy(avg_energy);
-        myreport.set_avg_energy_uncertainty(avg_energy_uncertainty);
+        myreport.set_avg_energy_uncertainty_upper(avg_energy_uncertainty_upper);
+        myreport.set_avg_energy_uncertainty_lower(avg_energy_uncertainty_lower);
         if (settings.algorithm == "mlemstop") {
             myreport.set_cps_crossover(settings.cps_crossover);
             myreport.set_j_threshold(j_threshold);
             myreport.set_j_final(j_factor);
+            myreport.set_j_manager_low(j_manager_low);
+            myreport.set_j_manager_high(j_manager_high);
         }
         myreport.prepare_report();
 
@@ -441,8 +479,11 @@ int main(int argc, char* argv[])
     //----------------------------------------------------------------------------------------------
     if (settings.generate_figure) {
         std::cout << "Plotting spectrum: \n";
+        std::string output_dir = "output/";
+        std::string figure_file_pre = output_dir + "figure_";
+        std::string figure_file_suf = ".png";
         plotSpectrum(figure_file_pre, figure_file_suf, irradiation_conditions, num_measurements, 
-            num_bins, energy_bins, spectrum, spectrum_uncertainty
+            num_bins, energy_bins, spectrum, spectrum_uncertainty_upper, spectrum_uncertainty_lower
         );
         std::cout << "\n";
     }

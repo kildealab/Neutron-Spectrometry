@@ -1,5 +1,6 @@
 #include "custom_classes.h"
 #include "fileio.h"
+#include "physics_calculations.h"
 
 #include <stdlib.h>
 #include <string>
@@ -9,6 +10,7 @@
 #include <sstream>
 #include <vector>
 #include <algorithm>
+#include <cmath>
 
 //--------------------------------------------------------------------------------------------------
 // Default constructor for UnfoldingSettings
@@ -18,6 +20,7 @@ UnfoldingSettings::UnfoldingSettings() {
     error = 0.0;
     f_factor = 7.0;
     cutoff = 10000;
+    uncertainty_type = "poisson";
     num_poisson_samples = 50;
     meas_units = "nc";
     // MAP specific
@@ -25,6 +28,7 @@ UnfoldingSettings::UnfoldingSettings() {
     prior = "mrp";
     // MLEM-STOP specific
     cps_crossover = 40000;
+    sigma_j=0.5;
     // Optimize specific
     min_num_iterations = 500;
     max_num_iterations = 10000;
@@ -62,6 +66,8 @@ void UnfoldingSettings::set_setting(std::string settings_name, std::string setti
         this->set_f_factor(atof(settings_value.c_str()));
     else if (settings_name == "mlem_cutoff")
         this->set_cutoff(atoi(settings_value.c_str()));
+    else if (settings_name == "uncertainty_type")
+        this->set_uncertainty_type(settings_value);
     else if (settings_name == "num_poisson_samples")
         this->set_num_poisson_samples(atoi(settings_value.c_str()));
     else if (settings_name == "meas_units")
@@ -72,6 +78,8 @@ void UnfoldingSettings::set_setting(std::string settings_name, std::string setti
         this->set_prior(settings_value);
     else if (settings_name == "cps_crossover")
         this->set_cps_crossover(atoi(settings_value.c_str()));
+    else if (settings_name == "sigma_j")
+        this->set_sigma_j(atof(settings_value.c_str()));
     else if (settings_name == "min_num_iterations")
         this->set_min_num_iterations(atoi(settings_value.c_str()));
     else if (settings_name == "max_num_iterations")
@@ -133,6 +141,9 @@ void UnfoldingSettings::set_f_factor(double f_factor) {
 void UnfoldingSettings::set_cutoff(int cutoff) {
     this->cutoff = cutoff;
 }
+void UnfoldingSettings::set_uncertainty_type(std::string uncertainty_type) {
+    this->uncertainty_type = uncertainty_type;
+}
 void UnfoldingSettings::set_num_poisson_samples(int num_poisson_samples) {
     this->num_poisson_samples = num_poisson_samples;
 }
@@ -147,6 +158,9 @@ void UnfoldingSettings::set_prior(std::string prior) {
 }
 void UnfoldingSettings::set_cps_crossover(int cps_crossover) {
     this->cps_crossover = cps_crossover;
+}
+void UnfoldingSettings::set_sigma_j(double sigma_j) {
+    this->sigma_j = sigma_j;
 }
 void UnfoldingSettings::set_min_num_iterations(int min_num_iterations) {
     this->min_num_iterations = min_num_iterations;
@@ -286,8 +300,11 @@ void UnfoldingReport::set_icrp_factors(std::vector<double>& icrp_factors) {
 void UnfoldingReport::set_spectrum(std::vector<double>& spectrum) {
     this->spectrum = spectrum;
 }
-void UnfoldingReport::set_spectrum_uncertainty(std::vector<double>& spectrum_uncertainty) {
-    this->spectrum_uncertainty = spectrum_uncertainty;
+void UnfoldingReport::set_spectrum_uncertainty_upper(std::vector<double>& spectrum_uncertainty_upper) {
+    this->spectrum_uncertainty_upper = spectrum_uncertainty_upper;
+}
+void UnfoldingReport::set_spectrum_uncertainty_lower(std::vector<double>& spectrum_uncertainty_lower) {
+    this->spectrum_uncertainty_lower = spectrum_uncertainty_lower;
 }
 void UnfoldingReport::set_num_iterations(int num_iterations) {
     this->num_iterations = num_iterations;
@@ -298,20 +315,29 @@ void UnfoldingReport::set_mlem_ratio(std::vector<double>& mlem_ratio) {
 void UnfoldingReport::set_dose(double dose) {
     this->dose = dose;
 }
-void UnfoldingReport::set_s_dose(double s_dose) {
-    this->s_dose = s_dose;
+void UnfoldingReport::set_dose_uncertainty_upper(double dose_uncertainty_upper) {
+    this->dose_uncertainty_upper = dose_uncertainty_upper;
+}
+void UnfoldingReport::set_dose_uncertainty_lower(double dose_uncertainty_lower) {
+    this->dose_uncertainty_lower = dose_uncertainty_lower;
 }
 void UnfoldingReport::set_total_flux(double total_flux) {
     this->total_flux = total_flux;
 }
-void UnfoldingReport::set_total_flux_uncertainty(double total_flux_uncertainty) {
-    this->total_flux_uncertainty = total_flux_uncertainty;
+void UnfoldingReport::set_total_flux_uncertainty_upper(double total_flux_uncertainty_upper) {
+    this->total_flux_uncertainty_upper = total_flux_uncertainty_upper;
+}
+void UnfoldingReport::set_total_flux_uncertainty_lower(double total_flux_uncertainty_lower) {
+    this->total_flux_uncertainty_lower = total_flux_uncertainty_lower;
 }
 void UnfoldingReport::set_avg_energy(double avg_energy) {
     this->avg_energy = avg_energy;
 }
-void UnfoldingReport::set_avg_energy_uncertainty(double avg_energy_uncertainty) {
-    this->avg_energy_uncertainty = avg_energy_uncertainty;
+void UnfoldingReport::set_avg_energy_uncertainty_upper(double avg_energy_uncertainty_upper) {
+    this->avg_energy_uncertainty_upper = avg_energy_uncertainty_upper;
+}
+void UnfoldingReport::set_avg_energy_uncertainty_lower(double avg_energy_uncertainty_lower) {
+    this->avg_energy_uncertainty_lower = avg_energy_uncertainty_lower;
 }
 void UnfoldingReport::set_algorithm(std::string algorithm) {
     this->algorithm = algorithm;
@@ -324,6 +350,12 @@ void UnfoldingReport::set_j_threshold(double j_threshold) {
 }
 void UnfoldingReport::set_j_final(double j_final) {
     this->j_final = j_final;
+}
+void UnfoldingReport::set_j_manager_low(UncertaintyManagerJ j_manager_low) {
+    this->j_manager_low = j_manager_low;
+}
+void UnfoldingReport::set_j_manager_high(UncertaintyManagerJ j_manager_high) {
+    this->j_manager_high = j_manager_high;
 }
 
 //----------------------------------------------------------------------------------------------
@@ -347,7 +379,7 @@ void UnfoldingReport::prepare_report() {
 //----------------------------------------------------------------------------------------------
 void UnfoldingReport::report_header(std::ofstream& rfile) {
     rfile << HEADER_DIVIDE;
-    rfile << "Neutron Spectrometry Report\n\n";
+    rfile << "Neutron Unfolding Report\n\n";
     rfile << std::left << std::setw(sw) << "Irradiation Specs: " << irradiation_conditions << "\n";
     auto t = std::time(nullptr);
     auto tm = *std::localtime(&t);
@@ -472,26 +504,95 @@ void UnfoldingReport::report_mlem_info(std::ofstream& rfile) {
 void UnfoldingReport::report_results(std::ofstream& rfile) {
     rfile << "Results\n\n";
     rfile << std::left << std::setw(sw) << "Ambient dose equivalent:" << dose << " mSv/hr\n";
-    rfile << std::left << std::setw(sw) << "Uncertainty:" << s_dose << " mSv\n\n";
+    rfile << std::left << std::setw(sw) << "Upper uncertainty:" << dose_uncertainty_upper << " mSv/hr\n";
+    rfile << std::left << std::setw(sw) << "Lower uncertainty:" << dose_uncertainty_lower << " mSv/hr\n\n";
     // rfile << std::left << std::setw(sw) << "Total measured charge:" << total_charge << " nC\n\n";
+    if (algorithm == "mlemstop") {
+        rfile << std::left << std::setw(sw) << "Upper uncertainty:" << j_manager_high.j_factor << "/" 
+            << j_manager_high.j_threshold << " (k=" << j_manager_high.num_iterations << ")\n";
+        rfile << std::left << std::setw(sw) << "Lower uncertainty:" << j_manager_low.j_factor << "/" 
+            << j_manager_low.j_threshold << " (k=" << j_manager_low.num_iterations << ")\n\n";
+    }
     rfile << std::left << std::setw(sw) << "Integrated neutron flux:" << total_flux << " n cm^-2 s^-1\n";
-    rfile << std::left << std::setw(sw) << "Uncertainty:" << total_flux_uncertainty << " n cm^-2 s^-1\n\n";
+    rfile << std::left << std::setw(sw) << "Upper uncertainty:" << total_flux_uncertainty_upper << " n cm^-2 s^-1\n";
+    rfile << std::left << std::setw(sw) << "Lower uncertainty:" << total_flux_uncertainty_lower << " n cm^-2 s^-1\n\n";
     rfile << std::left << std::setw(sw) << "Average neutron energy:" << avg_energy << " MeV\n";
-    rfile << std::left << std::setw(sw) << "Uncertainty:" << avg_energy_uncertainty << " MeV\n\n";
+    rfile << std::left << std::setw(sw) << "Upper uncertainty:" << avg_energy_uncertainty_upper << " MeV\n";
+    rfile << std::left << std::setw(sw) << "Lower uncertainty:" << avg_energy_uncertainty_lower << " MeV\n\n";
 
     rfile << std::left << std::setw(cw) << "Energy bins" << std::setw(cw) << "Unfolded spectrum" << std::setw(cw) 
-        << "Uncertainty" << std::setw(cw) << "| ICRP H factor" << "Ambient Dose Equiv.\n";
+        << "+ Uncertainty" << std::setw(cw) << "- Uncertainty" << std::setw(cw) << "| ICRP H factor" << "Ambient Dose Equiv.\n";
     rfile << std::left << std::setw(cw) << "(MeV)" << std::setw(cw) << "(n cm^-2 s^-1)" << std::setw(cw) 
-        << "(n cm^-2 s^-1)" << std::setw(cw) << "| (pSv/cm^2)" << "(mSv/hr)\n";;
+        << "(n cm^-2 s^-1)" << std::setw(cw) << "(n cm^-2 s^-1)" << std::setw(cw) << "| (pSv/cm^2)" << "(mSv/hr)\n";;
     rfile << std::left << std::setw(cw) << COLSTRING << std::setw(cw) << COLSTRING << std::setw(cw) 
-        << COLSTRING << std::setw(cw) << COLSTRING << COLSTRING << "\n";
+        << COLSTRING << std::setw(cw) << COLSTRING << std::setw(cw) << COLSTRING << COLSTRING << "\n";
     for (int i=0; i<num_bins; i++) {
         std::ostringstream icrp_string;
         icrp_string << "| " <<icrp_factors[i];
         double subdose = spectrum[i]*icrp_factors[i]*3600*(1e-9);
         rfile << std::left << std::setw(cw) << energy_bins[i] << std::setw(cw) << spectrum[i] << std::setw(cw) 
-            << spectrum_uncertainty[i] << std::setw(26) << icrp_string.str() << subdose << "\n";
+            << spectrum_uncertainty_upper[i] << std::setw(cw) << spectrum_uncertainty_lower[i] << std::setw(26) 
+            << icrp_string.str() << subdose << "\n";
     }
+}
+
+//--------------------------------------------------------------------------------------------------
+// Default constructor to be used to create J Uncertainty Manager object. Required when used as
+// a class member in other classes
+//--------------------------------------------------------------------------------------------------
+UncertaintyManagerJ::UncertaintyManagerJ() {
+    j_threshold = 0;
+    j_factor = 0;
+    num_iterations = 0;
+    dose_uncertainty = 0;
+}
+
+//--------------------------------------------------------------------------------------------------
+// Constructor to be used to create J Uncertainty Manager object. This should be used in practice
+//--------------------------------------------------------------------------------------------------
+UncertaintyManagerJ::UncertaintyManagerJ(double original_j_threshold, double sigma_j) {
+    j_threshold = original_j_threshold*sigma_j;
+    j_factor = 0;
+    num_iterations = 0;
+    dose_uncertainty = 0;
+}
+
+//--------------------------------------------------------------------------------------------------
+// Method used to calculate a single upper or lower uncertainty on a neutron fluence spectrum. The
+// MLEM-STOP method is used to determine the iteration number at which the J-threshold (scaled by
+// sigma_J) is attained. The spectral difference between this spectrum and the actual MLEM-STOP
+// spectrum is taken to be the uncertainty.
+//--------------------------------------------------------------------------------------------------
+void UncertaintyManagerJ::determineSpectrumUncertainty(std::vector<double> &mlemstop_spectrum, 
+    int cutoff, int num_measurements, int num_bins, std::vector<double> &measurements, 
+    std::vector<std::vector<double>> &nns_response, std::vector<double> &normalized_response,
+    std::vector<double> &initial_spectrum) 
+{
+    this->bound_spectrum = initial_spectrum;
+
+    std::vector<double> mlem_ratio;
+    std::vector<double> mlem_correction;
+    std::vector<double> mlem_estimate;
+
+    num_iterations = runMLEMSTOP(cutoff, num_measurements, num_bins, measurements,
+        this->bound_spectrum, nns_response, normalized_response, mlem_ratio, mlem_correction, mlem_estimate,
+        this->j_threshold, this->j_factor
+    );
+
+    for (int i_bin = 0; i_bin < num_bins; i_bin++) {
+        spectrum_uncertainty.push_back(abs(bound_spectrum[i_bin]-mlemstop_spectrum[i_bin]));
+    }
+}
+
+//--------------------------------------------------------------------------------------------------
+// Calculate the uncertainty in dose by calculating the dose at the bound spectrum, and subtracting
+// the dose for the actual MLEM-STOP spectrum
+//--------------------------------------------------------------------------------------------------
+void UncertaintyManagerJ::determineDoseUncertainty(double dose, std::vector<double> &mlemstop_spectrum, int num_bins, 
+    std::vector<double> &icrp_factors)
+{
+    double dose_bound = calculateDose(num_bins,this->bound_spectrum,icrp_factors);
+    this->dose_uncertainty = abs(dose_bound-dose);
 }
 
 //--------------------------------------------------------------------------------------------------

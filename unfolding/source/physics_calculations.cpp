@@ -522,7 +522,8 @@ int runMLEM(int cutoff, double error, int num_measurements, int num_bins, std::v
 
 
 //==================================================================================================
-// 
+// A modified version of the MLEM algorithm. A J value (Bouallegue et al 2013) is calculated at each
+// iteration and unfolding is terminated when J is less than the pre-determined J threshold value.
 //==================================================================================================
 int runMLEMSTOP(int cutoff, int num_measurements, int num_bins, std::vector<double> &measurements, 
     std::vector<double> &spectrum, std::vector<std::vector<double>> &nns_response, std::vector<double> &normalized_response, 
@@ -578,8 +579,7 @@ int runMLEMSTOP(int cutoff, int num_measurements, int num_bins, std::vector<doub
             spectrum[i_bin] = (spectrum[i_bin]*mlem_correction[i_bin]);
         }
 
-        // End MLEM iterations if ratio between measured and MLEM-estimated data points is within
-        // tolerace specified by 'error'
+        // End MLEM iterations if the calculated j factor is below the threshold j value
         bool continue_mlem = true;
         j_factor = calculateJFactor(num_measurements,measurements,mlem_estimate);
         if (j_factor <= j_threshold) {
@@ -591,9 +591,19 @@ int runMLEMSTOP(int cutoff, int num_measurements, int num_bins, std::vector<doub
         }
     }
 
+    if (mlem_index >= cutoff && j_factor > j_threshold) {
+        throw std::logic_error("MLEM-STOP reached cutoff # of iterations before reaching J threshold");
+    }
+
     return mlem_index;
 }
 
+
+//==================================================================================================
+// Calculate the J threshold for a particular set of measurements. The J threshold is taken to be
+// the ratio of the average measured CPS value to the pre-determined crossover CPS value. The
+// crossover value is determined graphically as explained in our manuscript.
+//==================================================================================================
 double determineJThreshold(int num_measurements, std::vector<double>& measurements, double cps_crossover) {
     double cps_avg = 0;
     for (int i_meas=0; i_meas < num_measurements; i_meas++) {
@@ -605,8 +615,6 @@ double determineJThreshold(int num_measurements, std::vector<double>& measuremen
 
     return j_threshold;
 }
-
-
 
 
 //==================================================================================================

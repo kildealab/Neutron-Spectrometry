@@ -37,7 +37,9 @@ Please refer to dependencies.txt for dependencies
     * nns_normalization= Normalization factor for the specific NNS used for measurements
     * mlem_max_error= Threshold error in ratio between measurements and reconstructed measurements, below which MLEM is stopped
     * f_factor= Conversion coefficient between neutron current and CPS [fA/cps]
-    * num_poisson_samples= Number of Poisson samples to be taken to generate uncertainty region
+    * uncertainty_type= Specify the type of spectral uncertainty calculation {poisson,j_bounds}
+    * num_poisson_samples= Number of Poisson samples to be taken to generate uncertainty region (if poisson)
+    * sigma_j= The uncertainty in J to be used to generate uncertainty region (if j_bounds)
     * meas_units= Specify the units used in the measurements files {nc,cps}
     * algorithm= Specify which algorithm to use {e.g. mlem, map, or mlemstop}
     * beta= Beta factor to use if unfolding using the MAP-EM algorithm
