@@ -55,9 +55,12 @@ void stringToIVector(std::string test_string, std::vector<int>& result_vector);
 
 void stringToDVector(std::string test_string, std::vector<float>& result_vector);
 
-int readXYYCSV(std::string file_name, std::vector<std::string>& header_vector, std::vector<double>& x_data, 
-    std::vector<std::vector<double>>& y_data
+int readXYYCSV(std::string file_name, std::vector<std::string>& header_vector,
+    std::vector<std::vector<double>>& x_data, std::vector<std::vector<double>>& y_data
 );
 
+int readXYXYCSV(std::string file_name, std::vector<std::string>& header_vector, 
+    std::vector<std::vector<double>>& x_data, std::vector<std::vector<double>>& y_data
+); 
 
 #endif

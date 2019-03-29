@@ -319,6 +319,7 @@ class PlotSettings {
         std::string input_dir;
         std::string output_filename;
         std::string output_dir;
+        std::string data_format;
         std::string title;
         std::string x_label;
         std::string y_label;
@@ -368,6 +369,7 @@ class PlotSettings {
         void set_input_dir(std::string);
         void set_output_filename(std::string);
         void set_output_dir(std::string);
+        void set_data_format(std::string);
         void set_title(std::string);
         void set_x_label(std::string);
         void set_y_label(std::string);

@@ -164,6 +164,8 @@ Please refer to dependencies.txt for dependencies
     * output_filename= filename including extension
     * output_dir= pathname ending with / (e.g. output/)
 
+    * data_format= Specify the format of the data rows read in from CSV to be plotted {xyy,xyxy}
+
     * title= Title displayed at the top of the 
     * x_label= x-axis title
     * y_label= y-axis title

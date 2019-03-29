@@ -48,11 +48,19 @@ int main(int argc, char* argv[])
     // Read in data
     std::string input_path = settings.input_dir + settings.input_filename;
     std::vector<std::string> headers;
-    std::vector<double> x_data;
+    std::vector<std::vector<double>> x_data;
     std::vector<std::vector<double>> y_data;
-    readXYYCSV(input_path, headers, x_data, y_data);
+    if (settings.data_format == "xyy") {
+        readXYYCSV(input_path, headers, x_data, y_data);
+    }
+    else if (settings.data_format == "xyxy") {
+        readXYXYCSV(input_path, headers, x_data, y_data);
+    }
+    else {
+        throw std::logic_error("Unrecognized data format: " + settings.data_format);
+    }
 
-    int num_points = x_data.size();
+    // int num_points = x_data[0].size(); // Number of entries 
     int num_series = y_data.size();
 
     // Generate the plot area
@@ -81,12 +89,14 @@ int main(int argc, char* argv[])
     leg->SetTextSize(settings.legend_text_size);
     leg->SetFillStyle(0);
 
-    TVectorD xtv(num_points, &x_data[0]);
+    // TVectorD xtv(num_points, &x_data[0]);
     TMultiGraph *mg = new TMultiGraph();
 
     // Loop through all series to be plotted
     for (int i_y = 0; i_y < num_series; i_y++) {
-        TVectorD ytv(num_points, &y_data[i_y][0]); // need to use TVectorD when creating TGraph
+        // need to use TVectorD when creating TGraph:
+        TVectorD xtv(x_data[i_y].size(), &x_data[i_y][0]);
+        TVectorD ytv(y_data[i_y].size(), &y_data[i_y][0]); 
         TGraph* gr = new TGraph(xtv,ytv);
 
         // normalize all settings by the number of entries in that setting 
@@ -129,7 +139,7 @@ int main(int argc, char* argv[])
 
         // Add to legend
         if (settings.legend_entries.empty()) {
-            leg->AddEntry(gr, headers[i_y+1].c_str(), settings.plot_type[i_y%setting_size].c_str());
+            leg->AddEntry(gr, headers[i_y].c_str(), settings.plot_type[i_y%setting_size].c_str());
         }
         else {
             leg->AddEntry(gr, settings.legend_entries[i_y].c_str(), settings.plot_type[i_y%setting_size].c_str());

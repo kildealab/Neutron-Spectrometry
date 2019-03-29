@@ -716,8 +716,76 @@ void stringToDVector(std::string test_string, std::vector<float>& result_vector)
 //  - x_data: the 1D vector that will store the x data (first row)
 //  - y_data: the 2D vector that will store the y data (subsequent rows)
 //==================================================================================================
-int readXYYCSV(std::string file_name, std::vector<std::string>& header_vector, std::vector<double>& x_data, 
-    std::vector<std::vector<double>>& y_data) 
+int readXYYCSV(std::string file_name, std::vector<std::string>& header_vector,
+    std::vector<std::vector<double>>& x_data, std::vector<std::vector<double>>& y_data) 
+{
+    std::ifstream ifile(file_name);
+    std::string iline;
+
+    if (!ifile.is_open()) {
+        //throw error
+        throw std::logic_error("Unable to open data file: " + file_name);
+    }
+
+    std::vector<double> x_row;
+
+    // Loop through each line in the file
+    int i_row = 0;
+    while (getline(ifile,iline)) {
+        std::vector<double> new_row;
+        std::istringstream line_stream(iline);
+        std::string stoken; // store individual values between delimiters on a line
+
+        // Loop through the line, delimiting at commas
+        int i_col = 0;
+        while (getline(line_stream, stoken, ',')) {
+            // The first token is the header
+            if (i_col == 0) {
+                // Only add y-row headers to the header vector
+                if (i_row > 0) {
+                    header_vector.push_back(stoken);
+                }
+            }
+            // Add data to the vector
+            else {
+                new_row.push_back(atof(stoken.c_str()));
+            }
+            i_col += 1;
+        }
+
+        // The first row contains the x data
+        if (i_row == 0) {
+            x_row = new_row;
+            x_data.push_back(x_row);
+        }
+        // The second row contain the y data
+        else if (i_row == 1) {
+            y_data.push_back(new_row);
+        }
+        // All remaining rows contain y data
+        else {
+            x_data.push_back(x_row);
+            y_data.push_back(new_row);
+        }
+        i_row += 1;
+    }
+    return 1;
+}
+
+//==================================================================================================
+// Read a CSV file containing XYXY data to be plotted that is formatted as follows
+//  - Even rows (starting at 0) contain x data
+//  - Odd rows (starting at 1) contain y data
+//  - The first column of every row contains a header for that row (non-numeric)
+//
+// Args:
+//  - file_name: the name of the file to be read
+//  - header_vector: the vector that will be assigned header values
+//  - x_data: the 2D vector that will store the x data (first row)
+//  - y_data: the 2D vector that will store the y data (subsequent rows)
+//==================================================================================================
+int readXYXYCSV(std::string file_name, std::vector<std::string>& header_vector, 
+    std::vector<std::vector<double>>& x_data, std::vector<std::vector<double>>& y_data) 
 {
     std::ifstream ifile(file_name);
     std::string iline;
@@ -739,7 +807,10 @@ int readXYYCSV(std::string file_name, std::vector<std::string>& header_vector, s
         while (getline(line_stream, stoken, ',')) {
             // The first token is the header
             if (i_col == 0) {
-                header_vector.push_back(stoken);
+                // Only add y-row headers to the header vector
+                if (i_row % 2 == 1) {
+                    header_vector.push_back(stoken);
+                }
             }
             // Add data to the vector
             else {
@@ -748,11 +819,11 @@ int readXYYCSV(std::string file_name, std::vector<std::string>& header_vector, s
             i_col += 1;
         }
 
-        // The first row contains the x data
-        if (i_row == 0) {
-            x_data = new_row;
+        // Even rows (starting at 0) contain the x data
+        if (i_row % 2 == 0) {
+            x_data.push_back(new_row);
         }
-        // Subsequent rows contain the y data
+        // Odd rows (starting at 1) contain the y data
         else {
             y_data.push_back(new_row);
         }

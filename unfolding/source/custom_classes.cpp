@@ -807,6 +807,7 @@ PlotSettings::PlotSettings() {
     input_dir = "output/";
     output_filename = "poi_output_mlem.png";
     output_dir = "output/";
+    data_format = "xyy";
     title = "";
     x_label = "";
     y_label = "";
@@ -865,6 +866,8 @@ void PlotSettings::set_setting(std::string settings_name, std::string settings_v
         this->set_output_filename(settings_value);
     else if (settings_name == "output_dir")
         this->set_output_dir(settings_value);
+    else if (settings_name == "data_format")
+        this->set_data_format(settings_value);
     else if (settings_name == "title")
         this->set_title(settings_value);
     else if (settings_name == "x_label")
@@ -960,6 +963,9 @@ void PlotSettings::set_output_filename(std::string output_filename) {
 }
 void PlotSettings::set_output_dir(std::string output_dir) {
     this->output_dir = output_dir;
+}
+void PlotSettings::set_data_format(std::string data_format) {
+    this->data_format = data_format;
 }
 void PlotSettings::set_title(std::string title) {
     this->title = title;

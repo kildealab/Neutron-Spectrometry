@@ -50,11 +50,11 @@ int main(int argc, char* argv[])
     // Read in data
     std::string input_path = settings.input_dir + settings.input_filename;
     std::vector<std::string> headers;
-    std::vector<double> x_data;
+    std::vector<std::vector<double>> x_data;
     std::vector<std::vector<double>> y_data;
     readXYYCSV(input_path, headers, x_data, y_data);
 
-    int num_x = x_data.size();
+    int num_x = x_data[0].size();
     int num_y = y_data.size();
 
     // Generate the plot area
@@ -68,7 +68,7 @@ int main(int argc, char* argv[])
     // Populate with data
     for (int i=1; i<num_y; i++) {
         for (int j=1; j<num_x; j++) {
-            dt->SetPoint(k,x_data[j],stod(headers[i]),y_data[i][j]);
+            dt->SetPoint(k,x_data[i][j],stod(headers[i]),y_data[i][j]);
             k++;
         }
     }
