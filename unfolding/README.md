@@ -265,7 +265,7 @@ Please refer to dependencies.txt for dependencies
 
     * ***NNS Response function*** - Vendor-provided NNS relative response as a function of energy for each level of moderation. Line 1: response for bare probe, Line 2: response for 1 moderator, etc. 
         * Units [cm^2]
-        * Default: nns_response.csv
+        * Default: response_nns_he3.csv
 
     * ***ICRP conversion factors*** - Factors to convert neutron flux [n cm^-2 s^-1] to neutron ambient dose equivalent rate [pSv s^-1]. Values were linearly interpolated from tabulated values in ICRP 74 Table A.42 (1st data column).
         * Units: pSv cm^2

@@ -48,7 +48,7 @@ UnfoldingSettings::UnfoldingSettings() {
     measurements_path = "input/measurements.txt";
     input_spectrum_path = "input/spectrum_step.csv";
     energy_bins_path = "input/energy_bins.csv";
-    system_response_path = "input/nns_response.csv";
+    system_response_path = "input/response_nns_he3.csv";
     icrp_factors_path = "input/icrp_conversions.csv";
     ref_spectrum_path = "";
 }
