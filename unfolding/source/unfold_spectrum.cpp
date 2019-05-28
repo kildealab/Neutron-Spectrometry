@@ -253,6 +253,10 @@ int main(int argc, char* argv[])
     //----------------------------------------------------------------------------------------------
     std::cout << '\n';
     std::cout << "The final number of unfolding iterations: " << num_iterations << std::endl;
+    if (settings.algorithm == "mlemstop") {
+        std::cout << "J factor:" << j_factor << "\n";
+        std::cout << "J threshold: " << j_threshold << "\n";
+    }
 
     //----------------------------------------------------------------------------------------------
     // Calculate quantities of interest (e.g. dose & its uncertainty)
@@ -479,10 +483,10 @@ int main(int argc, char* argv[])
     //----------------------------------------------------------------------------------------------
     if (settings.generate_figure) {
         std::cout << "Plotting spectrum: \n";
-        std::string output_dir = "output/";
-        std::string figure_file_pre = output_dir + "figure_";
-        std::string figure_file_suf = ".png";
-        plotSpectrum(figure_file_pre, figure_file_suf, irradiation_conditions, num_measurements, 
+        if (settings.path_figure.empty()) {
+            settings.path_figure = "output/figure_" + irradiation_conditions + ".png";
+        }
+        plotSpectrum(settings.path_figure, irradiation_conditions, num_measurements, 
             num_bins, energy_bins, spectrum, spectrum_uncertainty_upper, spectrum_uncertainty_lower
         );
         std::cout << "\n";

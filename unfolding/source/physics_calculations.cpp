@@ -378,6 +378,29 @@ double calculateJFactor(int num_measurements, std::vector<double> &measurements,
     return numerator/denominator;
 }
 
+//==================================================================================================
+// Calculate the indicator function, labeled as J2, which is a alternative metric to J. This
+// indicator function also converges to 1 when within Poisson uncertainty, but is less sensitive
+// to deviations from this, because is linear with respect to the MD between measurements and 
+// reconstructions. 
+//==================================================================================================
+double calculateJFactor2(int num_measurements, std::vector<double> &measurements,
+    std::vector<double> &mlem_estimate) 
+{
+    double numerator = 0;
+    double denominator = 0;
+    for(int i_meas = 0; i_meas < num_measurements; i_meas++)
+    {
+        numerator += abs(measurements[i_meas] - mlem_estimate[i_meas]);
+        // Use of 0.798 is an emipirical finding that the expectation value of the MD of Poisson
+        // samples from the mean is 0.798 * sqrt(mean) for all means (small deviations at low
+        // mean values)
+        denominator += 0.798*sqrt(mlem_estimate[i_meas]); 
+    }
+
+    return numerator/denominator;
+}
+
 
 //==================================================================================================
 // Calculate the noise figure of merit in a spectrum. The noise is taken to be the relative
@@ -592,6 +615,8 @@ int runMLEMSTOP(int cutoff, int num_measurements, int num_bins, std::vector<doub
     }
 
     if (mlem_index >= cutoff && j_factor > j_threshold) {
+        std::cout << "J factor:" << j_factor << "\n";
+        std::cout << "J threshold: " << j_threshold << "\n";
         throw std::logic_error("MLEM-STOP reached cutoff # of iterations before reaching J threshold");
     }
 
@@ -612,6 +637,7 @@ double determineJThreshold(int num_measurements, std::vector<double>& measuremen
     cps_avg = cps_avg/num_measurements;
 
     double j_threshold = cps_avg/cps_crossover;
+    // double j_threshold = sqrt(cps_avg/cps_crossover); // If using J2 instead of J
 
     return j_threshold;
 }

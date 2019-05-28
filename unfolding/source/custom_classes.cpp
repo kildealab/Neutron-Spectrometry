@@ -606,17 +606,21 @@ SpectraSettings::SpectraSettings() {
     title = "";
     x_label = "Energy (MeV)";
     y_label = "Fluence (n #upoint cm^{-2} s^{-1})";
+    x_min = 0; // if plotting detects max and min are the same, use default limits
+    x_max = 0;
     y_min = 0; // if plotting detects max and min are the same, use default limits
     y_max = 0;
     x_res = 800;
     y_res = 600;
     y_num_divs = 0;
+    y_digits_max = 3;
     legend_entries = {};
     color_series = {"#000000","#C63822","#607FD5","#55A961","#75298e","#ce884a","#33889b"};
     color_error = {"#333333","#E79A9F","#6B8EF0","#69CF77","#ad4ace","#e2a56f","#69c6db"};
     grayscale = 0;
     show_error = {1};
     error_style = "E2";
+    error_fill_style = 3001;
     rows_per_spectrum = 3;
     line_style = {1};
     line_width = {1};
@@ -651,6 +655,10 @@ void SpectraSettings::set_setting(std::string settings_name, std::string setting
         this->set_x_label(settings_value);
     else if (settings_name == "y_label")
         this->set_y_label(settings_value);
+    else if (settings_name == "x_min")
+        this->set_x_min(settings_value);
+    else if (settings_name == "x_max")
+        this->set_x_max(settings_value);
     else if (settings_name == "y_min")
         this->set_y_min(settings_value);
     else if (settings_name == "y_max")
@@ -661,6 +669,8 @@ void SpectraSettings::set_setting(std::string settings_name, std::string setting
         this->set_y_res(settings_value);
     else if (settings_name == "y_num_divs")
         this->set_y_num_divs(settings_value);
+    else if (settings_name == "y_digits_max")
+        this->set_y_digits_max(settings_value);
     else if (settings_name == "legend_entries")
         this->set_legend_entries(settings_value);
     else if (settings_name == "color_series")
@@ -673,6 +683,8 @@ void SpectraSettings::set_setting(std::string settings_name, std::string setting
         this->set_show_error(settings_value);
     else if (settings_name == "error_style")
         this->set_error_style(settings_value);
+    else if (settings_name == "error_fill_style")
+        this->set_error_fill_style(settings_value);
     else if (settings_name == "rows_per_spectrum")
         this->set_rows_per_spectrum(settings_value);
     else if (settings_name == "line_style")
@@ -725,6 +737,12 @@ void SpectraSettings::set_x_label(std::string x_label) {
 void SpectraSettings::set_y_label(std::string y_label) {
     this->y_label = y_label;
 }
+void SpectraSettings::set_x_min(std::string x_min) {
+    this->x_min = stod(x_min);
+}
+void SpectraSettings::set_x_max(std::string x_max) {
+    this->x_max = stod(x_max);
+}
 void SpectraSettings::set_y_min(std::string y_min) {
     this->y_min = stod(y_min);
 }
@@ -739,6 +757,9 @@ void SpectraSettings::set_y_res(std::string y_res) {
 }
 void SpectraSettings::set_y_num_divs(std::string y_num_divs) {
     this->y_num_divs = stoi(y_num_divs);
+}
+void SpectraSettings::set_y_digits_max(std::string y_digits_max) {
+    this->y_digits_max = stoi(y_digits_max);
 }
 void SpectraSettings::set_legend_entries(std::string legend_entries) {
     stringToSVector(legend_entries,this->legend_entries);
@@ -757,6 +778,9 @@ void SpectraSettings::set_show_error(std::string show_error) {
 }
 void SpectraSettings::set_error_style(std::string error_style) {
     this->error_style = error_style;
+}
+void SpectraSettings::set_error_fill_style(std::string error_fill_style) {
+    this->error_fill_style = stoi(error_fill_style);
 }
 void SpectraSettings::set_rows_per_spectrum(std::string rows_per_spectrum) {
     this->rows_per_spectrum = stoi(rows_per_spectrum);

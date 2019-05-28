@@ -435,6 +435,11 @@ int main(int argc, char* argv[])
                     results_stream << irradiation_conditions << ",";
                 poi_value = calculateJFactor(num_measurements,measurements,mlem_estimate);
             }
+            else if (settings.parameter_of_interest == "j_factor2") {
+                if (i_num == 0)
+                    results_stream << irradiation_conditions << ",";
+                poi_value = calculateJFactor2(num_measurements,measurements,mlem_estimate);
+            }
             else if (settings.parameter_of_interest == "noise") {
                 if (i_num == 0)
                     results_stream << irradiation_conditions << ",";
@@ -507,12 +512,10 @@ int main(int argc, char* argv[])
         output_file.close();
 
         if (!settings.derivatives) {
-            std::cout << "not derivatives\n";
             std::cout << "Saved 2D matrix of " << settings.parameter_of_interest << " values to " 
                 << settings.auto_output_path << "\n";
         }
         else {
-            std::cout << "yes derivatives\n";
             std::cout << "Saved 2D matrix of derivatives of " << settings.parameter_of_interest 
                 << " values to " << settings.auto_output_path << "\n";
         }

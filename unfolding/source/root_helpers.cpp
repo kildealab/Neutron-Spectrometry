@@ -36,7 +36,7 @@
 // Plot a single flux spectrum (and its uncertainty) as a function of energy. Output the generated
 // plot to a file using arguments passed to the function.
 //==================================================================================================
-int plotSpectrum(std::string figure_file_pre, std::string figure_file_suf, std::string irradiation_conditions, 
+int plotSpectrum(std::string path_figure, std::string irradiation_conditions, 
     int num_measurements, int num_bins, std::vector<double> &energy_bins, std::vector<double> &spectrum, 
     std::vector<double> &spectrum_uncertainty_upper,std::vector<double> &spectrum_uncertainty_lower) 
 {
@@ -137,9 +137,7 @@ int plotSpectrum(std::string figure_file_pre, std::string figure_file_suf, std::
     gStyle->SetLineWidth(5);
 
     // Output the plot to file
-    std::ostringstream figure_file;
-    figure_file << figure_file_pre << irradiation_conditions << figure_file_suf;
-    const char *cstr_figure_file = figure_file.str().c_str();
+    const char *cstr_figure_file = path_figure.c_str();
     c1->Print(cstr_figure_file);
     return 0;
 }

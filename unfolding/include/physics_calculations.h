@@ -69,6 +69,10 @@ double calculateEnergyUncertainty(int num_bins, std::vector<double> energy_bins,
 
 double calculateJFactor(int num_measurements, std::vector<double> &measurements,
     std::vector<double> &mlem_estimate
+);
+
+double calculateJFactor2(int num_measurements, std::vector<double> &measurements,
+    std::vector<double> &mlem_estimate
 ); 
 
 double calculateNoise(int start_bin, int end_bin, std::vector<double>& spectrum);

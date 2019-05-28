@@ -79,9 +79,12 @@ Please refer to dependencies.txt for dependencies
     * x_res= horizontal resolution (dimension) as a number (e.g. 3200)
     * y_res= vertical resolution (dimension) as a number (e.g. 2400)
 
+    * x_min= minimum x-axis value
+    * x_max= maximum x-axis value
     * y_min= minimum y-axis value
     * y_max= maximum y-axis value
     * y_num_divs= Number that specifies number of major and minor divisions (tick marks). See https://root.cern.ch/doc/master/classTAttAxis.html#ae3067b6d4218970d09418291cbd84084
+    * y_digits_max = Max number of digits allowed on the y axis labels before scientific notation is used
 
     * color_series= Comma-delimited list of HEX color values (e.g. #000000,#FFFFFF)
     * grayscale= 1 or 0 indicating whether figure should be output in grayscale
@@ -91,6 +94,7 @@ Please refer to dependencies.txt for dependencies
 
     * show_error= Comma-delimited list of 1 or 0 indicating whether uncertainty should be displayed for each spectrum
     * error_style= The visual style with which uncertainties are displayed. See https://root.cern.ch/doc/master/classTHistPainter.html#HP01b
+    * error_fill_style= The fill pattern to use in the uncertainty region. See https://root.cern.ch/doc/master/classTAttFill.html
     * rows_per_spectrum= The number of rows in the input file dedicated to each spectrum (default is 3: 1 for the spectrum, 1 for upper uncertainty, and 1 for lower uncertainty)
 
     * legend= 1 or 0 indicating whether to include the legend
