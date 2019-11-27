@@ -342,7 +342,7 @@ int main(int argc, char* argv[])
 
             // Do unfolding on the initial spectrum & sampled measurement values
             if (settings.algorithm == "mlem") {
-                runMLEM(num_iterations, settings.error, num_measurements, num_bins, sampled_measurements, 
+                runMLEM(settings.cutoff, settings.error, num_measurements, num_bins, sampled_measurements, 
                     sampled_spectrum, nns_response, normalized_response, sampled_mlem_ratio, 
                     sampled_mlem_correction, sampled_mlem_estimate
                 );
@@ -364,7 +364,7 @@ int main(int argc, char* argv[])
                 // converges. Increment num_toss if so, and decrement the poisson index (i.e scrap
                 // the current sample and retry)
                 try {
-                    num_iterations = runMLEMSTOP(settings.cutoff, num_measurements, num_bins, sampled_measurements,
+                    runMLEMSTOP(settings.cutoff, num_measurements, num_bins, sampled_measurements,
                         sampled_spectrum, nns_response, normalized_response, sampled_mlem_ratio, sampled_mlem_correction, 
                         sampled_mlem_estimate, sampled_j_threshold, sampled_j_factor
                     );
