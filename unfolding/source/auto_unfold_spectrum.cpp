@@ -104,7 +104,8 @@ int main(int argc, char* argv[])
         num_measurements = measurements_nc.size();
 
         for (int index=0; index < num_measurements; index++) {
-            double measurement_cps = measurements_nc[num_measurements-index-1]*settings.norm/settings.f_factor/duration;
+            double measurement_cps = measurements_nc[num_measurements-index-1]*settings.norm/settings.f_factor;
+            // double measurement_cps = measurements_nc[num_measurements-index-1]*settings.norm/settings.f_factor/duration;
             measurements.push_back(measurement_cps);
         }
     }

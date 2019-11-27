@@ -357,6 +357,9 @@ void UnfoldingReport::set_j_manager_low(UncertaintyManagerJ j_manager_low) {
 void UnfoldingReport::set_j_manager_high(UncertaintyManagerJ j_manager_high) {
     this->j_manager_high = j_manager_high;
 }
+void UnfoldingReport::set_num_toss(int num_toss) {
+    this->num_toss = num_toss;
+}
 
 //----------------------------------------------------------------------------------------------
 // Prepare summary report of unfolding
@@ -474,6 +477,9 @@ void UnfoldingReport::report_mlem_info(std::ofstream& rfile) {
     rfile << std::left << std::setw(sw) << "# of iterations: " << num_iterations << "/" << cutoff << "\n\n";
     if (algorithm == "mlemstop") {
         rfile << std::left << std::setw(sw) << "final J value: " << j_final << "/" << j_threshold << "\n\n";
+    }
+    if (algorithm == "mlemstop") {
+        rfile << std::left << std::setw(sw) << "# samples tossed: " << num_toss << "/" << num_poisson_samples+num_toss << "\n\n";
     }
     rfile << "Final unfolding ratio = measured charge / estimated charge:\n";
     int thw = 13; // NNS response column width

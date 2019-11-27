@@ -615,8 +615,9 @@ int runMLEMSTOP(int cutoff, int num_measurements, int num_bins, std::vector<doub
     }
 
     if (mlem_index >= cutoff && j_factor > j_threshold) {
-        std::cout << "J factor:" << j_factor << "\n";
-        std::cout << "J threshold: " << j_threshold << "\n";
+        // Commented out 2019-11-26 b/c was printed for each poisson sample
+        // std::cout << "J factor:" << j_factor << "\n";
+        // std::cout << "J threshold: " << j_threshold << "\n";
         throw std::logic_error("MLEM-STOP reached cutoff # of iterations before reaching J threshold");
     }
 

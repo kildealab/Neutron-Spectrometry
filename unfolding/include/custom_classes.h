@@ -182,6 +182,7 @@ class UnfoldingReport {
         double j_final;
         UncertaintyManagerJ j_manager_low;
         UncertaintyManagerJ j_manager_high;
+        int num_toss;
 
         UnfoldingReport(); 
 
@@ -240,6 +241,7 @@ class UnfoldingReport {
         void set_j_final(double);
         void set_j_manager_low(UncertaintyManagerJ);
         void set_j_manager_high(UncertaintyManagerJ);
+        void set_num_toss(int);
 };
 
 class SpectraSettings {

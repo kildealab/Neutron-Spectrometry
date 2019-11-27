@@ -105,6 +105,13 @@ int main(int argc, char* argv[])
         }
     }
 
+    // Calculate average CPS value
+    double avg_cps = 0;
+    for (int i_meas = 0; i_meas < num_measurements; i_meas++) {
+        avg_cps += measurements[i_meas];
+    }
+    avg_cps /= num_measurements;
+
     //----------------------------------------------------------------------------------------------
     // Print out the processed measured data matrix
     //----------------------------------------------------------------------------------------------
@@ -117,6 +124,16 @@ int main(int argc, char* argv[])
         std::cout << measurements[i] << '\n';
     }
     std::cout << '\n';
+
+    // If doing MLEM-STOP: need ratio between "ideal" or "crossover" CPS value and the average
+    // measured CPS. Call this scale_factor
+    double scale_factor = settings.cps_crossover/avg_cps;
+
+    // Apply scaling factor to the measured values so that their average value equals the ideal CPS
+    // Then MLEM-STOP can be done such that terminate when J=1 (rather than J=scale_factor)
+    for (int i_meas = 0; i_meas < num_measurements; i_meas++) {
+        measurements[i_meas] *= scale_factor;
+    }
 
     //----------------------------------------------------------------------------------------------
     // Generate the energy bins matrix:
@@ -215,6 +232,11 @@ int main(int argc, char* argv[])
         std::cout << "No unfolding algorithm found for: " + settings.algorithm + '\n';
     }
 
+    // Need to "unscale" spectrum back to true values in order to calculate quantities of interest
+    for (int i_bin = 0; i_bin < num_bins; i_bin++) {
+        spectrum[i_bin] /= scale_factor;
+    }
+
     //----------------------------------------------------------------------------------------------
     // Display the result (output) matrix of the unfolding algorithm, which represents reconstructed 
     // spectral data.
@@ -236,7 +258,7 @@ int main(int argc, char* argv[])
 
     for (int i_meas = 0; i_meas < num_measurements; i_meas++)
     {
-        std::cout << mlem_estimate[i_meas] << '\n';
+        std::cout << mlem_estimate[i_meas]/scale_factor << '\n';
     }
 
     std::cout << '\n';
@@ -254,7 +276,7 @@ int main(int argc, char* argv[])
     std::cout << '\n';
     std::cout << "The final number of unfolding iterations: " << num_iterations << std::endl;
     if (settings.algorithm == "mlemstop") {
-        std::cout << "J factor:" << j_factor << "\n";
+        std::cout << "J factor: " << j_factor << "\n";
         std::cout << "J threshold: " << j_threshold << "\n";
     }
 
@@ -266,6 +288,11 @@ int main(int argc, char* argv[])
     double total_flux = calculateTotalFlux(num_bins,spectrum);
     double avg_energy = calculateAverageEnergy(num_bins,spectrum,energy_bins);
     // double source_strength = calculateSourceStrength(num_bins,spectrum,duration,dose_mu);
+
+    // Need to scale spectrum again in order to do uncertainty calculations
+    for (int i_bin = 0; i_bin < num_bins; i_bin++) {
+        spectrum[i_bin] *= scale_factor;
+    }
 
     //----------------------------------------------------------------------------------------------
     // Determine the uncertainty in the unfolded spectrum using one of the available methods
@@ -279,6 +306,8 @@ int main(int argc, char* argv[])
     // MLEM-STOP specific parameters, initialized here for use later
     UncertaintyManagerJ j_manager_low(j_threshold,1+settings.sigma_j);
     UncertaintyManagerJ j_manager_high(j_threshold,1-settings.sigma_j);
+    // The # of Poisson sampled measurements that are discarded b/c don't converge with MLEM-STOP
+    int num_toss = 0;
 
     // This approach generates a series of poisson sampled measurements (using original measurements
     // as the means). Unfolding is performed for each of these spectra. The uncertainty in the unfolded
@@ -295,18 +324,55 @@ int main(int argc, char* argv[])
             std::vector<double> sampled_mlem_estimate; // dimension: num_measurements
             std::vector<double> sampled_spectrum = initial_spectrum; // dimension: num_bins
 
+            // If input measured values are based on single readings:
             // Create Poisson sampled measurement values (CPS)
+            // for (int i_meas = 0; i_meas < num_measurements; i_meas++) {
+            //     double sampled_value = poisson(measurements[i_meas]);
+            //     sampled_measurements.push_back(sampled_value);
+            // }
+
+            // If input measured values are based on the mean of three individual readings:
+            // Create sample mean (3) Poisson sampled measurement values (CPS)
             for (int i_meas = 0; i_meas < num_measurements; i_meas++) {
-                double sampled_value = poisson(measurements[i_meas]);
-                sampled_measurements.push_back(sampled_value);
+                double sampled_value_1 = poisson(measurements[i_meas]);
+                double sampled_value_2 = poisson(measurements[i_meas]);
+                double sampled_value_3 = poisson(measurements[i_meas]);
+                sampled_measurements.push_back((sampled_value_1+sampled_value_2+sampled_value_3)/3.0);
             }
 
             // Do unfolding on the initial spectrum & sampled measurement values
-            if (settings.algorithm == "mlem" || settings.algorithm == "mlemstop") {
+            if (settings.algorithm == "mlem") {
                 runMLEM(num_iterations, settings.error, num_measurements, num_bins, sampled_measurements, 
                     sampled_spectrum, nns_response, normalized_response, sampled_mlem_ratio, 
                     sampled_mlem_correction, sampled_mlem_estimate
                 );
+            }
+            // MLEM-STOP requires special handling of unfolding the Poisson sampled measurements
+            // Despite best efforts, sometimes MLEM-STOP will never converge for some samples. 
+            // Current best approach is to discard those samples. A record is kept of the number
+            // of samples discarded and reported to the user so they may interpret the final
+            // uncertainty accordingly.
+            else if (settings.algorithm == "mlemstop") {
+                // If want to see # tosses in real-time as unfolding then uncomment below:
+                // std::cout << "sample " << i_poiss << "\n";
+
+                // Calculate unique J threshold for the current sample
+                double sampled_j_threshold = determineJThreshold(num_measurements,sampled_measurements,settings.cps_crossover);
+                double sampled_j_factor = 0;
+
+                // Try running MLEM-STOP for the current sample but catch an error if never
+                // converges. Increment num_toss if so, and decrement the poisson index (i.e scrap
+                // the current sample and retry)
+                try {
+                    num_iterations = runMLEMSTOP(settings.cutoff, num_measurements, num_bins, sampled_measurements,
+                        sampled_spectrum, nns_response, normalized_response, sampled_mlem_ratio, sampled_mlem_correction, 
+                        sampled_mlem_estimate, sampled_j_threshold, sampled_j_factor
+                    );
+                }
+                catch (std::logic_error e) {
+                    i_poiss = i_poiss - 1;
+                    num_toss = num_toss + 1;
+                }
             }
             else if (settings.algorithm == "map") {
                 std::vector<double> sampled_energy_correction;
@@ -318,7 +384,13 @@ int main(int argc, char* argv[])
             else {
                 //throw error
                 std::cout << "No unfolding algorithm found for: " + settings.algorithm + '\n';
-            }        
+            }
+
+            // Note the sampled CPS values were based on the scaled CPS, so need to scale back the
+            // sampled spectra to correct magnitude 
+            for (int i_bin = 0; i_bin < num_bins; i_bin++) {
+                sampled_spectrum[i_bin] /= scale_factor;
+            }
 
             sampled_spectra.push_back(sampled_spectrum); // add to growing array of sampled spectra
 
@@ -328,6 +400,11 @@ int main(int argc, char* argv[])
             sampled_dose.push_back(sdose);
         }
 
+        // Finally, "unscale" spectrum back to true values for remaining calculations & logging
+        for (int i_bin = 0; i_bin < num_bins; i_bin++) {
+            spectrum[i_bin] /= scale_factor;
+        }
+
         // Calculate the spectrum uncertainty (same upper & lower)
         calculateRMSD_vector(settings.num_poisson_samples, spectrum, sampled_spectra, spectrum_uncertainty_lower);
         spectrum_uncertainty_upper = spectrum_uncertainty_lower;
@@ -335,6 +412,10 @@ int main(int argc, char* argv[])
         // Calculate the dose uncertainty (same upper & lower)
         ambient_dose_eq_uncertainty_upper = calculateRMSD(settings.num_poisson_samples, ambient_dose_eq, sampled_dose);
         ambient_dose_eq_uncertainty_lower = ambient_dose_eq_uncertainty_upper;
+
+        // If want to print the number of Poisson samples kept vs tossed:
+        // std::cout << "Number of Poisson samples kept: " << settings.num_poisson_samples << "\n";
+        // std::cout << "Number of Poisson samples tossed: " << num_toss << "\n";
     }
 
     // This approach uses a known uncertainty around J=1, specified by sigma_j. An "upper" and "lower"
@@ -472,6 +553,7 @@ int main(int argc, char* argv[])
             myreport.set_j_final(j_factor);
             myreport.set_j_manager_low(j_manager_low);
             myreport.set_j_manager_high(j_manager_high);
+            myreport.set_num_toss(num_toss);
         }
         myreport.prepare_report();
 
