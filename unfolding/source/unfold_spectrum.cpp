@@ -15,6 +15,8 @@
 #include <fstream>
 #include <sstream>
 #include <cmath>
+#include <chrono>
+#include <random>
 #include <stdlib.h>
 #include <vector>
 
@@ -74,36 +76,54 @@ int main(int argc, char* argv[])
     double f_factor_report = settings.f_factor; // original value read in
     settings.set_f_factor(settings.f_factor / 1e6); // Convert f_factor from fA/cps to nA/cps
 
-    // Read measured data from input file
-    std::string irradiation_conditions;
-    double dose_mu; // dose delivered (MU) for individual measurement
-    double doserate_mu; // dose rate (MU/min) used for individual measurement
-    int duration; // Duration (s) of individual measurement acquisition
-
+    // Read in measurements from file
     std::vector<double> measurements_nc;
     std::vector<double> measurements;
     int num_measurements = 0;
+    measurements = getMeasurements(settings);
+    num_measurements = measurements.size();
+    std::reverse(measurements.begin(),measurements.end()); // readin 7-0 but want 0-7
 
-    // Handle inputs with different units
-    if (settings.meas_units == "cps") {
-        measurements = getMeasurementsCPS(settings.measurements_path, irradiation_conditions);
-        num_measurements = measurements.size();
-
-        // for (int index=0; index < num_measurements; index++) {
-        //     measurements[index] = measurements[index]*settings.norm;
-        // }
-        std::reverse(measurements.begin(),measurements.end());
-    }
-    // nC
-    else {
-        measurements_nc = getMeasurements(settings.measurements_path, irradiation_conditions, dose_mu, doserate_mu, duration);
-        num_measurements = measurements_nc.size();
-
-        for (int index=0; index < num_measurements; index++) {
-            double measurement_cps = measurements_nc[num_measurements-index-1]*settings.norm/settings.f_factor/duration;
-            measurements.push_back(measurement_cps);
+    // Handle nC input (save nC values for report, then convert to CPS)
+    if (settings.meas_units == "nc") {
+        measurements_nc = measurements;
+        for (int i_meas=0; i_meas < num_measurements; i_meas++) {
+            measurements[i_meas] = measurements[i_meas]*settings.norm/settings.f_factor/settings.duration;
         }
     }
+
+    // Process data wherein multiple measurements were acquired for each shell
+    std::vector<double> std_errors;
+    if (settings.num_meas_per_shell > 1) {
+        processMeasurements(num_measurements,settings.num_meas_per_shell,measurements,std_errors);
+        num_measurements = num_measurements / settings.num_meas_per_shell;
+    }
+    // Do not allow use of gaussian sampling technique if only one measurement per shell is
+    // provided, as the standard deviation is unknown.
+    else if (settings.num_meas_per_shell == 1 && settings.uncertainty_type == "gaussian"){
+        throw std::logic_error("Cannot generate Gaussian-sampled pseudo-measurements with only single measurement per shell.");
+    }
+    // Require at least 1 measurement per shell
+    else if (settings.num_meas_per_shell < 1) { // if settings.num_meas_per_shell is 0 or negative
+        throw std::logic_error("Number of measurements per shell must be >= 1");
+    }
+
+
+    // if (settings.meas_units == "cps") {
+    //     measurements = getMeasurements(settings);
+    //     num_measurements = measurements.size();
+    //     std::reverse(measurements.begin(),measurements.end());
+    // }
+    // // nC
+    // else {
+    //     measurements_nc = getMeasurements(settings);
+    //     num_measurements = measurements_nc.size();
+    //     // Convert to CPS
+    //     for (int index=0; index < num_measurements; index++) {
+    //         double measurement_cps = measurements_nc[num_measurements-index-1]*settings.norm/settings.f_factor/settings.duration;
+    //         measurements.push_back(measurement_cps);
+    //     }
+    // }
 
     // Calculate average CPS value
     double avg_cps = 0;
@@ -125,15 +145,26 @@ int main(int argc, char* argv[])
     }
     std::cout << '\n';
 
+    if (settings.num_meas_per_shell > 1) {
+        std::cout << "The standard errors in CPS are:" << '\n'; // newline
+
+        //Loop over the data matrix, display each value
+        for (int i = 0; i < num_measurements; ++i)
+        {
+            std::cout << std_errors[i] << '\n';
+        }
+        std::cout << '\n';
+    }
+
     // If doing MLEM-STOP: need ratio between "ideal" or "crossover" CPS value and the average
     // measured CPS. Call this scale_factor
-    double scale_factor = settings.cps_crossover/avg_cps;
+    // double scale_factor = settings.cps_crossover/avg_cps;
 
     // Apply scaling factor to the measured values so that their average value equals the ideal CPS
     // Then MLEM-STOP can be done such that terminate when J=1 (rather than J=scale_factor)
-    for (int i_meas = 0; i_meas < num_measurements; i_meas++) {
-        measurements[i_meas] *= scale_factor;
-    }
+    // for (int i_meas = 0; i_meas < num_measurements; i_meas++) {
+    //     measurements[i_meas] *= scale_factor;
+    // }
 
     //----------------------------------------------------------------------------------------------
     // Generate the energy bins matrix:
@@ -229,13 +260,14 @@ int main(int argc, char* argv[])
     }
     else {
         //throw error
-        std::cout << "No unfolding algorithm found for: " + settings.algorithm + '\n';
+        throw std::logic_error("Unrecognized unfolding algorithm: " + settings.algorithm);
+        // std::cout << "No unfolding algorithm found for: " + settings.algorithm + '\n';
     }
 
     // Need to "unscale" spectrum back to true values in order to calculate quantities of interest
-    for (int i_bin = 0; i_bin < num_bins; i_bin++) {
-        spectrum[i_bin] /= scale_factor;
-    }
+    // for (int i_bin = 0; i_bin < num_bins; i_bin++) {
+    //     spectrum[i_bin] /= scale_factor;
+    // }
 
     //----------------------------------------------------------------------------------------------
     // Display the result (output) matrix of the unfolding algorithm, which represents reconstructed 
@@ -258,7 +290,8 @@ int main(int argc, char* argv[])
 
     for (int i_meas = 0; i_meas < num_measurements; i_meas++)
     {
-        std::cout << mlem_estimate[i_meas]/scale_factor << '\n';
+        // std::cout << mlem_estimate[i_meas]/scale_factor << '\n';
+        std::cout << mlem_estimate[i_meas] << '\n';
     }
 
     std::cout << '\n';
@@ -290,9 +323,9 @@ int main(int argc, char* argv[])
     // double source_strength = calculateSourceStrength(num_bins,spectrum,duration,dose_mu);
 
     // Need to scale spectrum again in order to do uncertainty calculations
-    for (int i_bin = 0; i_bin < num_bins; i_bin++) {
-        spectrum[i_bin] *= scale_factor;
-    }
+    // for (int i_bin = 0; i_bin < num_bins; i_bin++) {
+    //     spectrum[i_bin] *= scale_factor;
+    // }
 
     //----------------------------------------------------------------------------------------------
     // Determine the uncertainty in the unfolded spectrum using one of the available methods
@@ -306,38 +339,47 @@ int main(int argc, char* argv[])
     // MLEM-STOP specific parameters, initialized here for use later
     UncertaintyManagerJ j_manager_low(j_threshold,1+settings.sigma_j);
     UncertaintyManagerJ j_manager_high(j_threshold,1-settings.sigma_j);
-    // The # of Poisson sampled measurements that are discarded b/c don't converge with MLEM-STOP
+    // The # of sampled measurement sets that are discarded b/c don't converge with MLEM-STOP
     int num_toss = 0;
 
-    // This approach generates a series of poisson sampled measurements (using original measurements
-    // as the means). Unfolding is performed for each of these spectra. The uncertainty in the unfolded
+    // This approach generates a series of sampled measurements (using original measurements as the
+    // means). Unfolding is performed for each of these spectra. The uncertainty in the unfolded
     // spectrum is taken to be the Root-Mean-Square-Deviation between the unfolded spectrum and each
-    // Poisson-sampled spectrum. The number of samples is set by the user via num_poisson_samples
-    if (settings.uncertainty_type == "poisson") {
-        std::vector<std::vector<double>> sampled_spectra; // dimensions: num_poisson_samples x num_bins
-        std::vector<double> sampled_dose; // dimension: num_poisson_samples
+    // sampled spectrum. The number of samples is set by the user via num_uncertainty_samples
+    if (settings.uncertainty_type == "poisson" || settings.uncertainty_type == "gaussian") {
+        std::vector<std::vector<double>> sampled_spectra; // dimensions: num_uncertainty_samples x num_bins
+        std::vector<double> sampled_dose; // dimension: num_uncertainty_samples
 
-        for (int i_poiss = 0; i_poiss < settings.num_poisson_samples; i_poiss++) {
+        for (int i_samp = 0; i_samp < settings.num_uncertainty_samples; i_samp++) {
             std::vector<double> sampled_measurements; // dimension: num_measurements
             std::vector<double> sampled_mlem_ratio; // dimension: num_measurements
             std::vector<double> sampled_mlem_correction; // dimension: num_measurements
             std::vector<double> sampled_mlem_estimate; // dimension: num_measurements
             std::vector<double> sampled_spectrum = initial_spectrum; // dimension: num_bins
 
-            // If input measured values are based on single readings:
-            // Create Poisson sampled measurement values (CPS)
-            // for (int i_meas = 0; i_meas < num_measurements; i_meas++) {
-            //     double sampled_value = poisson(measurements[i_meas]);
-            //     sampled_measurements.push_back(sampled_value);
-            // }
+            bool toss_sample = false; // Track if sample was tossed
 
-            // If input measured values are based on the mean of three individual readings:
-            // Create sample mean (3) Poisson sampled measurement values (CPS)
-            for (int i_meas = 0; i_meas < num_measurements; i_meas++) {
-                double sampled_value_1 = poisson(measurements[i_meas]);
-                double sampled_value_2 = poisson(measurements[i_meas]);
-                double sampled_value_3 = poisson(measurements[i_meas]);
-                sampled_measurements.push_back((sampled_value_1+sampled_value_2+sampled_value_3)/3.0);
+            // If doing Poisson-sampling to generate pseudo-measurement set:
+            if (settings.uncertainty_type == "poisson") {
+                for (int i_meas = 0; i_meas < num_measurements; i_meas++) {
+                    double sampled_value = 0;
+                    for (int i_samp =0; i_samp < settings.num_meas_per_shell; i_samp++) {
+                        sampled_value += poisson(measurements[i_meas]);
+                    }
+                    sampled_value /= settings.num_meas_per_shell;
+                    sampled_measurements.push_back(sampled_value);
+                }
+            }
+            // If doing Gaussian-sampling to generate pseudo-measurement set
+            else if (settings.uncertainty_type == "gaussian") {
+                for (int i_meas = 0; i_meas < num_measurements; i_meas++) {
+                    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+                    std::default_random_engine generator (seed);
+                    std::normal_distribution<double> distribution(measurements[i_meas],std_errors[i_meas]);
+
+                    double new_sample = distribution(generator);
+                    sampled_measurements.push_back(new_sample);
+                }
             }
 
             // Do unfolding on the initial spectrum & sampled measurement values
@@ -347,21 +389,18 @@ int main(int argc, char* argv[])
                     sampled_mlem_correction, sampled_mlem_estimate
                 );
             }
-            // MLEM-STOP requires special handling of unfolding the Poisson sampled measurements
+            // MLEM-STOP requires special handling of unfolding the sampled measurement sets.
             // Despite best efforts, sometimes MLEM-STOP will never converge for some samples. 
             // Current best approach is to discard those samples. A record is kept of the number
             // of samples discarded and reported to the user so they may interpret the final
             // uncertainty accordingly.
             else if (settings.algorithm == "mlemstop") {
-                // If want to see # tosses in real-time as unfolding then uncomment below:
-                // std::cout << "sample " << i_poiss << "\n";
-
                 // Calculate unique J threshold for the current sample
                 double sampled_j_threshold = determineJThreshold(num_measurements,sampled_measurements,settings.cps_crossover);
                 double sampled_j_factor = 0;
 
                 // Try running MLEM-STOP for the current sample but catch an error if never
-                // converges. Increment num_toss if so, and decrement the poisson index (i.e scrap
+                // converges. Increment num_toss if so, and decrement the sample index (i.e scrap
                 // the current sample and retry)
                 try {
                     runMLEMSTOP(settings.cutoff, num_measurements, num_bins, sampled_measurements,
@@ -370,8 +409,9 @@ int main(int argc, char* argv[])
                     );
                 }
                 catch (std::logic_error e) {
-                    i_poiss = i_poiss - 1;
+                    i_samp = i_samp - 1;
                     num_toss = num_toss + 1;
+                    toss_sample = true;
                 }
             }
             else if (settings.algorithm == "map") {
@@ -383,16 +423,18 @@ int main(int argc, char* argv[])
             }
             else {
                 //throw error
-                std::cout << "No unfolding algorithm found for: " + settings.algorithm + '\n';
+                throw std::logic_error("Unrecognized unfolding algorithm: " + settings.algorithm);
             }
 
             // Note the sampled CPS values were based on the scaled CPS, so need to scale back the
             // sampled spectra to correct magnitude 
-            for (int i_bin = 0; i_bin < num_bins; i_bin++) {
-                sampled_spectrum[i_bin] /= scale_factor;
-            }
+            // for (int i_bin = 0; i_bin < num_bins; i_bin++) {
+            //     sampled_spectrum[i_bin] /= scale_factor;
+            // }
 
-            sampled_spectra.push_back(sampled_spectrum); // add to growing array of sampled spectra
+            if (!toss_sample) {
+                sampled_spectra.push_back(sampled_spectrum); // add to growing array of sampled spectra
+            }
 
             // Calculate the ambient dose equivalent associated with the sampled spectrum
             double sdose = calculateDose(num_bins, sampled_spectrum, icrp_factors);
@@ -401,22 +443,29 @@ int main(int argc, char* argv[])
         }
 
         // Finally, "unscale" spectrum back to true values for remaining calculations & logging
-        for (int i_bin = 0; i_bin < num_bins; i_bin++) {
-            spectrum[i_bin] /= scale_factor;
-        }
+        // for (int i_bin = 0; i_bin < num_bins; i_bin++) {
+        //     spectrum[i_bin] /= scale_factor;
+        // }
 
         // Calculate the spectrum uncertainty (same upper & lower)
-        calculateRMSD_vector(settings.num_poisson_samples, spectrum, sampled_spectra, spectrum_uncertainty_lower);
+        calculateRMSD_vector(settings.num_uncertainty_samples, spectrum, sampled_spectra, spectrum_uncertainty_lower);
         spectrum_uncertainty_upper = spectrum_uncertainty_lower;
 
         // Calculate the dose uncertainty (same upper & lower)
-        ambient_dose_eq_uncertainty_upper = calculateRMSD(settings.num_poisson_samples, ambient_dose_eq, sampled_dose);
+        ambient_dose_eq_uncertainty_upper = calculateRMSD(settings.num_uncertainty_samples, ambient_dose_eq, sampled_dose);
         ambient_dose_eq_uncertainty_lower = ambient_dose_eq_uncertainty_upper;
 
-        // If want to print the number of Poisson samples kept vs tossed:
-        // std::cout << "Number of Poisson samples kept: " << settings.num_poisson_samples << "\n";
-        // std::cout << "Number of Poisson samples tossed: " << num_toss << "\n";
+        // If want to print the number of sample sets kept vs tossed:
+        // std::cout << "Number of sampled measurement sets kept: " << settings.num_uncertainty_samples << "\n";
+        // std::cout << "Number of sampled measurement sets tossed: " << num_toss << "\n";
     }
+
+    // if (settings.uncertainty_type == "gaussian") {
+    //     std::vector<std::vector<double>> sampled_spectra; // dimensions: num_uncertainty_samples x num_bins
+    //     std::vector<double> sampled_dose; // dimension: num_uncertainty_samples
+
+
+    // }
 
     // This approach uses a known uncertainty around J=1, specified by sigma_j. An "upper" and "lower"
     // spectrum estimate are generated using the user-defined sigma_j parameter. A unique j_threshold
@@ -488,7 +537,7 @@ int main(int argc, char* argv[])
     //----------------------------------------------------------------------------------------------
     // Save spectrum to file
     //----------------------------------------------------------------------------------------------
-    saveSpectrumAsRow(settings.path_output_spectra, num_bins, irradiation_conditions, spectrum, 
+    saveSpectrumAsRow(settings.path_output_spectra, num_bins, settings.irradiation_conditions, spectrum, 
         spectrum_uncertainty_upper, spectrum_uncertainty_lower, energy_bins
     );
     std::cout << "Saved unfolded spectrum to " << settings.path_output_spectra << "\n";
@@ -497,23 +546,23 @@ int main(int argc, char* argv[])
     // Generate report
     //----------------------------------------------------------------------------------------------
     if (settings.generate_report) {
-        std::vector<double> measurements_report;
-        if (settings.meas_units == "cps") {
-            measurements_report = measurements;
-            std::reverse(measurements_report.begin(),measurements_report.end());
-        }
-        else
-            measurements_report = measurements_nc;
+        // std::vector<double> measurements_report;
+        // if (settings.meas_units == "cps") {
+        //     measurements_report = measurements;
+        //     std::reverse(measurements_report.begin(),measurements_report.end());
+        // }
+        // else
+        //     measurements_report = measurements_nc;
 
         UnfoldingReport myreport;
 
         if (settings.path_report.empty()) {
-            settings.path_report = "output/report_" + irradiation_conditions + ".txt";
+            settings.path_report = "output/report_" + settings.irradiation_conditions + ".txt";
         }
 
         myreport.set_algorithm(settings.algorithm);
         myreport.set_path(settings.path_report);
-        myreport.set_irradiation_conditions(irradiation_conditions);
+        myreport.set_irradiation_conditions(settings.irradiation_conditions);
         myreport.set_input_files(input_files);
         myreport.set_input_file_flags(input_file_flags);
         myreport.set_cutoff(settings.cutoff);
@@ -521,13 +570,15 @@ int main(int argc, char* argv[])
         myreport.set_norm(settings.norm);
         myreport.set_f_factor(f_factor_report);
         myreport.set_num_measurements(num_measurements);
+        myreport.set_uncertainty_type(settings.uncertainty_type);
         myreport.set_num_bins(num_bins);
-        myreport.set_num_poisson_samples(settings.num_poisson_samples);
+        myreport.set_num_uncertainty_samples(settings.num_uncertainty_samples);
         myreport.set_git_commit(GIT_COMMIT);
-        myreport.set_measurements(measurements_report);
-        myreport.set_dose_mu(dose_mu);
-        myreport.set_doserate_mu(doserate_mu);
-        myreport.set_duration(duration);
+        myreport.set_measurements(measurements);
+        myreport.set_measurements_nc(measurements_nc);
+        myreport.set_dose_mu(settings.dose_mu);
+        myreport.set_doserate_mu(settings.doserate_mu);
+        myreport.set_duration(settings.duration);
         myreport.set_meas_units(settings.meas_units);
         myreport.set_initial_spectrum(initial_spectrum);
         myreport.set_energy_bins(energy_bins);
@@ -566,9 +617,9 @@ int main(int argc, char* argv[])
     if (settings.generate_figure) {
         std::cout << "Plotting spectrum: \n";
         if (settings.path_figure.empty()) {
-            settings.path_figure = "output/figure_" + irradiation_conditions + ".png";
+            settings.path_figure = "output/figure_" + settings.irradiation_conditions + ".png";
         }
-        plotSpectrum(settings.path_figure, irradiation_conditions, num_measurements, 
+        plotSpectrum(settings.path_figure, settings.irradiation_conditions, num_measurements, 
             num_bins, energy_bins, spectrum, spectrum_uncertainty_upper, spectrum_uncertainty_lower
         );
         std::cout << "\n";

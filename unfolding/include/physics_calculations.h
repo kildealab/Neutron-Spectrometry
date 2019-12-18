@@ -6,6 +6,13 @@
 #include <vector>
 #include <algorithm>
 
+int processMeasurements(int num_measurements, int num_meas_per_shell, std::vector<double>& measurements, 
+    std::vector<double>& std_errors);
+
+double getMeanValueD(std::vector<double>& data);
+
+double getSampleMeanStandardErrorD(std::vector<double>& data, double mean);
+
 std::vector<double> normalizeResponse(int num_bins, int num_measurements, std::vector<std::vector<double>>& system_response);
 
 std::vector<double> normalizeVector(std::vector<double>& unnormalized_vector);

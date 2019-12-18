@@ -219,33 +219,36 @@ bool checkStringMap(std::string test_key, std::map<std::string, std::string>& te
 //  - data_vector holds measurement values in nC. It is ordered from index:0 storing the value for 7
 //      moderators to index:7 storing the value for 0 moderators
 //==================================================================================================
-std::vector<double> getMeasurements(std::string input_file, std::string &irradiation_conditions, 
-    double &dose_mu, double &doserate_mu, int &duration) 
+std::vector<double> getMeasurements(UnfoldingSettings &settings) 
 {
-    std::ifstream ifile(input_file);
+    std::ifstream ifile(settings.measurements_path);
     if (!ifile.is_open()) {
         //throw error
-        throw std::logic_error("Unable to access open measurement file: " + input_file);
+        throw std::logic_error("Unable to access open measurement file: " + settings.measurements_path);
     }
 
     // Load header information from 'ifile'
-    getline(ifile,irradiation_conditions);
+    std::string temp_irradiation_conditions;
+    getline(ifile,temp_irradiation_conditions);
     // removes: carriage return '\r' from the string (which causes weird string overwriting)
-    irradiation_conditions.erase( std::remove(irradiation_conditions.begin(), 
-        irradiation_conditions.end(), '\r'), irradiation_conditions.end() );
+    temp_irradiation_conditions.erase( std::remove(temp_irradiation_conditions.begin(), 
+        temp_irradiation_conditions.end(), '\r'), temp_irradiation_conditions.end() );
+    settings.irradiation_conditions = temp_irradiation_conditions;
 
-    // Extract dose & measurement duration
-    std::string dose_string;
-    getline(ifile,dose_string);
-    dose_mu = atoi(dose_string.c_str());
+    // If measurements in nC, extract dose, doserate, and duration information
+    if (settings.meas_units == "nc") {
+        std::string dose_string;
+        getline(ifile,dose_string);
+        settings.dose_mu = atoi(dose_string.c_str());
 
-    std::string doserate_string;
-    getline(ifile,doserate_string);
-    doserate_mu = atoi(doserate_string.c_str());
+        std::string doserate_string;
+        getline(ifile,doserate_string);
+        settings.doserate_mu = atoi(doserate_string.c_str());
 
-    std::string t_string;
-    getline(ifile,t_string);
-    duration = atoi(t_string.c_str());
+        std::string t_string;
+        getline(ifile,t_string);
+        settings.duration = atoi(t_string.c_str());
+    }
 
     // Loop through file, get measurement data
     std::string line;
@@ -266,53 +269,7 @@ std::vector<double> getMeasurements(std::string input_file, std::string &irradia
     }
 
     ifile.close();
-    std::cout << "Measurements successfully retrieved from " + input_file + '\n';
-    return data_vector;
-}
-
-
-//==================================================================================================
-// Read CPS measurement data from file
-// Args:
-//  - input_file: filename of the measurement file
-//  - irradiation_conditions: assign a string representing the measurement set (e.g. 10X_couch1)
-// Returns:
-//  - data_vector holds measurement values in nC. It is ordered from index:0 storing the value for 7
-//      moderators to index:7 storing the value for 0 moderators
-//==================================================================================================
-std::vector<double> getMeasurementsCPS(std::string input_file, std::string &irradiation_conditions) {
-    std::ifstream ifile(input_file);
-    if (!ifile.is_open()) {
-        //throw error
-        std::cout << "Unable to open measurement file: " + input_file + '\n';
-    }
-
-    // Load header information from 'ifile'
-    getline(ifile,irradiation_conditions);
-    // removes: carriage return '\r' from the string (which causes weird string overwriting)
-    irradiation_conditions.erase( std::remove(irradiation_conditions.begin(), 
-        irradiation_conditions.end(), '\r'), irradiation_conditions.end() );
-
-    // Loop through file, get measurement data
-    std::string line;
-    std::vector<double> data_vector;
-    while (getline(ifile,line)) {
-        std::istringstream line_stream(line);
-        std::string stoken; // store individual values between delimiters on a line
-
-        // Loop through each line, delimiting at commas
-        while (getline(line_stream, stoken, ',')) {
-            // Convert negative measurements to positive
-            double measurement = atof(stoken.c_str());
-            if (measurement < 0) {
-                measurement *= -1;
-            }
-            data_vector.push_back(measurement); // add data to the vector
-        }
-    }
-
-    ifile.close();
-    std::cout << "Measurements successfully retrieved from " + input_file + '\n';
+    std::cout << "Measurements successfully retrieved from " + settings.measurements_path + '\n';
     return data_vector;
 }
 

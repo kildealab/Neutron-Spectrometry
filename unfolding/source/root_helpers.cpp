@@ -119,7 +119,7 @@ int plotSpectrum(std::string path_figure, std::string irradiation_conditions,
     );
     // TGraphErrors *ge = new TGraphErrors(bins_line_avr, spectrum, 0, s_line);
     ge->SetFillColor(920);
-    ge->SetFillStyle(3002);
+    ge->SetFillStyle(3001);
     ge->Draw("P2");
     h1->Draw("HIST SAME");  // Draw the histogram without the error bars;
 

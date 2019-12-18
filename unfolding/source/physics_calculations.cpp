@@ -20,6 +20,78 @@
 std::mt19937 mrand(std::time(0));
 
 //==================================================================================================
+// Process Measurements: obtain sample mean measured value and standard error of sample mean for 
+// each shell
+//==================================================================================================
+int processMeasurements(int num_measurements, int num_meas_per_shell, std::vector<double>& measurements, 
+    std::vector<double>& std_errors)
+{
+    // Complain if mismatch with number of measurements provided and the number of measurements per
+    // shell
+    if (num_measurements % num_meas_per_shell != 0) {
+        std::ostringstream error_message;
+        error_message << "The number of measurements (" << num_measurements << ") does not evenly "
+            << "divide by the number of measurements per shell (" << num_meas_per_shell << ").";
+        throw std::logic_error(error_message.str());
+    }
+
+    std::vector<double> avg_measurements; // holds sample means, to replace measurements
+    std::vector<double> samples; // holds the measurements comprising a given sample
+
+    for(int i_meas=0; i_meas < num_measurements; i_meas++) {
+        samples.push_back(measurements[i_meas]);
+
+        // Once all the measurements in given sample are added to samples vector, calculate the mean
+        // and standard error of the mean. Add to appropriate vectors
+        if (i_meas % num_meas_per_shell == num_meas_per_shell-1) {
+            double sample_mean = getMeanValueD(samples);
+            avg_measurements.push_back(sample_mean);
+
+            double std_error = getSampleMeanStandardErrorD(samples,sample_mean);
+            std_errors.push_back(std_error);
+
+            samples.clear();
+        }
+    }
+
+    // Replace measurements vector with the shorter vector containing the sample means
+    measurements = avg_measurements;
+
+    return 1;
+}
+
+//==================================================================================================
+// Get the mean value of a data vector containing doubles
+//==================================================================================================
+double getMeanValueD(std::vector<double>& data) {
+    return accumulate( data.begin(), data.end(), 0.0)/data.size(); 
+}
+
+
+//==================================================================================================
+// Get the standard error of the sample mean given a vector of data and its mean
+//==================================================================================================
+double getSampleMeanStandardErrorD(std::vector<double>& data, double mean) {
+    int num_data = data.size();
+
+    if (num_data == 0) {
+        throw std::logic_error("Cannot calculate standard error on empty data vector.");
+    }
+
+    double numerator = 0;
+    for (int i_data=0; i_data < num_data; i_data++) {
+        numerator += pow((mean-data[i_data]),2);
+    }
+    double denominator = num_data-1;
+
+    double single_standard_error = sqrt(numerator/denominator);
+
+    double sample_mean_standard_error = single_standard_error/sqrt(num_data);
+
+    return sample_mean_standard_error;
+}
+
+//==================================================================================================
 // Return a 1D normalized vector of a system matrix used in MLEM-style reconstruction algorithms
 //==================================================================================================
 std::vector<double> normalizeResponse(int num_bins, int num_measurements, std::vector<std::vector<double>>& system_response)

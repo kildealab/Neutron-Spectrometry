@@ -22,11 +22,7 @@ bool checkStringVector(std::string item, std::vector<std::string>& allowed_items
 
 bool checkStringMap(std::string test_key, std::map<std::string, std::string>& test_map);
 
-std::vector<double> getMeasurements(std::string input_file, std::string &irradiation_conditions, 
-    double &dose_mu, double &doserate_mu, int &duration
-);
-
-std::vector<double> getMeasurementsCPS(std::string input_file, std::string &irradiation_conditions);
+std::vector<double> getMeasurements(UnfoldingSettings &settings);
 
 int saveSpectrumAsRow(std::string spectrum_file, int num_bins, std::string irradiation_conditions, 
     std::vector<double>& spectrum, std::vector<double> &error_lower, std::vector<double> &error_upper,

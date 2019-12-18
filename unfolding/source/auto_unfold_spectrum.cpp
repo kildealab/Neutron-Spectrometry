@@ -79,33 +79,23 @@ int main(int argc, char* argv[])
     // Standard figure file suffix (file extension)
     std::string figure_file_suf = ".png";
 
-    // Read measured data from input file
-    std::string irradiation_conditions;
-    double dose_mu; // dose delivered (MU) for individual measurement
-    double doserate_mu; // dose rate (MU/min) used for individual measurement
-    int duration; // Duration (s) of individual measurement acquisition
-
     std::vector<double> measurements_nc;
     std::vector<double> measurements;
     int num_measurements = 0;
 
     // Handle inputs with different units
     if (settings.meas_units == "cps") {
-        measurements = getMeasurementsCPS(settings.measurements_path, irradiation_conditions);
+        measurements = getMeasurements(settings);
         num_measurements = measurements.size();
-
-        // for (int index=0; index < num_measurements; index++) {
-        //     measurements[index] = measurements[index]*settings.norm;
-        // }
         std::reverse(measurements.begin(),measurements.end());
     }
+    // nC
     else {
-        measurements_nc = getMeasurements(settings.measurements_path, irradiation_conditions, dose_mu, doserate_mu, duration);
+        measurements_nc = getMeasurements(settings);
         num_measurements = measurements_nc.size();
-
+        // Convert to CPS
         for (int index=0; index < num_measurements; index++) {
-            double measurement_cps = measurements_nc[num_measurements-index-1]*settings.norm/settings.f_factor;
-            // double measurement_cps = measurements_nc[num_measurements-index-1]*settings.norm/settings.f_factor/duration;
+            double measurement_cps = measurements_nc[num_measurements-index-1]*settings.norm/settings.f_factor/settings.duration;
             measurements.push_back(measurement_cps);
         }
     }
@@ -410,7 +400,7 @@ int main(int argc, char* argv[])
             // Total fluence
             if (settings.parameter_of_interest == "total_fluence") {
                 if (i_num == 0)
-                    results_stream << irradiation_conditions << ",";
+                    results_stream << settings.irradiation_conditions << ",";
                 poi_value = calculateTotalFlux(num_bins,current_spectrum);
             }
             // Total dose:
@@ -422,52 +412,52 @@ int main(int argc, char* argv[])
             // Maximum "error" in MLEM ratio
             else if (settings.parameter_of_interest == "max_mlem_ratio") {
                 if (i_num == 0)
-                    results_stream << irradiation_conditions << ",";
+                    results_stream << settings.irradiation_conditions << ",";
                 poi_value = calculateMaxRatio(num_measurements,mlem_ratio);
             }
             // Average "error" in MLEM ratio
             else if (settings.parameter_of_interest == "avg_mlem_ratio") {
                 if (i_num == 0)
-                    results_stream << irradiation_conditions << ",";
+                    results_stream << settings.irradiation_conditions << ",";
                 poi_value = calculateAvgRatio(num_measurements,mlem_ratio);
             }
             else if (settings.parameter_of_interest == "j_factor") {
                 if (i_num == 0)
-                    results_stream << irradiation_conditions << ",";
+                    results_stream << settings.irradiation_conditions << ",";
                 poi_value = calculateJFactor(num_measurements,measurements,mlem_estimate);
             }
             else if (settings.parameter_of_interest == "j_factor2") {
                 if (i_num == 0)
-                    results_stream << irradiation_conditions << ",";
+                    results_stream << settings.irradiation_conditions << ",";
                 poi_value = calculateJFactor2(num_measurements,measurements,mlem_estimate);
             }
             else if (settings.parameter_of_interest == "noise") {
                 if (i_num == 0)
-                    results_stream << irradiation_conditions << ",";
+                    results_stream << settings.irradiation_conditions << ",";
                 poi_value = calculateNoise(15,30,current_spectrum);
             }
             else if (settings.parameter_of_interest == "reduced_chi_squared") {
                 if (i_num == 0)
-                    results_stream << irradiation_conditions << ",";
+                    results_stream << settings.irradiation_conditions << ",";
                 poi_value = calculateChiSquared(i_num,num_bins,num_measurements,current_spectrum,measurements,mlem_ratio);
             }
             else if (settings.parameter_of_interest == "rms") {
                 if (i_num == 0)
-                    results_stream << irradiation_conditions << ",";
+                    results_stream << settings.irradiation_conditions << ",";
                 // std::vector<double> normalized_spectrum = normalizeVector(current_spectrum);
                 std::vector<double> normalized_spectrum = current_spectrum;
                 poi_value = calculateRMSEstimator(num_bins,ref_spectrum,normalized_spectrum);
             }
             else if (settings.parameter_of_interest == "nrmsd") {
                 if (i_num == 0)
-                    results_stream << irradiation_conditions << ",";
+                    results_stream << settings.irradiation_conditions << ",";
                 // std::vector<double> normalized_spectrum = normalizeVector(current_spectrum);
                 std::vector<double> normalized_spectrum = current_spectrum;
                 poi_value = calculateNRMSD(num_bins,ref_spectrum,normalized_spectrum);
             }
             else if (settings.parameter_of_interest == "chi_squared_g") {
                 if (i_num == 0)
-                    results_stream << irradiation_conditions << ",";
+                    results_stream << settings.irradiation_conditions << ",";
                 // std::vector<double> normalized_spectrum = normalizeVector(current_spectrum);
                 std::vector<double> normalized_spectrum = current_spectrum;
                 poi_value = calculateChiSquaredG(num_bins,ref_spectrum,normalized_spectrum);

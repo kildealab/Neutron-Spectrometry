@@ -21,8 +21,14 @@ UnfoldingSettings::UnfoldingSettings() {
     f_factor = 7.0;
     cutoff = 10000;
     uncertainty_type = "poisson";
-    num_poisson_samples = 50;
+    num_uncertainty_samples = 50;
+    num_meas_per_shell = 1;
     meas_units = "nc";
+    // Measurement specs
+    dose_mu = 0;
+    doserate_mu = 0;
+    duration = 0;
+    irradiation_conditions = "radiation_details";
     // MAP specific
     beta = 0.0;
     prior = "mrp";
@@ -68,10 +74,20 @@ void UnfoldingSettings::set_setting(std::string settings_name, std::string setti
         this->set_cutoff(atoi(settings_value.c_str()));
     else if (settings_name == "uncertainty_type")
         this->set_uncertainty_type(settings_value);
-    else if (settings_name == "num_poisson_samples")
-        this->set_num_poisson_samples(atoi(settings_value.c_str()));
+    else if (settings_name == "num_uncertainty_samples")
+        this->set_num_uncertainty_samples(atoi(settings_value.c_str()));
+    else if (settings_name == "num_meas_per_shell")
+        this->set_num_meas_per_shell(atoi(settings_value.c_str()));
     else if (settings_name == "meas_units")
         this->set_meas_units(settings_value);
+    else if (settings_name == "dose_mu")
+        this->set_dose_mu(atoi(settings_value.c_str()));
+    else if (settings_name == "doserate_mu")
+        this->set_doserate_mu(atoi(settings_value.c_str()));
+    else if (settings_name == "duration")
+        this->set_duration(atoi(settings_value.c_str()));
+    else if (settings_name == "irradiation_conditions")
+        this->set_irradiation_conditions(settings_value);
     else if (settings_name == "beta")
         this->set_beta(atof(settings_value.c_str()));
     else if (settings_name == "prior")
@@ -144,11 +160,26 @@ void UnfoldingSettings::set_cutoff(int cutoff) {
 void UnfoldingSettings::set_uncertainty_type(std::string uncertainty_type) {
     this->uncertainty_type = uncertainty_type;
 }
-void UnfoldingSettings::set_num_poisson_samples(int num_poisson_samples) {
-    this->num_poisson_samples = num_poisson_samples;
+void UnfoldingSettings::set_num_uncertainty_samples(int num_uncertainty_samples) {
+    this->num_uncertainty_samples = num_uncertainty_samples;
+}
+void UnfoldingSettings::set_num_meas_per_shell(int num_meas_per_shell) {
+    this->num_meas_per_shell = num_meas_per_shell;
 }
 void UnfoldingSettings::set_meas_units(std::string meas_units) {
     this->meas_units = meas_units;
+}
+void UnfoldingSettings::set_dose_mu(int dose_mu) {
+    this->dose_mu = dose_mu;
+}
+void UnfoldingSettings::set_doserate_mu(int doserate_mu) {
+    this->doserate_mu = doserate_mu;
+}
+void UnfoldingSettings::set_duration(int duration) {
+    this->duration = duration;
+}
+void UnfoldingSettings::set_irradiation_conditions(std::string irradiation_conditions) {
+    this->irradiation_conditions = irradiation_conditions;
 }
 void UnfoldingSettings::set_beta(double beta) {
     this->beta = beta;
@@ -264,14 +295,20 @@ void UnfoldingReport::set_num_measurements(int num_measurements) {
 void UnfoldingReport::set_num_bins(int num_bins) {
     this->num_bins = num_bins;
 }
-void UnfoldingReport::set_num_poisson_samples(int num_poisson_samples) {
-    this->num_poisson_samples = num_poisson_samples;
+void UnfoldingReport::set_uncertainty_type(std::string uncertainty_type) {
+    this->uncertainty_type = uncertainty_type;
+}
+void UnfoldingReport::set_num_uncertainty_samples(int num_uncertainty_samples) {
+    this->num_uncertainty_samples = num_uncertainty_samples;
 }
 void UnfoldingReport::set_git_commit(std::string git_commit) {
     this->git_commit = git_commit;
 }
 void UnfoldingReport::set_measurements(std::vector<double>& measurements) {
     this->measurements = measurements;
+}
+void UnfoldingReport::set_measurements_nc(std::vector<double>& measurements_nc) {
+    this->measurements_nc = measurements_nc;
 }
 void UnfoldingReport::set_dose_mu(double dose_mu) {
     this->dose_mu = dose_mu;
@@ -406,7 +443,8 @@ void UnfoldingReport::report_settings(std::ofstream& rfile) {
     rfile << std::left << std::setw(sw) << "MLEM target ratio:" << error << "\n";
     rfile << std::left << std::setw(sw) << "NNS normalization factor:" << norm << "\n";
     rfile << std::left << std::setw(sw) << "NNS calibration factor:" << f_factor << " fA/cps\n";
-    rfile << std::left << std::setw(sw) << "Number of poisson samples:" << num_poisson_samples << "\n";
+    rfile << std::left << std::setw(sw) << "Uncertainty type:" << uncertainty_type << " fA/cps\n";
+    rfile << std::left << std::setw(sw) << "# of uncertainty samples:" << num_uncertainty_samples << "\n";
     if (algorithm == "mlemstop") {
         rfile << std::left << std::setw(sw) << "Crossover CPS value:" << cps_crossover << "\n";
         rfile << std::left << std::setw(sw) << "J threshold:" << j_threshold << "\n";
@@ -419,21 +457,32 @@ void UnfoldingReport::report_settings(std::ofstream& rfile) {
 //----------------------------------------------------------------------------------------------
 void UnfoldingReport::report_measurement_info(std::ofstream& rfile) {
     std::string units_string;
-    if (meas_units == "cps")
-        units_string = "CPS";
-    else
+    if (meas_units == "nc")
         units_string = "Charge (nC)";
+    else
+        units_string = "CPS";
     
     rfile << "Measurement\n\n";
     rfile << std::left << std::setw(sw) << "Delivered dose:" << dose_mu << " MU\n";
     rfile << std::left << std::setw(sw) << "Delivered doserate:" << doserate_mu << " MU/min\n";
     rfile << std::left << std::setw(sw) << "Measurement duration:" << duration << " s\n\n";
     // rfile << "Measured Data (measurement duration: " << duration << "s)\n\n";
-    rfile << std::left << std::setw(cw) << "# of moderators" << units_string << "\n";
-    rfile << std::left << std::setw(cw) << COLSTRING << COLSTRING << "\n";
-    for (int i=0; i<num_measurements; i++) {
-        rfile << std::left << std::setw(cw) << num_measurements-1-i << measurements[i] << "\n";
+
+    if (meas_units == "nc") { 
+        rfile << std::left << std::setw(cw) << "# of moderators" << std::setw(cw) << "CPS" << "Charge (nC)" "\n";
+        rfile << std::left << std::setw(cw) << COLSTRING << std::setw(cw) << COLSTRING << COLSTRING << "\n";
+        for (int i=0; i<num_measurements; i++) {
+            rfile << std::left << std::setw(cw) << i << std::setw(cw) << round(measurements[i]) << measurements_nc[i] << "\n";
+        }
     }
+    else { 
+        rfile << std::left << std::setw(cw) << "# of moderators" << "CPS" "\n";
+        rfile << std::left << std::setw(cw) << COLSTRING << COLSTRING << "\n";
+        for (int i=0; i<num_measurements; i++) {
+            rfile << std::left << std::setw(cw) << i << round(measurements[i]) << "\n";
+        }
+    }
+
     rfile << SECTION_DIVIDE;
 }
 
@@ -479,7 +528,7 @@ void UnfoldingReport::report_mlem_info(std::ofstream& rfile) {
         rfile << std::left << std::setw(sw) << "final J value: " << j_final << "/" << j_threshold << "\n\n";
     }
     if (algorithm == "mlemstop") {
-        rfile << std::left << std::setw(sw) << "# samples tossed: " << num_toss << "/" << num_poisson_samples+num_toss << "\n\n";
+        rfile << std::left << std::setw(sw) << "# samples tossed: " << num_toss << "/" << num_uncertainty_samples+num_toss << "\n\n";
     }
     rfile << "Final unfolding ratio = measured charge / estimated charge:\n";
     int thw = 13; // NNS response column width
@@ -513,7 +562,7 @@ void UnfoldingReport::report_results(std::ofstream& rfile) {
     rfile << std::left << std::setw(sw) << "Upper uncertainty:" << dose_uncertainty_upper << " mSv/hr\n";
     rfile << std::left << std::setw(sw) << "Lower uncertainty:" << dose_uncertainty_lower << " mSv/hr\n\n";
     // rfile << std::left << std::setw(sw) << "Total measured charge:" << total_charge << " nC\n\n";
-    if (algorithm == "mlemstop") {
+    if (uncertainty_type == "j_bounds") {
         rfile << std::left << std::setw(sw) << "Upper uncertainty:" << j_manager_high.j_factor << "/" 
             << j_manager_high.j_threshold << " (k=" << j_manager_high.num_iterations << ")\n";
         rfile << std::left << std::setw(sw) << "Lower uncertainty:" << j_manager_low.j_factor << "/" 

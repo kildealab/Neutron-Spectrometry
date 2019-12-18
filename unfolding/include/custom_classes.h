@@ -9,15 +9,29 @@
 
 #include "physics_calculations.h"
 
-class UnfoldingSettings {
+// class Settings {
+//     public:
+//         Settings(){};
+//         virtual ~Settings() {};
+//         virtual void set_setting (std::string,std::string) = 0;
+// };
+
+class UnfoldingSettings{
+// class UnfoldingSettings : public Settings{
     public:
         double norm; 
         double error; 
         double f_factor; 
         int cutoff; 
         std::string uncertainty_type;
-        int num_poisson_samples; 
+        int num_uncertainty_samples;
+        int num_meas_per_shell; 
         std::string meas_units; 
+
+        int dose_mu;
+        int doserate_mu;
+        int duration;
+        std::string irradiation_conditions;
 
         std::string measurements_path;
         std::string input_spectrum_path;
@@ -59,8 +73,13 @@ class UnfoldingSettings {
         void set_f_factor(double);
         void set_cutoff(int);
         void set_uncertainty_type(std::string);
-        void set_num_poisson_samples(int);
+        void set_num_uncertainty_samples(int);
+        void set_num_meas_per_shell(int);
         void set_meas_units(std::string);
+        void set_dose_mu(int);
+        void set_doserate_mu(int);
+        void set_duration(int);
+        void set_irradiation_conditions(std::string);
         void set_beta(double);
         void set_prior(std::string);
         void set_cps_crossover(int);
@@ -88,6 +107,15 @@ class UnfoldingSettings {
         void set_ref_spectrum_path(std::string);
 };
 
+
+// class MeasurementManager {
+//     public:
+//         int num_meas_per_sample;
+
+//         std::vector<double> measurements;
+//         std::vector<double> measurements_scaled;
+//         std::vector<double> std_devs;
+// }
 
 //--------------------------------------------------------------------------------------------------
 // This class is designed to handle a single upper or lower uncertainty of a neutron fluence
@@ -143,10 +171,12 @@ class UnfoldingReport {
         double f_factor;
         int num_measurements;
         int num_bins;
-        int num_poisson_samples;
+        std::string uncertainty_type;
+        int num_uncertainty_samples;
         std::string git_commit;
 
         std::vector<double> measurements; // measurements_report
+        std::vector<double> measurements_nc;
         double dose_mu;
         double doserate_mu;
         int duration;
@@ -205,10 +235,12 @@ class UnfoldingReport {
         void set_f_factor(double);
         void set_num_measurements(int);
         void set_num_bins(int);
-        void set_num_poisson_samples(int);
+        void set_uncertainty_type(std::string);
+        void set_num_uncertainty_samples(int);
         void set_git_commit(std::string);
 
         void set_measurements(std::vector<double>&);
+        void set_measurements_nc(std::vector<double>&);
         void set_dose_mu(double);
         void set_doserate_mu(double);
         void set_duration(int);
@@ -244,7 +276,7 @@ class UnfoldingReport {
         void set_num_toss(int);
 };
 
-class SpectraSettings {
+class SpectraSettings{
     public:
         std::string input_filename;
         std::string input_dir;
@@ -323,7 +355,7 @@ class SpectraSettings {
         void set_normalize(std::string);
 };
 
-class PlotSettings {
+class PlotSettings{
     public:
         std::string input_filename;
         std::string input_dir;
@@ -422,7 +454,7 @@ class PlotSettings {
         void set_y_label_offset(std::string);
 };
 
-class SurfaceSettings {
+class SurfaceSettings{
     public:
         std::string input_filename;
         std::string input_dir;

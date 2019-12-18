@@ -38,7 +38,8 @@ Please refer to dependencies.txt for dependencies
     * mlem_max_error= Threshold error in ratio between measurements and reconstructed measurements, below which MLEM is stopped
     * f_factor= Conversion coefficient between neutron current and CPS [fA/cps]
     * uncertainty_type= Specify the type of spectral uncertainty calculation {poisson,j_bounds}
-    * num_poisson_samples= Number of Poisson samples to be taken to generate uncertainty region (if poisson)
+    * num_uncertainty_samples= Number of samples to be taken to generate uncertainty region (if poisson/gaussian)
+    * num_meas_per_shell= Number of measured values input per moderator shell
     * sigma_j= The uncertainty in J to be used to generate uncertainty region (if j_bounds)
     * meas_units= Specify the units used in the measurements files {nc,cps}
     * algorithm= Specify which algorithm to use {e.g. mlem, map, or mlemstop}
