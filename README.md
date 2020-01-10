@@ -6,11 +6,16 @@ This repository contains command-line applications to unfold data that was measu
 
 ## Table of Contents
 
+* [Authors](#authors)
 * [Features](#features)
 * [Description](#description)
 * [Installation](#installation)
 * [Licence](#licence)
 * [Supporting literature](#supporting-literature)
+
+## Authors
+
+Logan Montgomery, Georges Al Makdessi, Robert Maglieri, Felix Mathew, John Kildea
 
 ## Features
 
