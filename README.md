@@ -17,7 +17,7 @@ This repository contains command-line applications to unfold data that was measu
 * C++
 * Open source
 * Command-line applications
-* Generates elegant plots using [ROOT](https://root.cern.ch/license)
+* Generates elegant plots using [ROOT](https://root.cern.ch)
 * Highly customizable (using settings files)
 
 ## Description
@@ -42,7 +42,7 @@ make
 
 ## Licence
 
-Link will go here.
+This project is provided under the MIT license. See the [LICENSE file](LICENSE) for more info.
 
 ## Supporting literature
 
