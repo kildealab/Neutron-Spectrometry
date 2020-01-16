@@ -14,7 +14,7 @@ This repository contains command-line applications to unfold data that was measu
 * [Installation](#installation)
 * [List of applications](#list-of-applications)
 * [Instructions](#instructions)
-* [Licence](#licence)
+* [License](#license)
 * [Supporting literature](#supporting-literature)
 
 ## Authors
@@ -83,9 +83,9 @@ The general process for running each application is the same (example instructio
 2. Prepare the data input file (e.g. edit `input/measurements.txt`)
 3. Run the application (e.g. `./unfold_spectrum.exe`)
 
-Please click the links in the table above to view application-specific instructions and explanations of their associated settings.
+**Please click the links in the table above to view application-specific instructions** and explanations of their associated settings.
 
-## Licence
+## License
 
 This project is provided under the MIT license. See the [LICENSE file](LICENSE) for more info.
 
