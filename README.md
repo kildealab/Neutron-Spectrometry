@@ -45,7 +45,7 @@ Contact email: logan.montgomery@mail.mcgill.ca
 
 1. C++ compiler (e.g. [GCC](https://gcc.gnu.org/))
     * Must be C++11 compatible (e.g. GCC 4.8.1)
-2. GNU make ([link](gnu.org/software/make/))
+2. GNU make ([link](https://www.gnu.org/software/make/))
 3. ROOT Data Analysis Framework ([link](https://root.cern.ch/))
     * Can be installed on OSX using [Homebrew](https://brew.sh/)
 
@@ -54,7 +54,7 @@ Contact email: logan.montgomery@mail.mcgill.ca
 ## Installation
 
 1. Download the latest version from the [releases page](https://github.com/McGillMedPhys/Neutron-Spectrometry/releases).
-2. Install all the dependencies listed [here](unfolding/dependencies.txt).
+2. Install the [dependencies](#dependencies).
 3. Execute miscellaneous initialization functions:
 ```
 ./initialization.sh
