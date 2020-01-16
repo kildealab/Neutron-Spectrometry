@@ -42,7 +42,7 @@ This application is used to plot one or more series of XY data on a single set o
 
 | Name | Default value | description |
 | ---- | ------------- | ----------- |
-| border_width | `1` | Line width of plot border. |
+| border_width | `5` | Line width of plot border. |
 | color_series | `#000000,#4556d2,#C63822,`<br>`#55A961,#75298e,#9ba5b1,`<br>`#2fb5d4,#E79A9F,#4be0b0,`<br>`#cb66ed` | Specify color of series using comma-delimited list of HEX color values. Pattern repeats if there are more series than colors specified. |
 | data_format | `xyy` | Specify format of the data rows read in from CSV {`xyy`,`xyxy`}. |
 | grayscale | `0` | If `grayscale=0`: plot in color. If `grayscale=1`: plot in grayscale. |
@@ -52,7 +52,7 @@ This application is used to plot one or more series of XY data on a single set o
 | legend_entries | row headers in [input file](#csv-data-file) | Comma-delimited series names. e.g: series 1,series 2,series 3 |
 | legend_text_size | `0.035` | Height of the legend text in fractional percent of the canvas. |
 | line_style | `1` | Comma-delimited list of series line styles, if using `plot_type=l` or `plot_type=c`. See [Root docs](https://root.cern.ch/doc/master/classTAttLine.html#L3). If only a single value, apply to all series. |
-| line_width | `1` | Comma-delimited list of series line widths, if using `plot_type=l` or `plot_type=c`. See [Root docs](https://root.cern.ch/doc/master/classTAttLine.html#L2). If only a single value, apply to all series. |
+| line_width | `5` | Comma-delimited list of series line widths, if using `plot_type=l` or `plot_type=c`. See [Root docs](https://root.cern.ch/doc/master/classTAttLine.html#L2). If only a single value, apply to all series. |
 | margin_bottom | `0.1` | Whitespace margin to add to bottom of plot area, as a fractional percent of the canvas. |
 | margin_left | `0.1` | Whitespace margin to add to left of plot area, as a fractional percent of the canvas. |
 | margin_right | `0.1` | Whitespace margin to add to right of plot area, as a fractional percent of the canvas. |
@@ -73,7 +73,7 @@ This application is used to plot one or more series of XY data on a single set o
 | x_max | max x value in [input file](#csv-series-file) | Max x-axis value. |
 | x_min | min x value in [input file](#csv-series-file) | Min x-axis value. |
 | x_num_divs | N/A | 3 digit number that specifies number of major and minor divisions (tick marks). See [Root docs](https://root.cern.ch/doc/master/classTAttAxis.html#ae3067b6d4218970d09418291cbd84084). |
-| x_res | `800` | Horizontal resolution (dimension). Only applicable to rasterized image formats (e.g. PNG not EPS). |
+| x_res | `3200` | Horizontal resolution (dimension). Only applicable to rasterized image formats (e.g. PNG not EPS). |
 | y_grid | `0` | If `y_grid=0`: do not include gridlines. If `y_grid=1`: include gridlines. |
 | y_label | N/A | Y-axis label |
 | y_label_offset | `0.0` | Double value to shift the y-axis label left or right. |
@@ -81,4 +81,4 @@ This application is used to plot one or more series of XY data on a single set o
 | y_max | max y value in [input file](#csv-series-file) | Max y-axis value. |
 | y_min | min y value in [input file](#csv-series-file) | Min y-axis value. |
 | y_num_divs | N/A | 3 digit number that specifies number of major and minor divisions (tick marks). See [Root docs](https://root.cern.ch/doc/master/classTAttAxis.html#ae3067b6d4218970d09418291cbd84084). |
-| y_res | `600` | Vertical resolution (dimension). Only applicable to rasterized image formats (e.g. PNG not EPS). |
+| y_res | `2400` | Vertical resolution (dimension). Only applicable to rasterized image formats (e.g. PNG not EPS). |

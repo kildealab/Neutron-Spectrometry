@@ -665,8 +665,8 @@ SpectraSettings::SpectraSettings() {
     x_max = 0;
     y_min = 0; // if plotting detects max and min are the same, use default limits
     y_max = 0;
-    x_res = 800;
-    y_res = 600;
+    x_res = 3200;
+    y_res = 2400;
     y_num_divs = 0;
     y_digits_max = 3;
     legend_entries = {};
@@ -678,8 +678,8 @@ SpectraSettings::SpectraSettings() {
     error_fill_style = 3001;
     rows_per_spectrum = 3;
     line_style = {1};
-    line_width = {1};
-    border_width = 1;
+    line_width = {5};
+    border_width = 5;
     legend = 1;
     legend_coords = {0.15,0.75,0.4,0.85};
     textbox = 0;
@@ -882,8 +882,8 @@ PlotSettings::PlotSettings() {
     y_max = 0;
     x_min = 0; // if plotting detects max and min are the same, use default limits
     x_max = 0;
-    x_res = 800;
-    y_res = 600;
+    x_res = 3200;
+    y_res = 2400;
     x_log = 0;
     y_log = 0;
     x_grid = 0;
@@ -900,8 +900,8 @@ PlotSettings::PlotSettings() {
     // color_error = {"#333333","#E79A9F","#6B8EF0","#69CF77"};
     // show_error;
     line_style = {1};
-    line_width = {1};
-    border_width = 1;
+    line_width = {5};
+    border_width = 5;
     legend = 1;
     legend_coords = {0.15,0.65,0.4,0.85};
     textbox = 0;
