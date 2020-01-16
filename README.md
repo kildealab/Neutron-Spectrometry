@@ -5,6 +5,8 @@
 This repository contains command-line applications to unfold data that was measured using a Nested Neutron Spectrometer (NNS), to generate plots of the resulting spectra, and other associated tasks.
 <!-- Further details and instructions for running each application available [here](unfolding/instructions/). -->
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3610493.svg)](https://doi.org/10.5281/zenodo.3610493)
+
 ## Table of Contents
 
 * [Authors](#authors)
