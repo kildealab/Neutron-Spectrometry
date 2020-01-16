@@ -33,11 +33,11 @@ class UnfoldingSettings{
         int duration;
         std::string irradiation_conditions;
 
-        std::string measurements_path;
-        std::string input_spectrum_path;
-        std::string energy_bins_path;
-        std::string system_response_path;
-        std::string icrp_factors_path;
+        std::string path_measurements;
+        std::string path_input_spectrum;
+        std::string path_energy_bins;
+        std::string path_system_response;
+        std::string path_icrp_factors;
 
         std::string path_output_spectra;
         int generate_report;
@@ -52,17 +52,17 @@ class UnfoldingSettings{
         int cps_crossover;
         double sigma_j;
         // Optimize specific
-        int min_num_iterations;
-        int max_num_iterations;
+        int iteration_min;
+        int iteration_max;
         int iteration_increment;
-        double min_beta;
-        double max_beta;
+        double beta_min;
+        double beta_max;
         std::string parameter_of_interest;
         std::string algorithm;
         std::string trend_type;
         int derivatives;
-        std::string auto_output_path;
-        std::string ref_spectrum_path;
+        std::string path_output_trend;
+        std::string path_ref_spectrum;
 
         UnfoldingSettings(); 
 
@@ -84,11 +84,11 @@ class UnfoldingSettings{
         void set_prior(std::string);
         void set_cps_crossover(int);
         void set_sigma_j(double);
-        void set_min_num_iterations(int);
-        void set_max_num_iterations(int);
+        void set_iteration_min(int);
+        void set_iteration_max(int);
         void set_iteration_increment(int);
-        void set_min_beta(double);
-        void set_max_beta(double);
+        void set_beta_min(double);
+        void set_beta_max(double);
         void set_parameter_of_interest(std::string);
         void set_algorithm(std::string);
         void set_trend_type(std::string);
@@ -97,14 +97,14 @@ class UnfoldingSettings{
         void set_path_report(std::string);
         void set_generate_figure(int);
         void set_path_figure(std::string);
-        void set_auto_output_path(std::string);
+        void set_path_output_trend(std::string);
         void set_derivatives(int);
-        void set_measurements_path(std::string);
-        void set_input_spectrum_path(std::string);
-        void set_energy_bins_path(std::string);
-        void set_system_response_path(std::string);
-        void set_icrp_factors_path(std::string);
-        void set_ref_spectrum_path(std::string);
+        void set_path_measurements(std::string);
+        void set_path_input_spectrum(std::string);
+        void set_path_energy_bins(std::string);
+        void set_path_system_response(std::string);
+        void set_path_icrp_factors(std::string);
+        void set_path_ref_spectrum(std::string);
 };
 
 
@@ -278,10 +278,8 @@ class UnfoldingReport {
 
 class SpectraSettings{
     public:
-        std::string input_filename;
-        std::string input_dir;
-        std::string output_filename;
-        std::string output_dir;
+        std::string path_input_data;
+        std::string path_output_figure;
         std::string title;
         std::string x_label;
         std::string y_label;
@@ -318,10 +316,8 @@ class SpectraSettings{
 
         void set_setting(std::string,std::string);
 
-        void set_input_filename(std::string);
-        void set_input_dir(std::string);
-        void set_output_filename(std::string);
-        void set_output_dir(std::string);
+        void set_path_input_data(std::string);
+        void set_path_output_figure(std::string);
         void set_title(std::string);
         void set_x_label(std::string);
         void set_y_label(std::string);
@@ -357,10 +353,8 @@ class SpectraSettings{
 
 class PlotSettings{
     public:
-        std::string input_filename;
-        std::string input_dir;
-        std::string output_filename;
-        std::string output_dir;
+        std::string path_input_data;
+        std::string path_output_figure;
         std::string data_format;
         std::string title;
         std::string x_label;
@@ -407,10 +401,8 @@ class PlotSettings{
 
         void set_setting(std::string,std::string);
 
-        void set_input_filename(std::string);
-        void set_input_dir(std::string);
-        void set_output_filename(std::string);
-        void set_output_dir(std::string);
+        void set_path_input_data(std::string);
+        void set_path_output_figure(std::string);
         void set_data_format(std::string);
         void set_title(std::string);
         void set_x_label(std::string);
@@ -456,10 +448,8 @@ class PlotSettings{
 
 class SurfaceSettings{
     public:
-        std::string input_filename;
-        std::string input_dir;
-        std::string output_filename;
-        std::string output_dir;
+        std::string path_input_data;
+        std::string path_output_figure;
         std::string title;
         std::string x_label;
         std::string y_label;
@@ -482,10 +472,8 @@ class SurfaceSettings{
 
         void set_setting(std::string,std::string);
 
-        void set_input_filename(std::string);
-        void set_input_dir(std::string);
-        void set_output_filename(std::string);
-        void set_output_dir(std::string);
+        void set_path_input_data(std::string);
+        void set_path_output_figure(std::string);
         void set_title(std::string);
         void set_x_label(std::string);
         void set_y_label(std::string);

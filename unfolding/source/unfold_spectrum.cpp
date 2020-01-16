@@ -35,9 +35,6 @@ int main(int argc, char* argv[])
         arg_vector.push_back(argv[i]);
     }
 
-    // Name of input directory
-    std::string input_dir = "input/";
-
     // NOTE: Indices are linked between the following arrays and vectors (i.e. input_files[0]
     // corresponds to input_file_flags[0] and input_file_defaults[0])
     // Array that stores the allowed options that specify input files
@@ -48,7 +45,7 @@ int main(int argc, char* argv[])
     };
     // Array that stores default filename for each input file
     std::string input_file_defaults_arr[num_ifiles] = {
-        "mlem.cfg"
+        "input/unfold_spectrum.cfg"
     };
 
     // Convert arrays to vectors b/c easier to work with
@@ -63,7 +60,7 @@ int main(int argc, char* argv[])
 
     // Use provided arguments (files) and/or defaults to determine the input files to be used
     for (int i=0; i<num_ifiles; i++) {
-        setfile(arg_vector, input_dir, input_file_flags[i], input_file_defaults[i], input_files[i]);
+        setfile(arg_vector, input_file_flags[i], input_file_defaults[i], input_files[i]);
     }
 
     // Notify user if unknown parameters were received
@@ -173,7 +170,7 @@ int main(int argc, char* argv[])
     //  - values in units of [MeV]
     //----------------------------------------------------------------------------------------------
     std::vector<double> energy_bins;
-    readInputFile1D(settings.energy_bins_path,energy_bins);
+    readInputFile1D(settings.path_energy_bins,energy_bins);
 
     int num_bins = energy_bins.size();
 
@@ -189,7 +186,7 @@ int main(int argc, char* argv[])
     // moderators, as a function of energy. Calculated by vendor using MC
     //----------------------------------------------------------------------------------------------
     std::vector<std::vector<double>> nns_response;
-    readInputFile2D(settings.system_response_path,nns_response);
+    readInputFile2D(settings.path_system_response,nns_response);
     checkDimensions(num_measurements, "number of measurements", nns_response.size(), "NNS response");
     checkDimensions(num_bins, "number of energy bins", nns_response[0].size(), "NNS response");
 
@@ -202,7 +199,7 @@ int main(int argc, char* argv[])
     //  spectrum underestimates (does not yield any) thermal neutrons
     //----------------------------------------------------------------------------------------------
     std::vector<double> initial_spectrum;
-    readInputFile1D(settings.input_spectrum_path,initial_spectrum);
+    readInputFile1D(settings.path_input_spectrum,initial_spectrum);
     checkDimensions(num_bins, "number of energy bins", initial_spectrum.size(), "Input spectrum");
 
     std::vector<double> spectrum = initial_spectrum; // save the initial spectrum for report output
@@ -216,7 +213,7 @@ int main(int argc, char* argv[])
     // Page 200 of document (ICRP 74 - ATables.pdf)
     //----------------------------------------------------------------------------------------------
     std::vector<double> icrp_factors;
-    readInputFile1D(settings.icrp_factors_path,icrp_factors);
+    readInputFile1D(settings.path_icrp_factors,icrp_factors);
     checkDimensions(num_bins, "number of energy bins", icrp_factors.size(), "Number of ICRP factors");
 
     //----------------------------------------------------------------------------------------------

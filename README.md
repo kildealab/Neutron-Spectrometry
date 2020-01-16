@@ -2,14 +2,18 @@
 
 ![Logo](https://github.com/McGillMedPhys/Neutron-Spectrometry/blob/master/repository_logo_figure.png)
 
-This repository contains command-line applications to unfold data that was measured using a Nested Neutron Spectrometer (NNS), to generate plots of the resulting spectra, and other associated tasks. Further details and instructions for running each application available [here](unfolding/README.md).
+This repository contains command-line applications to unfold data that was measured using a Nested Neutron Spectrometer (NNS), to generate plots of the resulting spectra, and other associated tasks.
+<!-- Further details and instructions for running each application available [here](unfolding/instructions/). -->
 
 ## Table of Contents
 
 * [Authors](#authors)
 * [Features](#features)
 * [Description](#description)
+* [Dependencies](#dependencies)
 * [Installation](#installation)
+* [List of applications](#list-of-applications)
+* [Instructions](#instructions)
 * [Licence](#licence)
 * [Supporting literature](#supporting-literature)
 
@@ -17,33 +21,69 @@ This repository contains command-line applications to unfold data that was measu
 
 Logan Montgomery, Georges Al Makdessi, Robert Maglieri, Felix Mathew, John Kildea
 
+Contact email: logan.montgomery@mail.mcgill.ca
+
 ## Features
 
 * C++
 * Open source
 * Command-line applications
-* Generates elegant plots using [ROOT](https://root.cern.ch)
+* generate elegant plots using [ROOT](https://root.cern.ch)
 * Highly customizable (using settings files)
 
 ## Description
 
-* Primary application is used to unfold NNS data via the Maximum-Likelihood Expectation&ndash;Maximization (MLEM) algorithm.
-* Multiple stopping criteria are available.
-* Our published modified MLEM-STOP method is included; for details see our peer-reviewed paper: [https://doi.org/10.1016/j.nima.2020.163400](https://doi.org/10.1016/j.nima.2020.163400).
-* Spectral uncertainty estimation using a Possoin or Gaussian sampling approach.
-* Output the spectral data, ambient dose equivalent, a text report summarizing the unfolding, and a plot of the spectrum.
-* Complementary applications to generate elegant spectral plots, track parameter changes with iteration number, and plot 2D data.
+* The primary application (`unfold_spectrum.exe`) is used to unfold NNS data via the Maximum-Likelihood Expectation&ndash;Maximization (MLEM) algorithm.
+    * Multiple stopping criteria are available.
+    * Our published **modified MLEM-STOP** method is included; for details see our paper: [https://doi.org/10.1016/j.nima.2020.163400](https://doi.org/10.1016/j.nima.2020.163400).
+    * Spectral uncertainty estimation using a Poisson or Gaussian sampling approach.
+    * Output the spectral data, a plot of the spectrum, the ambient dose equivalent, and a summary text report.
+    * Easily extended to unfolding of neutron spectral data from other spectrometers (e.g. a Bonner Sphere Spectrometer).
+* Additional applications to plot multiple spectra, track unfolding parameter changes with iteration number, and plot 2D data.
+
+## Dependencies
+
+1. C++ compiler (e.g. [GCC](https://gcc.gnu.org/))
+    * Must be C++11 compatible (e.g. GCC 4.8.1)
+2. GNU make ([link](gnu.org/software/make/))
+3. ROOT Data Analysis Framework ([link](https://root.cern.ch/))
+    * Can be installed on OSX using [Homebrew](https://brew.sh/)
+
+**Note**: These applications were developed on OSX Mojave 10.14.6 and have been tested in Ubuntu 18.04 LTS.
 
 ## Installation
 
 1. Download the latest version from the [releases page](https://github.com/McGillMedPhys/Neutron-Spectrometry/releases).
 2. Install all the dependencies listed [here](unfolding/dependencies.txt).
-3. Compile all the applications using make:
+3. Execute miscellaneous initialization functions:
+```
+./initialization.sh
+``` 
+4. Compile the applications:
 ```
 cd unfolding
 make
 ```
-4. Instructions for running specific applications are provided [here](unfolding/README.md). 
+
+## List of applications
+
+| Application | Description |
+| ----------- | ----------- |
+| [`unfold_spectrum.exe`](unfolding/instructions/instructions_unfold_spectrum.md) | Read-in measured spectrometer data and unfold the neutron fluence spectrum. |
+| [`plot_spectra.exe`](unfolding/instructions/instructions_plot_spectra.md) | Generate plot of one or more neutron fluence spectra. |
+| [`unfold_trend.exe`](unfolding/instructions/instructions_unfold_trend.md) | Output values for a parameter of interest at each MLEM iteration. |
+| [`plot_lines.exe`](unfolding/instructions/instructions_plot_lines.md) | Generate plot of one or more arbitrary sets of XY data. |
+
+## Instructions
+
+The general process for running each application is the same (example instructions are provided for *unfold_spectrum.exe*):
+
+<!-- 1. Compile the applications: `make` -->
+1. Enter desired settings for the application by editing the corresponding settings file (e.g. edit `input/unfold_spectrum.cfg`)
+2. Prepare the data input file (e.g. edit `input/measurements.txt`)
+3. Run the application (e.g. `./unfold_spectrum.exe`)
+
+Please click the links in the table above to view application-specific instructions and explanations of their associated settings.
 
 ## Licence
 

@@ -221,10 +221,10 @@ bool checkStringMap(std::string test_key, std::map<std::string, std::string>& te
 //==================================================================================================
 std::vector<double> getMeasurements(UnfoldingSettings &settings) 
 {
-    std::ifstream ifile(settings.measurements_path);
+    std::ifstream ifile(settings.path_measurements);
     if (!ifile.is_open()) {
         //throw error
-        throw std::logic_error("Unable to access open measurement file: " + settings.measurements_path);
+        throw std::logic_error("Unable to access open measurement file: " + settings.path_measurements);
     }
 
     // Load header information from 'ifile'
@@ -269,7 +269,7 @@ std::vector<double> getMeasurements(UnfoldingSettings &settings)
     }
 
     ifile.close();
-    std::cout << "Measurements successfully retrieved from " + settings.measurements_path + '\n';
+    std::cout << "Measurements successfully retrieved from " + settings.path_measurements + '\n';
     return data_vector;
 }
 

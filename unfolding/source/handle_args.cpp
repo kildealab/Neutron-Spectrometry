@@ -24,7 +24,7 @@
 //  - filename: The variable (passed by reference) that will be assigned a value, representing the
 //      the filename to be used
 //==================================================================================================
-int setfile(std::vector<std::string> &arg_vector, std::string directory, std::string arg_string, 
+int setfile(std::vector<std::string> &arg_vector, std::string arg_string, 
     std::string default_filename, std::string &filename) 
 {
     // Place an iterator at an index of the vector, where the matching arg_string was found
@@ -35,7 +35,7 @@ int setfile(std::vector<std::string> &arg_vector, std::string directory, std::st
     if( iter_args != arg_vector.end()) {
         iter_args += 1;
         if (iter_args != arg_vector.end()) {
-            filename = directory + *iter_args;
+            filename = *iter_args;
         }
         else {
             // throw error saying no file provided for *iter_measurements -= 1
@@ -46,7 +46,7 @@ int setfile(std::vector<std::string> &arg_vector, std::string directory, std::st
     // If no match was found for the target arg_string within arg_vector, use the default filename
     // i.e. The user did not specify which file to use
     else {
-        filename = directory + default_filename;
+        filename = default_filename;
     }
 
     return 1;

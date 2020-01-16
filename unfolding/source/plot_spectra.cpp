@@ -45,16 +45,13 @@ int main(int argc, char* argv[])
     SpectraSettings settings;
     setSpectraSettings(settings_file, settings);
 
-    std::string input_file = settings.input_dir + settings.input_filename;
-    std::string output_file = settings.output_dir + settings.output_filename;
-
     // Read in data
     std::vector<std::string> headers;
     std::vector<double> energy_bins;
     std::vector<std::vector<double>> spectra_array;
     std::vector<std::vector<double>> error_upper_array;
     std::vector<std::vector<double>> error_lower_array;
-    readSpectra(input_file, headers, energy_bins, spectra_array, error_lower_array, error_upper_array,
+    readSpectra(settings.path_input_data, headers, energy_bins, spectra_array, error_lower_array, error_upper_array,
         settings.plot_per_mu, settings.number_mu, settings.duration, settings.rows_per_spectrum);
 
     int num_spectra = spectra_array.size();
@@ -121,6 +118,24 @@ int main(int argc, char* argv[])
     if (settings.y_min != settings.y_max) {
         ghosthist->SetMinimum(settings.y_min);
         ghosthist->SetMaximum(settings.y_max);
+    }
+    // Find max spectral value if no limits provided by user
+    else {
+        double global_max_value = 0;
+        // Get max spectra value
+        for (int i_spec=0; i_spec < num_spectra; i_spec++) {
+            // Get max value
+            double max_value = 0;
+            for (int i_bin=0; i_bin < num_bins; i_bin++) {
+                if (spectra_array[i_spec][i_bin] > max_value) {
+                    max_value = spectra_array[i_spec][i_bin];
+                }
+            }
+            if (max_value > global_max_value) {
+                global_max_value = max_value;
+            }
+        }
+        ghosthist->SetMaximum(global_max_value/0.8);
     }
 
     // Set # of divisions on the y axis
@@ -267,7 +282,7 @@ int main(int argc, char* argv[])
     gStyle->SetLineWidth(settings.border_width); // Set width of axis/border around the plot
 
     // Output the plot to file
-    const char *cstr_figure_file = output_file.c_str();
+    const char *cstr_figure_file = settings.path_output_figure.c_str();
     c1->Print(cstr_figure_file);
 
     return 0;

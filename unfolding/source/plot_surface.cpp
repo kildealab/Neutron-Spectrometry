@@ -48,11 +48,10 @@ int main(int argc, char* argv[])
     setSurfaceSettings(settings_file, settings); // Fill settings with any user provided settings
 
     // Read in data
-    std::string input_path = settings.input_dir + settings.input_filename;
     std::vector<std::string> headers;
     std::vector<std::vector<double>> x_data;
     std::vector<std::vector<double>> y_data;
-    readXYYCSV(input_path, headers, x_data, y_data);
+    readXYYCSV(settings.path_input_data, headers, x_data, y_data);
 
     int num_x = x_data[0].size();
     int num_y = y_data.size();
@@ -122,7 +121,6 @@ int main(int argc, char* argv[])
     c1->Modified();
 
     // Output the plot to file
-    std::string output_path = settings.output_dir + settings.output_filename;
-    const char *cstr_figure_file = output_path.c_str();
+    const char *cstr_figure_file = settings.path_output_figure.c_str();
     c1->Print(cstr_figure_file);
 }

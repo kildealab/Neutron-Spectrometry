@@ -1,0 +1,5 @@
+# This directory is where files are output by default
+# Ignore everything in this directory
+*
+# Except this file
+!.gitignore

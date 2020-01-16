@@ -35,10 +35,6 @@ int main(int argc, char* argv[])
         arg_vector.push_back(argv[i]);
     }
 
-    // Names of input and output directories
-    std::string input_dir = "input/";
-    std::string output_dir = "output/";
-
     // NOTE: Indices are linked between the following arrays and vectors (i.e. input_files[0]
     // corresponds to input_file_flags[0] and input_file_defaults[0])
     // Array that stores the allowed options that specify input files
@@ -49,7 +45,7 @@ int main(int argc, char* argv[])
     };
     // Array that stores default filename for each input file
     std::string input_file_defaults_arr[num_ifiles] = {
-        "auto_mlem.cfg"
+        "input/unfold_trend.cfg"
     };
 
     // Convert arrays to vectors b/c easier to work with
@@ -64,7 +60,7 @@ int main(int argc, char* argv[])
 
     // Use provided arguments (files) and/or defaults to determine the input files to be used
     for (int i=0; i<num_ifiles; i++) {
-        setfile(arg_vector, input_dir, input_file_flags[i], input_file_defaults[i], input_files[i]);
+        setfile(arg_vector, input_file_flags[i], input_file_defaults[i], input_files[i]);
     }
 
     // Notify user if unknown parameters were received
@@ -76,28 +72,36 @@ int main(int argc, char* argv[])
 
     settings.set_f_factor(settings.f_factor / 1e6); // Convert f_factor from fA/cps to nA/cps
 
-    // Standard figure file suffix (file extension)
-    std::string figure_file_suf = ".png";
-
+    // Read in measurements from file
     std::vector<double> measurements_nc;
     std::vector<double> measurements;
     int num_measurements = 0;
+    measurements = getMeasurements(settings);
+    num_measurements = measurements.size();
+    std::reverse(measurements.begin(),measurements.end()); // readin 7-0 but want 0-7
 
-    // Handle inputs with different units
-    if (settings.meas_units == "cps") {
-        measurements = getMeasurements(settings);
-        num_measurements = measurements.size();
-        std::reverse(measurements.begin(),measurements.end());
-    }
-    // nC
-    else {
-        measurements_nc = getMeasurements(settings);
-        num_measurements = measurements_nc.size();
-        // Convert to CPS
-        for (int index=0; index < num_measurements; index++) {
-            double measurement_cps = measurements_nc[num_measurements-index-1]*settings.norm/settings.f_factor/settings.duration;
-            measurements.push_back(measurement_cps);
+    // Handle nC input (save nC values for report, then convert to CPS)
+    if (settings.meas_units == "nc") {
+        measurements_nc = measurements;
+        for (int i_meas=0; i_meas < num_measurements; i_meas++) {
+            measurements[i_meas] = measurements[i_meas]*settings.norm/settings.f_factor/settings.duration;
         }
+    }
+
+    // Process data wherein multiple measurements were acquired for each shell
+    std::vector<double> std_errors;
+    if (settings.num_meas_per_shell > 1) {
+        processMeasurements(num_measurements,settings.num_meas_per_shell,measurements,std_errors);
+        num_measurements = num_measurements / settings.num_meas_per_shell;
+    }
+    // Do not allow use of gaussian sampling technique if only one measurement per shell is
+    // provided, as the standard deviation is unknown.
+    else if (settings.num_meas_per_shell == 1 && settings.uncertainty_type == "gaussian"){
+        throw std::logic_error("Cannot generate Gaussian-sampled pseudo-measurements with only single measurement per shell.");
+    }
+    // Require at least 1 measurement per shell
+    else if (settings.num_meas_per_shell < 1) { // if settings.num_meas_per_shell is 0 or negative
+        throw std::logic_error("Number of measurements per shell must be >= 1");
     }
 
     // std::vector<double> measurements_nc = getMeasurements(input_files[0], irradiation_conditions, 
@@ -119,7 +123,7 @@ int main(int argc, char* argv[])
     //  - values in units of [MeV]
     //----------------------------------------------------------------------------------------------
     std::vector<double> energy_bins;
-    readInputFile1D(settings.energy_bins_path,energy_bins);
+    readInputFile1D(settings.path_energy_bins,energy_bins);
 
     int num_bins = energy_bins.size();
 
@@ -135,7 +139,7 @@ int main(int argc, char* argv[])
     // moderators, as a function of energy. Calculated by vendor using MC
     //----------------------------------------------------------------------------------------------
     std::vector<std::vector<double>> nns_response;
-    readInputFile2D(settings.system_response_path,nns_response);
+    readInputFile2D(settings.path_system_response,nns_response);
     checkDimensions(num_measurements, "number of measurements", nns_response.size(), "NNS response");
     checkDimensions(num_bins, "number of energy bins", nns_response[0].size(), "NNS response");
 
@@ -148,7 +152,7 @@ int main(int argc, char* argv[])
     //  spectrum underestimates (does not yield any) thermal neutrons
     //----------------------------------------------------------------------------------------------
     std::vector<double> initial_spectrum;
-    readInputFile1D(settings.input_spectrum_path,initial_spectrum);
+    readInputFile1D(settings.path_input_spectrum,initial_spectrum);
     checkDimensions(num_bins, "number of energy bins", initial_spectrum.size(), "Input spectrum");
 
     std::vector<double> spectrum = initial_spectrum; // save the initial spectrum for report output
@@ -162,7 +166,7 @@ int main(int argc, char* argv[])
     // Page 200 of document (ICRP 74 - ATables.pdf)
     //----------------------------------------------------------------------------------------------
     std::vector<double> icrp_factors;
-    readInputFile1D(settings.icrp_factors_path,icrp_factors);
+    readInputFile1D(settings.path_icrp_factors,icrp_factors);
     checkDimensions(num_bins, "number of energy bins", icrp_factors.size(), "Number of ICRP factors");
 
     //----------------------------------------------------------------------------------------------
@@ -183,9 +187,9 @@ int main(int argc, char* argv[])
     //----------------------------------------------------------------------------------------------
     if (settings.algorithm == "correction_factors") {
         // Create vector of number of iterations
-        int num_increments = ((settings.max_num_iterations - settings.min_num_iterations) / settings.iteration_increment)+1;
+        int num_increments = ((settings.iteration_max - settings.iteration_min) / settings.iteration_increment)+1;
         std::vector<int> num_iterations_vector = linearSpacedIntegerVector(
-            settings.min_num_iterations,settings.max_num_iterations,num_increments
+            settings.iteration_min,settings.iteration_max,num_increments
         );
         int num_iteration_samples = num_iterations_vector.size();
 
@@ -231,13 +235,12 @@ int main(int argc, char* argv[])
 
         // Save results for parameter of interest to CSV file
         std::ofstream output_file;
-        std::string output_filename = settings.auto_output_path;
-        output_file.open(output_filename, std::ios_base::out);
+        output_file.open(settings.path_output_trend, std::ios_base::out);
         std::string results_string = results_stream.str();
         output_file << results_string;
         output_file.close();
 
-        std::cout << "Saved correction factors to " << output_filename << "\n";
+        std::cout << "Saved correction factors to " << settings.path_output_trend << "\n";
     }
 
     //----------------------------------------------------------------------------------------------
@@ -250,9 +253,9 @@ int main(int argc, char* argv[])
     //----------------------------------------------------------------------------------------------
     if (settings.algorithm == "trend") {
         // Create vector of number of iterations
-        int num_increments = ((settings.max_num_iterations - settings.min_num_iterations) / settings.iteration_increment)+1;
+        int num_increments = ((settings.iteration_max - settings.iteration_min) / settings.iteration_increment)+1;
         std::vector<int> num_iterations_vector = linearSpacedIntegerVector(
-            settings.min_num_iterations,settings.max_num_iterations,num_increments
+            settings.iteration_min,settings.iteration_max,num_increments
         );
         int num_iteration_samples = num_iterations_vector.size();
 
@@ -323,13 +326,12 @@ int main(int argc, char* argv[])
 
         // Save results for parameter of interest to CSV file
         std::ofstream output_file;
-        std::string output_filename = settings.auto_output_path;
-        output_file.open(output_filename, std::ios_base::out);
+        output_file.open(settings.path_output_trend, std::ios_base::out);
         std::string results_string = results_stream.str();
         output_file << results_string;
         output_file.close();
 
-        std::cout << "Saved reconstruced measured data to " << output_filename << "\n";
+        std::cout << "Saved reconstruced measured data to " << settings.path_output_trend << "\n";
     }
 
     //----------------------------------------------------------------------------------------------
@@ -344,9 +346,9 @@ int main(int argc, char* argv[])
     //----------------------------------------------------------------------------------------------
     if (settings.algorithm == "mlem") {
         // Create vector of number of iterations
-        int num_increments = ((settings.max_num_iterations - settings.min_num_iterations) / settings.iteration_increment)+1;
+        int num_increments = ((settings.iteration_max - settings.iteration_min) / settings.iteration_increment)+1;
         std::vector<int> num_iterations_vector = linearSpacedIntegerVector(
-            settings.min_num_iterations,settings.max_num_iterations,num_increments
+            settings.iteration_min,settings.iteration_max,num_increments
         );
         int num_iteration_samples = num_iterations_vector.size();
 
@@ -357,7 +359,7 @@ int main(int argc, char* argv[])
         // Create stream to append results. First row is number of iteration increments
         // determine if file exists
         // std::string map_filename = "output/poi_output_mlem.csv";
-        std::ifstream rfile(settings.auto_output_path);
+        std::ifstream rfile(settings.path_output_trend);
         bool file_empty = is_empty(rfile);
         // bool file_exists = rfile.good();
         rfile.close();
@@ -378,7 +380,7 @@ int main(int argc, char* argv[])
         if (settings.parameter_of_interest == "rms" || settings.parameter_of_interest == "nrmsd" 
             || settings.parameter_of_interest == "chi_squared_g") 
         {
-            readInputFile1D(settings.ref_spectrum_path,ref_spectrum);
+            readInputFile1D(settings.path_ref_spectrum,ref_spectrum);
         }
 
         // Loop through number of iterations
@@ -497,29 +499,29 @@ int main(int argc, char* argv[])
 
         // Save results for parameter of interest to CSV file
         std::ofstream output_file;
-        output_file.open(settings.auto_output_path, std::ios_base::app);
+        output_file.open(settings.path_output_trend, std::ios_base::app);
         std::string results_string = results_stream.str();
         output_file << results_string;
         output_file.close();
 
         if (!settings.derivatives) {
             std::cout << "Saved 2D matrix of " << settings.parameter_of_interest << " values to " 
-                << settings.auto_output_path << "\n";
+                << settings.path_output_trend << "\n";
         }
         else {
             std::cout << "Saved 2D matrix of derivatives of " << settings.parameter_of_interest 
-                << " values to " << settings.auto_output_path << "\n";
+                << " values to " << settings.path_output_trend << "\n";
         }
 
         // // Save results for parameter of interest to CSV file
         // std::ofstream output_file;
-        // std::string output_filename = settings.auto_output_path;
-        // output_file.open(output_filename, std::ios_base::app);
+        // std::string settings.path_output_trend = settings.path_output_trend;
+        // output_file.open(settings.path_output_trend, std::ios_base::app);
         // std::string results_string = results_stream.str();
         // output_file << results_string;
         // output_file.close();
 
-        // std::cout << "Saved 2D matrix of " << settings.parameter_of_interest << " values to " << output_filename << "\n";
+        // std::cout << "Saved 2D matrix of " << settings.parameter_of_interest << " values to " << settings.path_output_trend << "\n";
 
     }
 
@@ -535,8 +537,8 @@ int main(int argc, char* argv[])
     //----------------------------------------------------------------------------------------------
     if (settings.algorithm == "map") {
         // Create vector of beta values
-        int num_orders_magnitude = log10(settings.max_beta/settings.min_beta);
-        double current_beta = settings.min_beta;
+        int num_orders_magnitude = log10(settings.beta_max/settings.beta_min);
+        double current_beta = settings.beta_min;
         std::vector<double> beta_vector;
         for (int i=0; i<num_orders_magnitude; i++) {
             std::vector<double> temp_vector = linearSpacedDoubleVector(current_beta,current_beta*10,10);
@@ -545,9 +547,9 @@ int main(int argc, char* argv[])
         }
 
         // Create vector of number of iterations
-        int num_increments = ((settings.max_num_iterations - settings.min_num_iterations) / settings.iteration_increment)+1;
+        int num_increments = ((settings.iteration_max - settings.iteration_min) / settings.iteration_increment)+1;
         std::vector<int> num_iterations_vector = linearSpacedIntegerVector(
-            settings.min_num_iterations,settings.max_num_iterations,num_increments
+            settings.iteration_min,settings.iteration_max,num_increments
         );
         
         // Create needed variables
@@ -625,13 +627,13 @@ int main(int argc, char* argv[])
 
         // Save results for parameter of interest to CSV file
         std::ofstream output_file;
-        output_file.open(settings.auto_output_path, std::ios_base::out);
+        output_file.open(settings.path_output_trend, std::ios_base::out);
         std::string results_string = results_stream.str();
         output_file << results_string;
         output_file.close();
 
         std::cout << "Saved 2D matrix of " << settings.parameter_of_interest << " values to " 
-            << settings.auto_output_path << "\n";
+            << settings.path_output_trend << "\n";
     }
 
     return 0;
@@ -650,9 +652,9 @@ int main(int argc, char* argv[])
 //----------------------------------------------------------------------------------------------
 // if (settings.algorithm == "min_correction") {
 //     // Create vector of number of iterations
-//     int num_increments = ((settings.max_num_iterations - settings.min_num_iterations) / settings.iteration_increment)+1;
+//     int num_increments = ((settings.iteration_max - settings.iteration_min) / settings.iteration_increment)+1;
 //     std::vector<int> num_iterations_vector = linearSpacedIntegerVector(
-//        settings.min_num_iterations,settings.max_num_iterations,num_increments);
+//        settings.iteration_min,settings.iteration_max,num_increments);
 //     int num_iteration_samples = num_iterations_vector.size();
 
 //     std::vector<double> current_spectrum = initial_spectrum; // the reconstructed spectrum
@@ -660,7 +662,7 @@ int main(int argc, char* argv[])
 //     // Create stream to append results. First row is number of iteration increments
 //     // determine if file exists
 //     // std::string map_filename = "output/poi_output_mlem.csv";
-//     std::ifstream rfile(settings.auto_output_path);
+//     std::ifstream rfile(settings.path_output_trend);
 //     bool file_empty = is_empty(rfile);
 //     // bool file_exists = rfile.good();
 //     rfile.close();
@@ -730,13 +732,13 @@ int main(int argc, char* argv[])
 
 //     // Save results for parameter of interest to CSV file
 //     std::ofstream output_file;
-//     std::string output_filename = settings.auto_output_path;
-//     output_file.open(output_filename, std::ios_base::app);
+//     std::string settings.path_output_trend = settings.path_output_trend;
+//     output_file.open(settings.path_output_trend, std::ios_base::app);
 //     std::string results_string = results_stream.str();
 //     output_file << results_string;
 //     output_file.close();
 
-//     std::cout << "Saved indices of minimum deviations in correction factor to " << output_filename << "\n";
+//     std::cout << "Saved indices of minimum deviations in correction factor to " << settings.path_output_trend << "\n";
 // }
 
 
@@ -748,9 +750,9 @@ int main(int argc, char* argv[])
 //----------------------------------------------------------------------------------------------
 // if (settings.algorithm == "evolution") {
 //     // Create vector of number of iterations
-//     int num_increments = ((settings.max_num_iterations - settings.min_num_iterations) / settings.iteration_increment)+1;
+//     int num_increments = ((settings.iteration_max - settings.iteration_min) / settings.iteration_increment)+1;
 //     std::vector<int> num_iterations_vector = linearSpacedIntegerVector(
-//        settings.min_num_iterations,settings.max_num_iterations,num_increments);
+//        settings.iteration_min,settings.iteration_max,num_increments);
 //     int num_iteration_samples = num_iterations_vector.size();
 
 //     std::vector<double> current_spectrum = initial_spectrum; // the reconstructed spectrum
@@ -796,11 +798,11 @@ int main(int argc, char* argv[])
 
 //     // Save results for parameter of interest to CSV file
 //     std::ofstream output_file;
-//     std::string output_filename = settings.auto_output_path;
-//     output_file.open(output_filename, std::ios_base::out);
+//     std::string settings.path_output_trend = settings.path_output_trend;
+//     output_file.open(settings.path_output_trend, std::ios_base::out);
 //     std::string results_string = results_stream.str();
 //     output_file << results_string;
 //     output_file.close();
 
-//     std::cout << "Saved spectral changes to " << output_filename << "\n";
+//     std::cout << "Saved spectral changes to " << settings.path_output_trend << "\n";
 // }

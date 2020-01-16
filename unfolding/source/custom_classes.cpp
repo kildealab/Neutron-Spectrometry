@@ -16,10 +16,10 @@
 // Default constructor for UnfoldingSettings
 //--------------------------------------------------------------------------------------------------
 UnfoldingSettings::UnfoldingSettings() {
-    norm = 1.21;
+    norm = 1.14;
     error = 0.0;
-    f_factor = 7.0;
-    cutoff = 10000;
+    f_factor = 7.2;
+    cutoff = 15000;
     uncertainty_type = "poisson";
     num_uncertainty_samples = 50;
     num_meas_per_shell = 1;
@@ -33,30 +33,30 @@ UnfoldingSettings::UnfoldingSettings() {
     beta = 0.0;
     prior = "mrp";
     // MLEM-STOP specific
-    cps_crossover = 40000;
+    cps_crossover = 30000;
     sigma_j=0.5;
     // Optimize specific
-    min_num_iterations = 500;
-    max_num_iterations = 10000;
-    iteration_increment = 50;
-    min_beta = 0.0;
-    max_beta = 1.0;
-    parameter_of_interest = "fluence";
+    iteration_min = 100;
+    iteration_max = 10000;
+    iteration_increment = 100;
+    beta_min = 1E-10;
+    beta_max = 1E-8;
+    parameter_of_interest = "total_fluence";
     algorithm = "mlem";
-    trend_type = "ratio";
+    trend_type = "cps";
     path_output_spectra = "output/output_spectra.csv";
     generate_report = 1;
     path_report = "";
-    generate_figure = 0;
+    generate_figure = 1;
     path_figure = "";
-    auto_output_path = "output/auto.csv";
+    path_output_trend = "output/output_trend.csv";
     derivatives = 0;
-    measurements_path = "input/measurements.txt";
-    input_spectrum_path = "input/spectrum_step.csv";
-    energy_bins_path = "input/energy_bins.csv";
-    system_response_path = "input/response_nns_he3.csv";
-    icrp_factors_path = "input/icrp_conversions.csv";
-    ref_spectrum_path = "";
+    path_measurements = "input/measurements.txt";
+    path_input_spectrum = "input/spectrum_step.csv";
+    path_energy_bins = "input/energy_bins.csv";
+    path_system_response = "input/response_nns_he3.csv";
+    path_icrp_factors = "input/icrp_conversion_coefficients.csv";
+    path_ref_spectrum = "";
 }
 
 // Apply a value to a setting:
@@ -96,16 +96,16 @@ void UnfoldingSettings::set_setting(std::string settings_name, std::string setti
         this->set_cps_crossover(atoi(settings_value.c_str()));
     else if (settings_name == "sigma_j")
         this->set_sigma_j(atof(settings_value.c_str()));
-    else if (settings_name == "min_num_iterations")
-        this->set_min_num_iterations(atoi(settings_value.c_str()));
-    else if (settings_name == "max_num_iterations")
-        this->set_max_num_iterations(atoi(settings_value.c_str()));
+    else if (settings_name == "iteration_min")
+        this->set_iteration_min(atoi(settings_value.c_str()));
+    else if (settings_name == "iteration_max")
+        this->set_iteration_max(atoi(settings_value.c_str()));
     else if (settings_name == "iteration_increment")
         this->set_iteration_increment(atoi(settings_value.c_str()));
-    else if (settings_name == "min_beta")
-        this->set_min_beta(atof(settings_value.c_str()));
-    else if (settings_name == "max_beta")
-        this->set_max_beta(atof(settings_value.c_str()));
+    else if (settings_name == "beta_min")
+        this->set_beta_min(atof(settings_value.c_str()));
+    else if (settings_name == "beta_max")
+        this->set_beta_max(atof(settings_value.c_str()));
     else if (settings_name == "parameter_of_interest")
         this->set_parameter_of_interest(settings_value);
     else if (settings_name == "algorithm")
@@ -122,22 +122,22 @@ void UnfoldingSettings::set_setting(std::string settings_name, std::string setti
         this->set_generate_figure(atoi(settings_value.c_str()));
     else if (settings_name == "path_figure")
         this->set_path_figure(settings_value);
-    else if (settings_name == "auto_output_path")
-        this->set_auto_output_path(settings_value);
+    else if (settings_name == "path_output_trend")
+        this->set_path_output_trend(settings_value);
     else if (settings_name == "derivatives")
         this->set_derivatives(atoi(settings_value.c_str()));
-    else if (settings_name == "measurements_path")
-        this->set_measurements_path(settings_value);
-    else if (settings_name == "input_spectrum_path")
-        this->set_input_spectrum_path(settings_value);
-    else if (settings_name == "energy_bins_path")
-        this->set_energy_bins_path(settings_value);
-    else if (settings_name == "system_response_path")
-        this->set_system_response_path(settings_value);
-    else if (settings_name == "icrp_factors_path")
-        this->set_icrp_factors_path(settings_value);
-    else if (settings_name == "ref_spectrum_path")
-        this->set_ref_spectrum_path(settings_value);
+    else if (settings_name == "path_measurements")
+        this->set_path_measurements(settings_value);
+    else if (settings_name == "path_input_spectrum")
+        this->set_path_input_spectrum(settings_value);
+    else if (settings_name == "path_energy_bins")
+        this->set_path_energy_bins(settings_value);
+    else if (settings_name == "path_system_response")
+        this->set_path_system_response(settings_value);
+    else if (settings_name == "path_icrp_factors")
+        this->set_path_icrp_factors(settings_value);
+    else if (settings_name == "path_ref_spectrum")
+        this->set_path_ref_spectrum(settings_value);
     else
         throw std::logic_error("Unrecognized setting: " + settings_name 
             + ". Please refer to the README for allowed settings");
@@ -193,20 +193,20 @@ void UnfoldingSettings::set_cps_crossover(int cps_crossover) {
 void UnfoldingSettings::set_sigma_j(double sigma_j) {
     this->sigma_j = sigma_j;
 }
-void UnfoldingSettings::set_min_num_iterations(int min_num_iterations) {
-    this->min_num_iterations = min_num_iterations;
+void UnfoldingSettings::set_iteration_min(int iteration_min) {
+    this->iteration_min = iteration_min;
 }
-void UnfoldingSettings::set_max_num_iterations(int max_num_iterations) {
-    this->max_num_iterations = max_num_iterations;
+void UnfoldingSettings::set_iteration_max(int iteration_max) {
+    this->iteration_max = iteration_max;
 }
 void UnfoldingSettings::set_iteration_increment(int iteration_increment) {
     this->iteration_increment = iteration_increment;
 }
-void UnfoldingSettings::set_min_beta(double min_beta) {
-    this->min_beta = min_beta;
+void UnfoldingSettings::set_beta_min(double beta_min) {
+    this->beta_min = beta_min;
 }
-void UnfoldingSettings::set_max_beta(double max_beta) {
-    this->max_beta = max_beta;
+void UnfoldingSettings::set_beta_max(double beta_max) {
+    this->beta_max = beta_max;
 }
 void UnfoldingSettings::set_parameter_of_interest(std::string parameter_of_interest) {
     this->parameter_of_interest = parameter_of_interest;
@@ -232,29 +232,29 @@ void UnfoldingSettings::set_generate_figure(int generate_figure) {
 void UnfoldingSettings::set_path_figure(std::string path_figure) {
     this->path_figure = path_figure;
 }
-void UnfoldingSettings::set_auto_output_path(std::string auto_output_path) {
-    this->auto_output_path = auto_output_path;
+void UnfoldingSettings::set_path_output_trend(std::string path_output_trend) {
+    this->path_output_trend = path_output_trend;
 }
 void UnfoldingSettings::set_derivatives(int derivatives) {
     this->derivatives = derivatives;
 }
-void UnfoldingSettings::set_measurements_path(std::string measurements_path) {
-    this->measurements_path = measurements_path;
+void UnfoldingSettings::set_path_measurements(std::string path_measurements) {
+    this->path_measurements = path_measurements;
 }
-void UnfoldingSettings::set_input_spectrum_path(std::string input_spectrum_path) {
-    this->input_spectrum_path = input_spectrum_path;
+void UnfoldingSettings::set_path_input_spectrum(std::string path_input_spectrum) {
+    this->path_input_spectrum = path_input_spectrum;
 }
-void UnfoldingSettings::set_energy_bins_path(std::string energy_bins_path) {
-    this->energy_bins_path = energy_bins_path;
+void UnfoldingSettings::set_path_energy_bins(std::string path_energy_bins) {
+    this->path_energy_bins = path_energy_bins;
 }
-void UnfoldingSettings::set_system_response_path(std::string system_response_path) {
-    this->system_response_path = system_response_path;
+void UnfoldingSettings::set_path_system_response(std::string path_system_response) {
+    this->path_system_response = path_system_response;
 }
-void UnfoldingSettings::set_icrp_factors_path(std::string icrp_factors_path) {
-    this->icrp_factors_path = icrp_factors_path;
+void UnfoldingSettings::set_path_icrp_factors(std::string path_icrp_factors) {
+    this->path_icrp_factors = path_icrp_factors;
 }
-void UnfoldingSettings::set_ref_spectrum_path(std::string ref_spectrum_path) {
-    this->ref_spectrum_path = ref_spectrum_path;
+void UnfoldingSettings::set_path_ref_spectrum(std::string path_ref_spectrum) {
+    this->path_ref_spectrum = path_ref_spectrum;
 }
 
 
@@ -425,7 +425,9 @@ void UnfoldingReport::report_header(std::ofstream& rfile) {
     auto tm = *std::localtime(&t);
     rfile << std::left << std::setw(sw) << "Date report was generated: " 
         << std::put_time(&tm, "%Y-%m-%d %H:%M:%S") << "\n";
-    rfile << std::left << std::setw(sw) << "Git commit number: " << git_commit << "\n";
+    if (git_commit != ""){
+        rfile << std::left << std::setw(sw) << "Git commit number: " << git_commit << "\n";
+    }
     rfile << "Input arguments (files) used:\n";
     for (int i=0; i<input_files.size(); i++) {
         std::string tempstring = "    " + input_file_flags[i];
@@ -654,10 +656,8 @@ void UncertaintyManagerJ::determineDoseUncertainty(double dose, std::vector<doub
 // Default Constructor for SpectraSettings
 //--------------------------------------------------------------------------------------------------
 SpectraSettings::SpectraSettings() {
-    input_filename = "output_spectra.csv";
-    input_dir = "output/";
-    output_filename = "neutron_spectra.png";
-    output_dir = "output/";
+    path_input_data = "output/output_spectra.csv";
+    path_output_figure = "output/output_spectra.png";
     title = "";
     x_label = "Energy (MeV)";
     y_label = "Fluence (n #upoint cm^{-2} s^{-1})";
@@ -696,14 +696,10 @@ void SpectraSettings::set_setting(std::string settings_name, std::string setting
     if (settings_value == ""){
         // If no setting value provided, do not apply anything
     }
-    else if (settings_name == "input_filename")
-        this->set_input_filename(settings_value);
-    else if (settings_name == "input_dir")
-        this->set_input_dir(settings_value);
-    else if (settings_name == "output_filename")
-        this->set_output_filename(settings_value);
-    else if (settings_name == "output_dir")
-        this->set_output_dir(settings_value);
+    else if (settings_name == "path_input_data")
+        this->set_path_input_data(settings_value);
+    else if (settings_name == "path_output_figure")
+        this->set_path_output_figure(settings_value);
     else if (settings_name == "title")
         this->set_title(settings_value);
     else if (settings_name == "x_label")
@@ -771,17 +767,11 @@ void SpectraSettings::set_setting(std::string settings_name, std::string setting
     //      + ". Please refer to the README for allowed settings");
 }
 
-void SpectraSettings::set_input_filename(std::string input_filename) {
-    this->input_filename = input_filename;
+void SpectraSettings::set_path_input_data(std::string path_input_data) {
+    this->path_input_data = path_input_data;
 }
-void SpectraSettings::set_input_dir(std::string input_dir) {
-    this->input_dir = input_dir;
-}
-void SpectraSettings::set_output_filename(std::string output_filename) {
-    this->output_filename = output_filename;
-}
-void SpectraSettings::set_output_dir(std::string output_dir) {
-    this->output_dir = output_dir;
+void SpectraSettings::set_path_output_figure(std::string path_output_figure) {
+    this->path_output_figure = path_output_figure;
 }
 void SpectraSettings::set_title(std::string title) {
     this->title = title;
@@ -882,10 +872,8 @@ void SpectraSettings::set_normalize(std::string normalize) {
 // Default Constructor for PlotSettings
 //--------------------------------------------------------------------------------------------------
 PlotSettings::PlotSettings() {
-    input_filename = "poi_output_mlem.csv";
-    input_dir = "output/";
-    output_filename = "poi_output_mlem.png";
-    output_dir = "output/";
+    path_input_data = "output/output_trend.csv";
+    path_output_figure = "output/output_trend.png";
     data_format = "xyy";
     title = "";
     x_label = "";
@@ -912,7 +900,7 @@ PlotSettings::PlotSettings() {
     // color_error = {"#333333","#E79A9F","#6B8EF0","#69CF77"};
     // show_error;
     line_style = {1};
-    line_width = {2};
+    line_width = {1};
     border_width = 1;
     legend = 1;
     legend_coords = {0.15,0.65,0.4,0.85};
@@ -937,14 +925,10 @@ void PlotSettings::set_setting(std::string settings_name, std::string settings_v
     if (settings_value == ""){
         // If no setting value provided, do not apply anything
     }
-    else if (settings_name == "input_filename")
-        this->set_input_filename(settings_value);
-    else if (settings_name == "input_dir")
-        this->set_input_dir(settings_value);
-    else if (settings_name == "output_filename")
-        this->set_output_filename(settings_value);
-    else if (settings_name == "output_dir")
-        this->set_output_dir(settings_value);
+    else if (settings_name == "path_input_data")
+        this->set_path_input_data(settings_value);
+    else if (settings_name == "path_output_figure")
+        this->set_path_output_figure(settings_value);
     else if (settings_name == "data_format")
         this->set_data_format(settings_value);
     else if (settings_name == "title")
@@ -1031,17 +1015,11 @@ void PlotSettings::set_setting(std::string settings_name, std::string settings_v
 }
 
 // Setter functions
-void PlotSettings::set_input_filename(std::string input_filename) {
-    this->input_filename = input_filename;
+void PlotSettings::set_path_input_data(std::string path_input_data) {
+    this->path_input_data = path_input_data;
 }
-void PlotSettings::set_input_dir(std::string input_dir) {
-    this->input_dir = input_dir;
-}
-void PlotSettings::set_output_filename(std::string output_filename) {
-    this->output_filename = output_filename;
-}
-void PlotSettings::set_output_dir(std::string output_dir) {
-    this->output_dir = output_dir;
+void PlotSettings::set_path_output_figure(std::string path_output_figure) {
+    this->path_output_figure = path_output_figure;
 }
 void PlotSettings::set_data_format(std::string data_format) {
     this->data_format = data_format;
@@ -1169,10 +1147,8 @@ void PlotSettings::set_y_label_offset(std::string y_label_offset) {
 // Default Constructor for SurfaceSettings
 //--------------------------------------------------------------------------------------------------
 SurfaceSettings::SurfaceSettings() {
-    input_filename = "poi_output_map.csv";
-    input_dir = "output/";
-    output_filename = "poi_output_map.png";
-    output_dir = "output/";
+    path_input_data = "output/output_surface.csv";
+    path_output_figure = "output/output_sruface.png";
     title = "";
     x_label = "";
     y_label = "";
@@ -1197,14 +1173,10 @@ void SurfaceSettings::set_setting(std::string settings_name, std::string setting
     if (settings_value == ""){
         // If no setting value provided, do not apply anything
     }
-    else if (settings_name == "input_filename")
-        this->set_input_filename(settings_value);
-    else if (settings_name == "input_dir")
-        this->set_input_dir(settings_value);
-    else if (settings_name == "output_filename")
-        this->set_output_filename(settings_value);
-    else if (settings_name == "output_dir")
-        this->set_output_dir(settings_value);
+    else if (settings_name == "path_input_data")
+        this->set_path_input_data(settings_value);
+    else if (settings_name == "path_output_figure")
+        this->set_path_output_figure(settings_value);
     else if (settings_name == "title")
         this->set_title(settings_value);
     else if (settings_name == "x_label")
@@ -1246,17 +1218,11 @@ void SurfaceSettings::set_setting(std::string settings_name, std::string setting
 }
 
 // Setter functions
-void SurfaceSettings::set_input_filename(std::string input_filename) {
-    this->input_filename = input_filename;
+void SurfaceSettings::set_path_input_data(std::string path_input_data) {
+    this->path_input_data = path_input_data;
 }
-void SurfaceSettings::set_input_dir(std::string input_dir) {
-    this->input_dir = input_dir;
-}
-void SurfaceSettings::set_output_filename(std::string output_filename) {
-    this->output_filename = output_filename;
-}
-void SurfaceSettings::set_output_dir(std::string output_dir) {
-    this->output_dir = output_dir;
+void SurfaceSettings::set_path_output_figure(std::string path_output_figure) {
+    this->path_output_figure = path_output_figure;
 }
 void SurfaceSettings::set_title(std::string title) {
     this->title = title;

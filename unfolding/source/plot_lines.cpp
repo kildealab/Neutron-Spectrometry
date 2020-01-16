@@ -46,15 +46,14 @@ int main(int argc, char* argv[])
     setPlotSettings(settings_file, settings); // Fill settings with any user provided settings
 
     // Read in data
-    std::string input_path = settings.input_dir + settings.input_filename;
     std::vector<std::string> headers;
     std::vector<std::vector<double>> x_data;
     std::vector<std::vector<double>> y_data;
     if (settings.data_format == "xyy") {
-        readXYYCSV(input_path, headers, x_data, y_data);
+        readXYYCSV(settings.path_input_data, headers, x_data, y_data);
     }
     else if (settings.data_format == "xyxy") {
-        readXYXYCSV(input_path, headers, x_data, y_data);
+        readXYXYCSV(settings.path_input_data, headers, x_data, y_data);
     }
     else {
         throw std::logic_error("Unrecognized data format: " + settings.data_format);
@@ -207,8 +206,7 @@ int main(int argc, char* argv[])
     gStyle->SetLineWidth(settings.border_width); // Set width of axis/border around the plot
 
     // Output the plot to file
-    std::string output_path = settings.output_dir + settings.output_filename;
-    const char *cstr_figure_file = output_path.c_str();
+    const char *cstr_figure_file = settings.path_output_figure.c_str();
     c1->Print(cstr_figure_file);
 
     return 1;

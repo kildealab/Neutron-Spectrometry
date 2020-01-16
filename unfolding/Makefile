@@ -37,9 +37,9 @@ LFLAGS = -Wall -O -g $(ROOTCFLAGS)
 
 OBJS = $(OBJ_DIR)/unfold_spectrum.o $(OBJ_DIR)/fileio.o $(OBJ_DIR)/handle_args.o $(OBJ_DIR)/root_helpers.o $(OBJ_DIR)/physics_calculations.o $(OBJ_DIR)/custom_classes.o
 OBJS_PLOT = $(OBJ_DIR)/plot_spectra.o $(OBJ_DIR)/fileio.o $(OBJ_DIR)/root_helpers.o $(OBJ_DIR)/physics_calculations.o $(OBJ_DIR)/custom_classes.o
-OBJS_AUTO = $(OBJ_DIR)/auto_unfold_spectrum.o $(OBJ_DIR)/fileio.o $(OBJ_DIR)/handle_args.o $(OBJ_DIR)/root_helpers.o $(OBJ_DIR)/physics_calculations.o $(OBJ_DIR)/custom_classes.o
+OBJS_TREND = $(OBJ_DIR)/unfold_trend.o $(OBJ_DIR)/fileio.o $(OBJ_DIR)/handle_args.o $(OBJ_DIR)/root_helpers.o $(OBJ_DIR)/physics_calculations.o $(OBJ_DIR)/custom_classes.o
 OBJS_LINE = $(OBJ_DIR)/plot_lines.o $(OBJ_DIR)/fileio.o $(OBJ_DIR)/root_helpers.o $(OBJ_DIR)/physics_calculations.o $(OBJ_DIR)/custom_classes.o
-OBJS_SURF = $(OBJ_DIR)/plot_surface.o $(OBJ_DIR)/fileio.o $(OBJ_DIR)/root_helpers.o $(OBJ_DIR)/physics_calculations.o $(OBJ_DIR)/custom_classes.o
+# OBJS_SURF = $(OBJ_DIR)/plot_surface.o $(OBJ_DIR)/fileio.o $(OBJ_DIR)/root_helpers.o $(OBJ_DIR)/physics_calculations.o $(OBJ_DIR)/custom_classes.o
 
 #===================================================================================================
 # Targets
@@ -48,11 +48,11 @@ OBJS_SURF = $(OBJ_DIR)/plot_surface.o $(OBJ_DIR)/fileio.o $(OBJ_DIR)/root_helper
 # Standard make targets
 #-----------------------------------------------------------------------------
 # make all targets
-all: unfold_spectrum.exe plot_spectra.exe auto_unfold_spectrum.exe plot_lines.exe plot_surface.exe
+all: unfold_spectrum.exe plot_spectra.exe unfold_trend.exe plot_lines.exe #plot_surface.exe
 
 # tidy up
 clean: 
-	rm -rf $(OBJ_DIR)/*.o unfold_spectrum.exe plot_spectra.exe auto_unfold_spectrum.exe plot_lines.exe plot_surface.exe
+	rm -rf $(OBJ_DIR)/*.o unfold_spectrum.exe plot_spectra.exe unfold_trend.exe plot_lines.exe plot_surface.exe
 
 #-----------------------------------------------------------------------------
 # Primary (executable) targets
@@ -63,14 +63,14 @@ unfold_spectrum.exe: $(OBJS)
 plot_spectra.exe: $(OBJS_PLOT)
 	$(CPP) $(LFLAGS) $(OBJS_PLOT) $(ALLLIBS) -o plot_spectra.exe
 
-auto_unfold_spectrum.exe: $(OBJS_AUTO)
-	$(CPP) $(LFLAGS) $(OBJS_AUTO) $(ALLLIBS) -o auto_unfold_spectrum.exe
+unfold_trend.exe: $(OBJS_TREND)
+	$(CPP) $(LFLAGS) $(OBJS_TREND) $(ALLLIBS) -o unfold_trend.exe
 
 plot_lines.exe: $(OBJS_LINE)
 	$(CPP) $(LFLAGS) $(OBJS_LINE) $(ALLLIBS) -o plot_lines.exe
 
-plot_surface.exe: $(OBJS_SURF)
-	$(CPP) $(LFLAGS) $(OBJS_SURF) $(ALLLIBS) -o plot_surface.exe
+# plot_surface.exe: $(OBJS_SURF)
+# 	$(CPP) $(LFLAGS) $(OBJS_SURF) $(ALLLIBS) -o plot_surface.exe
 
 #-----------------------------------------------------------------------------
 # Intermediate (object) targets
@@ -83,14 +83,14 @@ $(OBJ_DIR)/unfold_spectrum.o: $(SRC_DIR)/unfold_spectrum.cpp
 $(OBJ_DIR)/plot_spectra.o: $(SRC_DIR)/plot_spectra.cpp 
 	$(CPP) -c $(CFLAGS) $(ROOTCFLAGS) $<
 
-$(OBJ_DIR)/auto_unfold_spectrum.o: $(SRC_DIR)/auto_unfold_spectrum.cpp 
+$(OBJ_DIR)/unfold_trend.o: $(SRC_DIR)/unfold_trend.cpp 
 	$(CPP) -c $(CFLAGS) $<
 
 $(OBJ_DIR)/plot_lines.o: $(SRC_DIR)/plot_lines.cpp 
 	$(CPP) -c $(CFLAGS) $(ROOTCFLAGS) $<
 
-$(OBJ_DIR)/plot_surface.o: $(SRC_DIR)/plot_surface.cpp 
-	$(CPP) -c $(CFLAGS) $(ROOTCFLAGS) $<
+# $(OBJ_DIR)/plot_surface.o: $(SRC_DIR)/plot_surface.cpp 
+# 	$(CPP) -c $(CFLAGS) $(ROOTCFLAGS) $<
 
 
 
