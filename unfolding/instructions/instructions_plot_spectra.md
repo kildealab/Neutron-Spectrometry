@@ -81,7 +81,7 @@ This application is used to plot one or more neutron fluence spectra on a single
 | x_res | `3200` | Horizontal resolution (dimension). Only applicable to rasterized image formats (e.g. PNG not EPS). |
 | y_digits_max | `3` |  Max number of digits allowed on the y axis labels before scientific notation is used. |
 | y_label | `Fluence (n #upoint cm^{-2} s^{-1})` | Y-axis label |
-| x_label_offset | `1.4` | Double value to shift the y-axis label left or right. Changing by 0.1 adjusts position by 10 percent |
+| y_label_offset | `1.4` | Double value to shift the y-axis label left or right. Changing by 0.1 adjusts position by 10 percent |
 | y_max | 1.25x max spectral value in [input file](#csv-spectra-file) | Max y-axis value. |
 | y_min | `0` | Min y-axis value. |
 | y_num_divs | N/A | 3 digit number that specifies number of major and minor divisions (tick marks). See [Root docs](https://root.cern.ch/doc/master/classTAttAxis.html#ae3067b6d4218970d09418291cbd84084). |
