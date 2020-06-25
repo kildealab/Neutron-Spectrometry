@@ -689,6 +689,17 @@ SpectraSettings::SpectraSettings() {
     number_mu = {0};
     duration = {0};
     normalize = 0;
+    margin_left = 0.1;
+    margin_right = 0.1;
+    margin_top = 0.1;
+    margin_bottom = 0.1;
+    font_size = 1.0;
+    font_size_legend = 1.0;
+    font_size_axis_labels = 1.0;
+    font_size_axis_tick_labels = 1.0;
+    font_size_title = 1.0;
+    x_label_offset = 1.4;
+    y_label_offset = 1.4;
 }
 
 // Apply a value to a setting:
@@ -762,6 +773,28 @@ void SpectraSettings::set_setting(std::string settings_name, std::string setting
         this->set_duration(settings_value);
     else if (settings_name == "normalize")
         this->set_normalize(settings_value);
+    else if (settings_name == "margin_left")
+        this->set_margin_left(settings_value);
+    else if (settings_name == "margin_right")
+        this->set_margin_right(settings_value);
+    else if (settings_name == "margin_top")
+        this->set_margin_top(settings_value);
+    else if (settings_name == "margin_bottom")
+        this->set_margin_bottom(settings_value);
+    else if (settings_name == "font_size")
+        this->set_font_size(settings_value);
+    else if (settings_name == "font_size_legend")
+        this->set_font_size_legend(settings_value);
+    else if (settings_name == "font_size_axis_labels")
+        this->set_font_size_axis_labels(settings_value);
+    else if (settings_name == "font_size_axis_tick_labels")
+        this->set_font_size_axis_tick_labels(settings_value);
+    else if (settings_name == "font_size_title")
+        this->set_font_size_title(settings_value);
+    else if (settings_name == "x_label_offset")
+        this->set_x_label_offset(settings_value);
+    else if (settings_name == "y_label_offset")
+        this->set_y_label_offset(settings_value);
     // else
     //     throw std::logic_error("Unrecognized setting: " + settings_name 
     //      + ". Please refer to the README for allowed settings");
@@ -866,6 +899,42 @@ void SpectraSettings::set_duration(std::string duration) {
 void SpectraSettings::set_normalize(std::string normalize) {
     this->normalize = stoi(normalize);
 } 
+void SpectraSettings::set_margin_left(std::string margin_left) {
+    this->margin_left = stod(margin_left);
+}
+void SpectraSettings::set_margin_right(std::string margin_right) {
+    this->margin_right = stod(margin_right);
+}
+void SpectraSettings::set_margin_top(std::string margin_top) {
+    this->margin_top = stod(margin_top);
+}
+void SpectraSettings::set_margin_bottom(std::string margin_bottom) {
+    this->margin_bottom = stod(margin_bottom);
+}
+void SpectraSettings::set_font_size(std::string font_size) {
+    this->font_size = stod(font_size);
+}
+void SpectraSettings::set_font_size_legend(std::string font_size_legend) {
+    this->font_size_legend = stod(font_size_legend);
+}
+void SpectraSettings::set_font_size_axis_labels(std::string font_size_axis_labels) {
+    this->font_size_axis_labels = stod(font_size_axis_labels);
+}
+void SpectraSettings::set_font_size_axis_tick_labels(std::string font_size_axis_tick_labels) {
+    this->font_size_axis_tick_labels = stod(font_size_axis_tick_labels);
+}
+void SpectraSettings::set_font_size_title(std::string font_size_title) {
+    this->font_size_title = stod(font_size_title);
+}
+void SpectraSettings::set_font_size_textbox(std::string font_size_textbox) {
+    this->font_size_textbox = stod(font_size_textbox);
+}
+void SpectraSettings::set_x_label_offset(std::string x_label_offset) {
+    this->x_label_offset = stod(x_label_offset);
+}
+void SpectraSettings::set_y_label_offset(std::string y_label_offset) {
+    this->y_label_offset = stod(y_label_offset);
+}
 
 
 //--------------------------------------------------------------------------------------------------

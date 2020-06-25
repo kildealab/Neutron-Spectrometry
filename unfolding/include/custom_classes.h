@@ -311,6 +311,18 @@ class SpectraSettings{
         std::vector<int> number_mu;
         std::vector<int> duration;
         int normalize;
+        double margin_left;
+        double margin_right;
+        double margin_top;
+        double margin_bottom;
+        double font_size;
+        double font_size_legend;
+        double font_size_axis_labels;
+        double font_size_axis_tick_labels;
+        double font_size_title;
+        double font_size_textbox;
+        double x_label_offset;
+        double y_label_offset;
 
         SpectraSettings();
 
@@ -349,6 +361,18 @@ class SpectraSettings{
         void set_number_mu(std::string);
         void set_duration(std::string);
         void set_normalize(std::string);
+        void set_margin_left(std::string);
+        void set_margin_right(std::string);
+        void set_margin_top(std::string);
+        void set_margin_bottom(std::string);
+        void set_font_size(std::string);
+        void set_font_size_legend(std::string);
+        void set_font_size_axis_labels(std::string);
+        void set_font_size_axis_tick_labels(std::string);
+        void set_font_size_title(std::string);
+        void set_font_size_textbox(std::string);
+        void set_x_label_offset(std::string);
+        void set_y_label_offset(std::string);
 };
 
 class PlotSettings{

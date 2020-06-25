@@ -47,12 +47,22 @@ This application is used to plot one or more neutron fluence spectra on a single
 | duration | N/A | If `plot_per_mu=1`, use this to specify the duration of exposure per moderator configuration. |
 | error_fill_style | `3001` | The fill pattern to use in the uncertainty region. See [Root docs](https://root.cern.ch/doc/master/classTAttFill.html#F2). |
 | error_style | `E2` | The visual style with which uncertainties are displayed. See [Root docs](https://root.cern.ch/doc/master/classTHistPainter.html#HP01b). |
+| font_size | `1` | Scaling factor applied to all text in the figure. e.g. font_size = 2 makes text twice as large. Use element-specific settings when necessary. |
+| font_size_axis_labels | `1` | Scaling factor applied to axis labels (titles). e.g. font_size = 2 makes text twice as large. |
+| font_size_axis_tick_labels | `1` | Scaling factor applied to axis tick labels. e.g. font_size = 2 makes text twice as large. |
+| font_size_legend | `1` | Scaling factor applied to legend entries. e.g. font_size = 2 makes text twice as large. |
+| font_size_textbox | `1` | Scaling factor applied to the textbox. e.g. font_size = 2 makes text twice as large. |
+| font_size_title | `1` | Scaling factor applied to the plot title. e.g. font_size = 2 makes text twice as large. |
 | grayscale | `0` | If `grayscale=0`: plot in color. If `grayscale=1`: plot in grayscale. |
 | legend | `1` | If `legend=1`: show legend. If `legend=0`: no legend. |
 | legend_coords | `0.15,0.75,0.365,0.85` | Comma-delimited coordinates of the legend (format: lower x, lower y, upper x, upper y). Rule of thumb: add 0.05 between upper and lower y for each data series. |
 | legend_entries | row headers in [input file](#csv-spectra-file) | Comma-delimited spectra names. e.g: spectrum 1,spectrum 2,spectrum 3 |
 | line_style | `1` | Comma-delimited list of spectra line styles. See [Root docs](https://root.cern.ch/doc/master/classTAttLine.html#L3). If only a single value, apply to all spectra. |
 | line_width | `5` | Comma-delimited list of spectra line widths. See [Root docs](https://root.cern.ch/doc/master/classTAttLine.html#L2). If only a single value, apply to all spectra. |
+| margin_bottom | `0.1` | Whitespace margin to add to bottom of plot area, as a fractional percent of the canvas. |
+| margin_left | `0.1` | Whitespace margin to add to left of plot area, as a fractional percent of the canvas. |
+| margin_right | `0.1` | Whitespace margin to add to right of plot area, as a fractional percent of the canvas. |
+| margin_top | `0.1` | Whitespace margin to add to top of plot area, as a fractional percent of the canvas. |
 | normalize | `0` | If `normalize=0`: plot absolute spectral values. If `normalize=1`: plot spectra normalized to max value of 1. |
 | number_mu | N/A | If `plot_per_mu=1`, use this to specify the # of MU delivered per moderator configuration. |
 | path_input_data | `output/output_spectra.csv` | Pathname to [input CSV spectra file](#csv-spectra-file). |
@@ -65,11 +75,13 @@ This application is used to plot one or more neutron fluence spectra on a single
 | textbox_text | N/A | Comma-delimited text to include in text box. Commas delineate new lines. |
 | title | N/A | Title of the plot. |
 | x_label | `Energy (MeV)` | X-axis label. |
+| x_label_offset | `1.4` | Double value to shift the x-axis label up or down. Changing by 0.1 adjusts position by 10 percent |
 | x_max | max energy in [input file](#csv-spectra-file) | Max x-axis value. |
 | x_min | min energy in [input file](#csv-spectra-file) | Min x-axis value. |
 | x_res | `3200` | Horizontal resolution (dimension). Only applicable to rasterized image formats (e.g. PNG not EPS). |
 | y_digits_max | `3` |  Max number of digits allowed on the y axis labels before scientific notation is used. |
 | y_label | `Fluence (n #upoint cm^{-2} s^{-1})` | Y-axis label |
+| x_label_offset | `1.4` | Double value to shift the y-axis label left or right. Changing by 0.1 adjusts position by 10 percent |
 | y_max | 1.25x max spectral value in [input file](#csv-spectra-file) | Max y-axis value. |
 | y_min | `0` | Min y-axis value. |
 | y_num_divs | N/A | 3 digit number that specifies number of major and minor divisions (tick marks). See [Root docs](https://root.cern.ch/doc/master/classTAttAxis.html#ae3067b6d4218970d09418291cbd84084). |
