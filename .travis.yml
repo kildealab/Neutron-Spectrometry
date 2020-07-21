@@ -1,0 +1,29 @@
+jobs:
+  include: 
+    - os: linux
+      dist: bionic
+    - os: osx
+      osximage: xcode11.6
+language: cpp
+before_install:
+  - |
+    if [ "$TRAVIS_OS_NAME" =  "linux" ] 
+    then 
+      sudo apt-get update
+      sudo apt-get -y install dpkg-dev cmake g++ gcc binutils libx13-dev libxpm-dev libxft-dev libxext-dev python
+      wget https://root.cern/download/root_v6.22.00.Linux-ubuntu18-x86_64-gcc7.5.tar.gz
+      tar -xzf root_v6.22.00.Linux-ubuntu18-x86_64-gcc7.5.tar.gz
+    fi
+  - |
+    if [ "$TRAVIS_OS_NAME" = "osx" ]
+    then
+      wget https://root.cern/download/root_v6.22.00.macosx64-10.15-clang110.tar.gz
+      tar -xzf root_v6.22.00.macosx64-10.15-clang110.tar.gz
+    fi
+  - export ROOTSH="$PWD/root/bin/thisroot.sh"
+script:
+  - source $ROOTSH 
+  - sh initialization.sh
+  - cd unfolding
+  - make
+
