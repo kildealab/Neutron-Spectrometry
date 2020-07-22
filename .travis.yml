@@ -1,11 +1,11 @@
+language: cpp
 jobs:
   include: 
     - os: linux
       dist: bionic
     - os: osx
-      osximage: xcode11.6
-language: cpp
-before_install:
+      osx_image: xcode11.6
+install:
   - |
     if [ "$TRAVIS_OS_NAME" =  "linux" ] 
     then 
